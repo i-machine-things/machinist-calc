@@ -12,6 +12,10 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 - **Add docstrings to explain code.** Focus on *why* a function/class exists or *why* it does something non-obvious — the code itself already shows *what* it does. A docstring worth writing usually covers intent, assumptions, edge cases, or a gotcha a future reader would otherwise have to rediscover the hard way.
 - **Strip docstrings when building a release.** Release builds don't need internal rationale shipped alongside the binary — it bloats the artifact and can leak implementation notes you didn't mean to publish. Run Python with `-OO` (or an equivalent build step) to drop docstrings and assertions from the compiled output before packaging.
 
+## Enum-like String Parameters (JS)
+
+- **Reject unrecognized values instead of silently defaulting to one branch.** `calc.bonusTolerance`'s `featureType` used to treat anything except `'external'` as `'internal'`, so a typo or omitted argument would silently apply the wrong GD&T direction and return a confidently-wrong number. Throw (`RangeError`) on an unmatched value instead — caught by CodeRabbit in machinist-calc.
+
 ## JSDoc / Standard Citations (JS)
 
 - **Cite the specific standard a formula implements, in the function's JSDoc.** E.g. tap drill/thread formulas → ASME B1.1 / ISO 68-1; true position → ASME Y14.5; IT tolerance grades → ISO 286-1. If no formal standard governs a formula (e.g. speeds & feeds, surface finish Ra), say so explicitly rather than citing nothing or citing the wrong standard. See `src/js/calc-core.js` in machinist-calc for the pattern.

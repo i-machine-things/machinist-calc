@@ -396,9 +396,16 @@
    * returned as a (wrong-signed) positive bonus via Math.abs.
    * Caller adds the result to the stated position tolerance to get the
    * total allowable true position at the actual feature size.
+   * `featureType` must be exactly 'internal' or 'external' — anything
+   * else (typo, undefined) throws rather than silently defaulting, since
+   * defaulting the wrong direction is precisely the kind of confidently-
+   * wrong-number bug this function exists to avoid.
    */
   calc.bonusTolerance = function (actualFeatureSize, mmcSize, featureType) {
-    var isInternal = featureType !== 'external';
+    if (featureType !== 'internal' && featureType !== 'external') {
+      throw new RangeError('featureType must be "internal" or "external"');
+    }
+    var isInternal = featureType === 'internal';
     var delta = isInternal ? (actualFeatureSize - mmcSize) : (mmcSize - actualFeatureSize);
     return round(Math.max(delta, 0), 5);
   };

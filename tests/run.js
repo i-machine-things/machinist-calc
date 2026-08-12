@@ -160,6 +160,11 @@ test('bonusTolerance: external feature at/above MMC gets no bonus (clamped to 0)
   approx(calc.bonusTolerance(0.252, 0.25, 'external'), 0, 0.0001);
 });
 
+test('bonusTolerance: rejects an unsupported featureType instead of silently defaulting', () => {
+  assert.throws(() => calc.bonusTolerance(0.257, 0.25, 'hole'), RangeError);
+  assert.throws(() => calc.bonusTolerance(0.257, 0.25, undefined), RangeError);
+});
+
 // -------------------------------------------------------------------------
 // Surface finish
 // -------------------------------------------------------------------------
