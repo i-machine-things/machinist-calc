@@ -103,7 +103,7 @@ Tag releases using `vMAJOR.MINOR.PATCH`:
 - **MINOR** — new features that do not break existing functionality
 - **PATCH** — bug fixes, typo corrections, minor improvements
 
-Pushing a `v*` tag to `master` triggers the release workflow. PRs are gated by `.github/workflows/ci.yml` — do not tag until all CI jobs are green on master.
+PRs are gated by `.github/workflows/ci.yml` — do not tag until all CI jobs are green on master. This repo has no separate automated release/publish workflow yet (no `push.tags` trigger) — pushing a `v*` tag today just creates the tag; it doesn't itself build or publish installers. If that automation is wanted later, add a dedicated release workflow rather than assuming one exists.
 
 Before tagging, complete the management review sign-off (Rule 6). Do not tag on the user's silence — get an explicit go/no-go.
 
@@ -128,12 +128,12 @@ Count by type:
 - Lines starting with `fix:` → fix count
 
 **Thresholds:**
-- **5 or more `feat:` commits** → bump MINOR, reset PATCH to 0, tag and push
-- **5 or more `fix:` commits** → bump PATCH, tag and push
+- **5 or more `feat:` commits** → MINOR bump due (reset PATCH to 0)
+- **5 or more `fix:` commits** → PATCH bump due
 
-If both thresholds are met simultaneously, bump MINOR (takes precedence).
+If both thresholds are met simultaneously, MINOR takes precedence.
 
-Check this threshold after every merge to master. Do not wait for the user to ask.
+Check this threshold after every merge to master. Do not wait for the user to ask — but do not tag or push on your own either: report which bump is due and the commit count that triggered it, then follow Rule 6's management-review sign-off before tagging. This threshold check decides *whether to ask*, not *whether to act*; Rule 6's explicit go/no-go still gates the actual `git tag`/`git push`.
 
 ## Rule 5: Pull Request Reviews
 
