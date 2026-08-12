@@ -84,6 +84,14 @@ test('unifiedThreadGeometry: 1/2-13 UNC basic pitch diameter is 0.4500"', () => 
   approx(g.pitch, 1 / 13, 0.00001);
 });
 
+test('unifiedThreadGeometry: basic internal major diameter equals the basic major diameter D', () => {
+  // Regression test — a fabricated "D - 0.108253*P" decrement was caught in
+  // review; at the basic (theoretical, zero-tolerance) profile, internal and
+  // external major diameters coincide at D by definition (ASME B1.1).
+  const g = calc.unifiedThreadGeometry({ majorDia: 0.5, tpi: 13 });
+  approx(g.internal.majorDiaMin, 0.5, 1e-9);
+});
+
 test('metricThreadGeometry: M10x1.5 pitch diameter and minor diameters', () => {
   const g = calc.metricThreadGeometry({ majorDia: 10, pitch: 1.5 });
   approx(g.external.pitchDia, 10 - 0.649519 * 1.5, 0.0005);
@@ -136,8 +144,20 @@ test('truePosition', () => {
   approx(r.truePosition, 0.004472, 0.00001);
 });
 
-test('bonusTolerance', () => {
-  approx(calc.bonusTolerance(0.257, 0.25), 0.007, 0.0001);
+test('bonusTolerance: internal feature (hole) grows above MMC', () => {
+  approx(calc.bonusTolerance(0.257, 0.25, 'internal'), 0.007, 0.0001);
+});
+
+test('bonusTolerance: internal feature at/below MMC gets no bonus (clamped to 0)', () => {
+  approx(calc.bonusTolerance(0.248, 0.25, 'internal'), 0, 0.0001);
+});
+
+test('bonusTolerance: external feature (shaft) shrinks below MMC', () => {
+  approx(calc.bonusTolerance(0.245, 0.25, 'external'), 0.005, 0.0001);
+});
+
+test('bonusTolerance: external feature at/above MMC gets no bonus (clamped to 0)', () => {
+  approx(calc.bonusTolerance(0.252, 0.25, 'external'), 0, 0.0001);
 });
 
 // -------------------------------------------------------------------------

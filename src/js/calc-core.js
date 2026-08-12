@@ -231,7 +231,11 @@
    *   H (basic triangle height) = 0.866025404 * P
    *   pitch diameter            = D - 0.649519 * P   (= D - 2*(3/8)H)
    *   external minor diameter   = D - 1.082532 * P   (= D - 2*(5/8)H)
-   *   internal major dia (min)  = D - 0.108253 * P   (= D - 2*(1/8)H)
+   *   internal major diameter (basic, minimum) = D — by definition, the
+   *     basic profile of internal and external threads shares the same
+   *     nominal major diameter; actual 2A/2B tolerance classes apply an
+   *     allowance on top of this, which this basic-profile calculator
+   *     does not model.
    * Tensile stress area per ASME B1.1 Appendix: As = (pi/4)*(D - 0.9743*P)^2.
    * These are basic-profile values, not a specific 2A/2B tolerance class.
    */
@@ -241,7 +245,7 @@
     var H = 0.866025404 * P;
     var pitchDia = D - 0.649519 * P;
     var extMinorDia = D - 1.082532 * P;
-    var intMajorDiaMin = D - 0.108253 * P;
+    var intMajorDiaMin = D;
     var tensileStressArea = Math.PI / 4 * Math.pow(D - 0.9743 * P, 2);
     return {
       pitch: round(P, 5),
@@ -380,14 +384,23 @@
   };
 
   /**
-   * Bonus tolerance available under an MMC/LMC material-condition modifier:
-   * the difference between the actual produced feature size and its MMC
-   * (or LMC) size. Standard: ASME Y14.5, rule for bonus tolerance at MMC/LMC.
-   * Caller adds this to the stated position tolerance to get the total
-   * allowable true position at the actual feature size.
+   * Bonus tolerance available under an MMC material-condition modifier.
+   * Standard: ASME Y14.5, rule for bonus tolerance at MMC.
+   * Directional: for an internal feature (hole), MMC is the *smallest*
+   * allowed size, and bonus accrues as the actual size grows above it.
+   * For an external feature (shaft/pin/boss), MMC is the *largest*
+   * allowed size, and bonus accrues as the actual size shrinks below it.
+   * Departure in the opposite direction (toward, not away from, MMC) is
+   * not a valid bonus — that's a size-tolerance violation, not something
+   * this calculator adjudicates — so it's clamped to 0 rather than
+   * returned as a (wrong-signed) positive bonus via Math.abs.
+   * Caller adds the result to the stated position tolerance to get the
+   * total allowable true position at the actual feature size.
    */
-  calc.bonusTolerance = function (actualFeatureSize, mmcSize) {
-    return round(Math.abs(actualFeatureSize - mmcSize), 5);
+  calc.bonusTolerance = function (actualFeatureSize, mmcSize, featureType) {
+    var isInternal = featureType !== 'external';
+    var delta = isInternal ? (actualFeatureSize - mmcSize) : (mmcSize - actualFeatureSize);
+    return round(Math.max(delta, 0), 5);
   };
 
   // ---------------------------------------------------------------------

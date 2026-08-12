@@ -282,12 +282,19 @@
         <div class="result-value">True Position: <span id="tp-result">—</span></div>
       </div>
 
-      <h2>Bonus Tolerance (MMC/LMC)</h2>
-      <div class="grid grid-2">
+      <h2>Bonus Tolerance (MMC)</h2>
+      <p class="hint">For a hole, MMC is the smallest allowed size and bonus grows as the actual size increases. For a shaft/pin, MMC is the largest allowed size and bonus grows as the actual size decreases. Departure in the wrong direction is clamped to 0 — it's a size violation, not a bonus.</p>
+      <div class="grid grid-3">
+        <label>Feature Type
+          <select id="tp-featuretype">
+            <option value="internal">Internal (hole)</option>
+            <option value="external">External (shaft/pin)</option>
+          </select>
+        </label>
         <label>Actual Feature Size
           <input type="number" id="tp-actualsize" step="any" value="0.257" />
         </label>
-        <label>MMC / LMC Size
+        <label>MMC Size
           <input type="number" id="tp-mmcsize" step="any" value="0.25" />
         </label>
       </div>

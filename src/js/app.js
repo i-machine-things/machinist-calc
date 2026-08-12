@@ -265,13 +265,13 @@
     [bx, by, ax, ay].forEach(function (el) { el.addEventListener('input', recalc); });
     recalc();
 
-    var actSize = $('tp-actualsize'), mmc = $('tp-mmcsize'), bonusOut = $('tp-bonus');
+    var actSize = $('tp-actualsize'), mmc = $('tp-mmcsize'), featureType = $('tp-featuretype'), bonusOut = $('tp-bonus');
     function recalcBonus() {
       var a = parseFloat(actSize.value), m = parseFloat(mmc.value);
       if (isNaN(a) || isNaN(m)) { bonusOut.textContent = '—'; return; }
-      bonusOut.textContent = calc.bonusTolerance(a, m);
+      bonusOut.textContent = calc.bonusTolerance(a, m, featureType.value);
     }
-    [actSize, mmc].forEach(function (el) { el.addEventListener('input', recalcBonus); });
+    [actSize, mmc, featureType].forEach(function (el) { el.addEventListener('input', recalcBonus); });
     recalcBonus();
   }
 
