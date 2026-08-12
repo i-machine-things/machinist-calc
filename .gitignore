@@ -1,0 +1,13 @@
+node_modules/
+release/
+*.log
+npm-debug.log*
+
+.DS_Store
+Thumbs.db
+
+.vscode/
+.idea/
+
+# Claude Code local permission overrides — machine/session-specific, not shared template.
+.claude/settings.local.json
