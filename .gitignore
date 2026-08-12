@@ -8,3 +8,6 @@ Thumbs.db
 
 .vscode/
 .idea/
+
+# Claude Code local permission overrides — machine/session-specific, not shared template.
+.claude/settings.local.json
