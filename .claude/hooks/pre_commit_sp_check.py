@@ -14,16 +14,16 @@ import subprocess
 
 
 def _is_git_commit_command(command: str) -> bool:
-    """Return True only when command invokes the git commit subcommand."""
+    """Return True if any git invocation in the command is a git commit.
+
+    Handles chained commands like `git add . && git commit -m "..."`, where
+    the first `git` invocation isn't the commit — every `git` token in the
+    command is checked, not just the first one.
+    """
     try:
         tokens = shlex.split(command, posix=True)
     except ValueError:
         return bool(re.search(r"git\s+commit", command))
-
-    try:
-        git_idx = next(i for i, t in enumerate(tokens) if t == "git" or t.endswith("/git"))
-    except StopIteration:
-        return False
 
     # Options that consume the following token as an argument
     _ARG_OPTIONS = frozenset({
@@ -31,15 +31,20 @@ def _is_git_commit_command(command: str) -> bool:
         "--work-tree", "--namespace", "--super-prefix",
         "--list-cmds",
     })
-    i = git_idx + 1
-    while i < len(tokens):
-        tok = tokens[i]
-        if tok in _ARG_OPTIONS:
-            i += 2
-        elif tok.startswith("-"):
-            i += 1
-        else:
-            return tok == "commit"
+
+    git_indices = [i for i, t in enumerate(tokens) if t == "git" or t.endswith("/git")]
+    for git_idx in git_indices:
+        i = git_idx + 1
+        while i < len(tokens):
+            tok = tokens[i]
+            if tok in _ARG_OPTIONS:
+                i += 2
+            elif tok.startswith("-"):
+                i += 1
+            else:
+                if tok == "commit":
+                    return True
+                break
     return False
 
 
