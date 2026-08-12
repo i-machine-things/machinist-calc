@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+<title>Machinist Calc</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="app">
+  <nav class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">MC</span>
+      <span class="brand-name">Machinist Calc</span>
+    </div>
+    <ul class="nav-list" id="nav-list">
+      <li><button class="nav-btn active" data-panel="panel-unitconv">Unit Converter</button></li>
+      <li><button class="nav-btn" data-panel="panel-tapdrill">Tap Drills</button></li>
+      <li><button class="nav-btn" data-panel="panel-thread">Thread Calculator</button></li>
+      <li><button class="nav-btn" data-panel="panel-speedsfeeds">Speeds &amp; Feeds</button></li>
+      <li><button class="nav-btn" data-panel="panel-boltcircle">Bolt Circle</button></li>
+      <li><button class="nav-btn" data-panel="panel-trueposition">True Position</button></li>
+      <li><button class="nav-btn" data-panel="panel-surfacefinish">Surface Finish</button></li>
+      <li><button class="nav-btn" data-panel="panel-tolerance">ISO Tolerance</button></li>
+      <li><button class="nav-btn" data-panel="panel-charts">Reference Charts</button></li>
+    </ul>
+  </nav>
+
+  <main class="content">
+
+    <!-- Unit Converter -->
+    <section class="panel active" id="panel-unitconv">
+      <h1>Unit Converter</h1>
+      <p class="standard-note">Conversion factors are exact definitions (1 in = 25.4 mm), not an ISO/ANSI standard.</p>
+      <div class="grid grid-3">
+        <label>Value
+          <input type="number" id="uc-value" value="1" step="any" />
+        </label>
+        <label>From
+          <select id="uc-from">
+            <option value="in">inch (in)</option>
+            <option value="mm">millimeter (mm)</option>
+            <option value="cm">centimeter (cm)</option>
+            <option value="m">meter (m)</option>
+            <option value="ft">foot (ft)</option>
+            <option value="um">micrometer (µm)</option>
+            <option value="mil">thou / mil</option>
+          </select>
+        </label>
+        <label>To
+          <select id="uc-to">
+            <option value="mm">millimeter (mm)</option>
+            <option value="in">inch (in)</option>
+            <option value="cm">centimeter (cm)</option>
+            <option value="m">meter (m)</option>
+            <option value="ft">foot (ft)</option>
+            <option value="um">micrometer (µm)</option>
+            <option value="mil">thou / mil</option>
+          </select>
+        </label>
+      </div>
+      <div class="result-box">
+        <div class="result-value" id="uc-result">—</div>
+      </div>
+
+      <h2>Surface Speed</h2>
+      <div class="grid grid-2">
+        <label>SFM (ft/min)
+          <input type="number" id="uc-sfm" step="any" placeholder="e.g. 100" />
+        </label>
+        <label>SMM (m/min)
+          <input type="number" id="uc-smm" step="any" placeholder="e.g. 30.5" />
+        </label>
+      </div>
+      <p class="hint">Enter a value in either field — the other updates automatically.</p>
+    </section>
+
+    <!-- Tap Drills -->
+    <section class="panel" id="panel-tapdrill">
+      <h1>Tap Drill Calculator</h1>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="tapdrill-imperial">Imperial (UN)</button>
+        <button class="tab-btn" data-tab="tapdrill-metric">Metric (M)</button>
+      </div>
+
+      <div class="tab-panel active" id="tapdrill-imperial">
+        <p class="standard-note">Standard: ASME B1.1 (Unified Inch Screw Threads). Drill = Major Dia − (0.974 / TPI) × (%Thread / 75).</p>
+        <div class="grid grid-3">
+          <label>Common size
+            <select id="td-imp-preset"><option value="">Custom…</option></select>
+          </label>
+          <label>Major Diameter (in)
+            <input type="number" id="td-imp-major" step="any" value="0.25" />
+          </label>
+          <label>Threads Per Inch (TPI)
+            <input type="number" id="td-imp-tpi" step="any" value="20" />
+          </label>
+        </div>
+        <label class="slider-label">% Thread Engagement: <span id="td-imp-pct-out">75</span>%
+          <input type="range" id="td-imp-pct" min="50" max="100" value="75" />
+        </label>
+        <div class="result-box">
+          <div class="result-value" id="td-imp-result">—</div>
+          <div class="result-sub" id="td-imp-nearest">—</div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="tapdrill-metric">
+        <p class="standard-note">Standard: ISO 68-1 (basic profile) / ISO 965-1. Drill = Major Dia − (Pitch × 1.08253) × (%Thread / 100).</p>
+        <div class="grid grid-3">
+          <label>Common size
+            <select id="td-met-preset"><option value="">Custom…</option></select>
+          </label>
+          <label>Major Diameter (mm)
+            <input type="number" id="td-met-major" step="any" value="6" />
+          </label>
+          <label>Pitch (mm)
+            <input type="number" id="td-met-pitch" step="any" value="1.0" />
+          </label>
+        </div>
+        <label class="slider-label">% Thread Engagement: <span id="td-met-pct-out">75</span>%
+          <input type="range" id="td-met-pct" min="50" max="100" value="75" />
+        </label>
+        <div class="result-box">
+          <div class="result-value" id="td-met-result">—</div>
+          <div class="result-sub" id="td-met-nearest">—</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Thread Calculator -->
+    <section class="panel" id="panel-thread">
+      <h1>Thread Calculator</h1>
+      <p class="hint">Basic (theoretical) thread profile dimensions — not a specific 2A/2B or 6g/6H tolerance class.</p>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="thread-unified">Unified (UN)</button>
+        <button class="tab-btn" data-tab="thread-metric">Metric (M)</button>
+      </div>
+
+      <div class="tab-panel active" id="thread-unified">
+        <p class="standard-note">Standard: ASME B1.1 (Unified Inch Screw Threads).</p>
+        <div class="grid grid-3">
+          <label>Common size
+            <select id="th-uni-preset"><option value="">Custom…</option></select>
+          </label>
+          <label>Major Diameter (in)
+            <input type="number" id="th-uni-major" step="any" value="0.5" />
+          </label>
+          <label>Threads Per Inch (TPI)
+            <input type="number" id="th-uni-tpi" step="any" value="13" />
+          </label>
+        </div>
+        <div class="result-table" id="th-uni-result"></div>
+      </div>
+
+      <div class="tab-panel" id="thread-metric">
+        <p class="standard-note">Standard: ISO 68-1 (basic profile).</p>
+        <div class="grid grid-3">
+          <label>Common size
+            <select id="th-met-preset"><option value="">Custom…</option></select>
+          </label>
+          <label>Major Diameter (mm)
+            <input type="number" id="th-met-major" step="any" value="10" />
+          </label>
+          <label>Pitch (mm)
+            <input type="number" id="th-met-pitch" step="any" value="1.5" />
+          </label>
+        </div>
+        <div class="result-table" id="th-met-result"></div>
+      </div>
+    </section>
+
+    <!-- Speeds & Feeds -->
+    <section class="panel" id="panel-speedsfeeds">
+      <h1>Speeds &amp; Feeds</h1>
+      <p class="standard-note">Conventional machining relations (Machinery's Handbook) — not a formal ISO/ANSI standard.</p>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="sf-imperial">Imperial</button>
+        <button class="tab-btn" data-tab="sf-metric">Metric</button>
+      </div>
+
+      <div class="tab-panel active" id="sf-imperial">
+        <div class="grid grid-3">
+          <label>Surface Speed (SFM)
+            <input type="number" id="sf-imp-sfm" step="any" value="100" />
+          </label>
+          <label>Tool / Stock Diameter (in)
+            <input type="number" id="sf-imp-dia" step="any" value="0.5" />
+          </label>
+          <label>Number of Flutes
+            <input type="number" id="sf-imp-flutes" step="1" value="4" />
+          </label>
+        </div>
+        <label>Chip Load (in/tooth)
+          <input type="number" id="sf-imp-chipload" step="any" value="0.002" />
+        </label>
+        <div class="result-box">
+          <div class="result-line">RPM: <span id="sf-imp-rpm">—</span></div>
+          <div class="result-line">Feed Rate: <span id="sf-imp-feed">—</span> in/min</div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="sf-metric">
+        <div class="grid grid-3">
+          <label>Surface Speed (m/min)
+            <input type="number" id="sf-met-smm" step="any" value="30" />
+          </label>
+          <label>Tool / Stock Diameter (mm)
+            <input type="number" id="sf-met-dia" step="any" value="10" />
+          </label>
+          <label>Number of Flutes
+            <input type="number" id="sf-met-flutes" step="1" value="4" />
+          </label>
+        </div>
+        <label>Chip Load (mm/tooth)
+          <input type="number" id="sf-met-chipload" step="any" value="0.05" />
+        </label>
+        <div class="result-box">
+          <div class="result-line">RPM: <span id="sf-met-rpm">—</span></div>
+          <div class="result-line">Feed Rate: <span id="sf-met-feed">—</span> mm/min</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bolt Circle -->
+    <section class="panel" id="panel-boltcircle">
+      <h1>Bolt Circle Calculator</h1>
+      <p class="standard-note">Plain analytic geometry — no ISO/ANSI standard applies.</p>
+      <div class="bc-layout">
+        <div class="bc-controls">
+          <div class="grid grid-2">
+            <label>Bolt Circle Diameter
+              <input type="number" id="bc-dia" step="any" value="6" />
+            </label>
+            <label>Number of Holes
+              <input type="number" id="bc-count" step="1" min="2" value="6" />
+            </label>
+            <label>Start Angle (° from 3 o'clock, CCW)
+              <input type="number" id="bc-start" step="any" value="90" />
+            </label>
+            <label>Direction
+              <select id="bc-dir">
+                <option value="cw">Clockwise</option>
+                <option value="ccw">Counter-clockwise</option>
+              </select>
+            </label>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table" id="bc-table">
+              <thead><tr><th>#</th><th>Angle</th><th>X</th><th>Y</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="bc-svg-wrap">
+          <svg id="bc-svg" viewBox="-110 -110 220 220" width="320" height="320"></svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- True Position -->
+    <section class="panel" id="panel-trueposition">
+      <h1>True Position Calculator</h1>
+      <p class="standard-note">Standard: ASME Y14.5 (Dimensioning and Tolerancing) — position tolerance zone.</p>
+      <div class="grid grid-2">
+        <label>Basic X
+          <input type="number" id="tp-basicx" step="any" value="0.5" />
+        </label>
+        <label>Basic Y
+          <input type="number" id="tp-basicy" step="any" value="0.5" />
+        </label>
+        <label>Actual (Measured) X
+          <input type="number" id="tp-actualx" step="any" value="0.502" />
+        </label>
+        <label>Actual (Measured) Y
+          <input type="number" id="tp-actualy" step="any" value="0.499" />
+        </label>
+      </div>
+      <div class="result-box">
+        <div class="result-line">Deviation X: <span id="tp-devx">—</span></div>
+        <div class="result-line">Deviation Y: <span id="tp-devy">—</span></div>
+        <div class="result-value">True Position: <span id="tp-result">—</span></div>
+      </div>
+
+      <h2>Bonus Tolerance (MMC/LMC)</h2>
+      <div class="grid grid-2">
+        <label>Actual Feature Size
+          <input type="number" id="tp-actualsize" step="any" value="0.257" />
+        </label>
+        <label>MMC / LMC Size
+          <input type="number" id="tp-mmcsize" step="any" value="0.25" />
+        </label>
+      </div>
+      <div class="result-box">
+        <div class="result-line">Bonus Tolerance: <span id="tp-bonus">—</span></div>
+      </div>
+    </section>
+
+    <!-- Surface Finish -->
+    <section class="panel" id="panel-surfacefinish">
+      <h1>Surface Finish Calculator</h1>
+      <p class="standard-note">Theoretical turning Ra approximation (Machinery's Handbook) — not an ISO/ANSI standard. Ra = feed² / (32 × nose radius). Actual finish also depends on tool wear, material, and vibration.</p>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="sfin-imperial">Imperial</button>
+        <button class="tab-btn" data-tab="sfin-metric">Metric</button>
+      </div>
+      <div class="tab-panel active" id="sfin-imperial">
+        <div class="grid grid-2">
+          <label>Feed (in/rev)
+            <input type="number" id="sfin-imp-feed" step="any" value="0.008" />
+          </label>
+          <label>Tool Nose Radius (in)
+            <input type="number" id="sfin-imp-radius" step="any" value="0.032" />
+          </label>
+        </div>
+        <div class="result-box">
+          <div class="result-value">Ra: <span id="sfin-imp-result">—</span> µin</div>
+        </div>
+      </div>
+      <div class="tab-panel" id="sfin-metric">
+        <div class="grid grid-2">
+          <label>Feed (mm/rev)
+            <input type="number" id="sfin-met-feed" step="any" value="0.2" />
+          </label>
+          <label>Tool Nose Radius (mm)
+            <input type="number" id="sfin-met-radius" step="any" value="0.8" />
+          </label>
+        </div>
+        <div class="result-box">
+          <div class="result-value">Ra: <span id="sfin-met-result">—</span> µm</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ISO Tolerance -->
+    <section class="panel" id="panel-tolerance">
+      <h1>ISO Tolerance / Limits Calculator</h1>
+
+      <h2>IT Grade Tolerance</h2>
+      <p class="standard-note">Standard: ISO 286-1. Uses the nominal size directly rather than the official size-range midpoint — a general-purpose approximation, close near the middle of a size range but not a substitute for the published ISO 286-1 tables.</p>
+      <div class="grid grid-2">
+        <label>Nominal Size (mm)
+          <input type="number" id="it-nominal" step="any" value="10" />
+        </label>
+        <label>IT Grade
+          <select id="it-grade"></select>
+        </label>
+      </div>
+      <div class="result-box">
+        <div class="result-line">Fundamental tolerance unit i: <span id="it-i">—</span> µm</div>
+        <div class="result-value">Tolerance: <span id="it-tol-um">—</span> µm (<span id="it-tol-mm">—</span> mm)</div>
+      </div>
+
+      <h2>Bilateral / Unilateral Limits</h2>
+      <p class="standard-note">Plain arithmetic per ASME Y14.5 / ISO 286-1 limit definitions.</p>
+      <div class="grid grid-3">
+        <label>Nominal Size
+          <input type="number" id="lim-nominal" step="any" value="10" />
+        </label>
+        <label>Upper Tolerance (+)
+          <input type="number" id="lim-upper" step="any" value="0.05" />
+        </label>
+        <label>Lower Tolerance (−, enter magnitude)
+          <input type="number" id="lim-lower" step="any" value="0.02" />
+        </label>
+      </div>
+      <div class="result-box">
+        <div class="result-line">Max Limit: <span id="lim-max">—</span></div>
+        <div class="result-line">Min Limit: <span id="lim-min">—</span></div>
+        <div class="result-line">Total Tolerance: <span id="lim-total">—</span></div>
+      </div>
+    </section>
+
+    <!-- Reference Charts -->
+    <section class="panel" id="panel-charts">
+      <h1>Reference Charts</h1>
+      <p class="standard-note">Standard: ASME B94.11M / Machinery's Handbook number, letter, and fractional drill size tables.</p>
+      <label>Filter
+        <input type="text" id="chart-filter" placeholder="e.g. 1/4, #7, 0.20" />
+      </label>
+      <div class="table-scroll table-scroll-tall">
+        <table class="data-table" id="chart-table">
+          <thead><tr><th>Size</th><th>Decimal (in)</th><th>mm</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script src="js/calc-core.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
