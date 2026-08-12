@@ -21,10 +21,7 @@ html, body {
   color: var(--text);
   font-family: var(--font);
   font-size: 14px;
-  user-select: none;
 }
-
-input, select, textarea, button { user-select: text; }
 
 .app {
   display: flex;
