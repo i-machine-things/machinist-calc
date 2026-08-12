@@ -354,9 +354,25 @@
     render();
   }
 
+  // Hidden Ctrl+Alt+Shift+M easter egg — quiet, no accidental trigger, not
+  // referenced anywhere in the UI. See CODING_NOTES.md "Easter Eggs".
+  function setupEasterEgg() {
+    var el = $('easter-egg');
+    if (!el) return;
+    document.addEventListener('keydown', function (e) {
+      if (e.ctrlKey && e.altKey && e.shiftKey && e.code === 'KeyM') {
+        el.hidden = !el.hidden;
+      } else if (e.key === 'Escape' && !el.hidden) {
+        el.hidden = true;
+      }
+    });
+    el.addEventListener('click', function () { el.hidden = true; });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     setupNav();
     setupTabs();
+    setupEasterEgg();
     setupUnitConverter();
     setupTapDrillImperial();
     setupTapDrillMetric();

@@ -281,6 +281,28 @@ input:focus, select:focus {
 .bc-crosshair { stroke: var(--text-dim); stroke-width: 0.5; }
 .bc-label { fill: var(--text-dim); font-size: 7px; }
 
+/* Hidden Ctrl+Alt+Shift+M easter egg — see CODING_NOTES.md */
+.easter-egg {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: var(--bg-panel);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  z-index: 999;
+  cursor: pointer;
+}
+.easter-egg[hidden] { display: none; }
+.easter-egg pre {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-dim);
+}
+
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #3a3b44; border-radius: 5px; }
