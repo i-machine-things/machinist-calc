@@ -73,11 +73,8 @@ def main():
     print('wrote', ico_path)
 
     icns_path = os.path.join(OUT_DIR, 'icon.icns')
-    try:
-        img.save(icns_path, format='ICNS')
-        print('wrote', icns_path)
-    except Exception as exc:  # pragma: no cover - environment dependent
-        print('WARNING: could not write icon.icns:', exc)
+    img.save(icns_path, format='ICNS')
+    print('wrote', icns_path)
 
 
 if __name__ == '__main__':
