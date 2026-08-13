@@ -333,6 +333,28 @@
     return round(feedRate * depthOfCut * widthOfCut, 4);
   };
 
+  /**
+   * Recommended turning cutting speed ranges (SFM) by workpiece material
+   * and tool material. Not a formal ISO/ANSI standard — general
+   * shop-reference starting points in the style of Machinery's Handbook
+   * speed/feed tables. Treat as a starting point, not a target: actual
+   * optimal speed depends on the specific alloy/temper, machine rigidity,
+   * coolant, and tool coating — always confirm against the tooling
+   * manufacturer's data.
+   */
+  calc.recommendedSfm = [
+    { material: 'Aluminum & aluminum alloys', hss: [300, 600], carbide: [600, 1200] },
+    { material: 'Brass & bronze', hss: [150, 300], carbide: [300, 600] },
+    { material: 'Free-machining low-carbon steel (11xx/12xx)', hss: [90, 120], carbide: [300, 500] },
+    { material: 'Low-carbon steel (10xx, <0.3% C)', hss: [80, 110], carbide: [275, 425] },
+    { material: 'Medium-carbon steel (10xx, 0.3-0.5% C)', hss: [70, 100], carbide: [250, 400] },
+    { material: 'Alloy steel, annealed (41xx, 86xx)', hss: [50, 70], carbide: [200, 300] },
+    { material: 'Tool steel, annealed', hss: [40, 60], carbide: [150, 250] },
+    { material: 'Stainless steel, austenitic (300 series)', hss: [40, 70], carbide: [150, 300] },
+    { material: 'Gray cast iron', hss: [50, 80], carbide: [200, 400] },
+    { material: 'Titanium alloys', hss: [20, 30], carbide: [100, 150] }
+  ];
+
   // ---------------------------------------------------------------------
   // Bolt circle
   // Plain analytic geometry (points on a circle) — no ISO/ANSI standard

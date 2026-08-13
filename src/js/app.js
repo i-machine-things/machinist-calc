@@ -186,6 +186,36 @@
   // ------------------------------------------------------------------
   // Speeds & Feeds
   // ------------------------------------------------------------------
+  function setupRecommendedSfm() {
+    var material = $('sf-material'), tool = $('sf-tool'), out = $('sf-recommended'), apply = $('sf-apply');
+    calc.recommendedSfm.forEach(function (row, i) {
+      var opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = row.material;
+      material.appendChild(opt);
+    });
+    function currentRange() {
+      var row = calc.recommendedSfm[+material.value];
+      return tool.value === 'carbide' ? row.carbide : row.hss;
+    }
+    function recalc() {
+      var range = currentRange();
+      out.textContent = range[0] + '–' + range[1];
+    }
+    [material, tool].forEach(function (el) { el.addEventListener('change', recalc); });
+    recalc();
+
+    apply.addEventListener('click', function () {
+      var range = currentRange();
+      var mid = Math.round((range[0] + range[1]) / 2);
+      var sfmInput = $('sf-imp-sfm'), smmInput = $('sf-met-smm');
+      sfmInput.value = mid;
+      sfmInput.dispatchEvent(new Event('input'));
+      smmInput.value = calc.sfmToSmm(mid);
+      smmInput.dispatchEvent(new Event('input'));
+    });
+  }
+
   function setupSpeedsFeedsImperial() {
     var sfm = $('sf-imp-sfm'), dia = $('sf-imp-dia'), flutes = $('sf-imp-flutes'), chip = $('sf-imp-chipload'),
       rpmOut = $('sf-imp-rpm'), feedOut = $('sf-imp-feed');
@@ -378,6 +408,7 @@
     setupTapDrillMetric();
     setupThreadUnified();
     setupThreadMetric();
+    setupRecommendedSfm();
     setupSpeedsFeedsImperial();
     setupSpeedsFeedsMetric();
     setupBoltCircle();
