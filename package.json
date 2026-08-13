@@ -1,7 +1,7 @@
 {
   "name": "machinist-calc",
   "productName": "Machinist Calc",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Offline machinist calculator suite: thread calcs, tap drills, speeds & feeds, surface finish, bolt circle, true position, tolerances, and reference charts.",
   "main": "main.js",
   "author": {
