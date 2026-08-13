@@ -50,9 +50,8 @@ Each platform also has a no-install-required "portable" option: the
 Windows *portable* `.exe` and macOS `.zip` need no installer, and Linux's
 `AppImage` is already portable by design.
 
-Cross-compiling macOS builds only works on a macOS host/CI runner, so CI
-builds each OS's installer natively on that OS's own runner rather than
-cross-compiling.
+macOS installers must be built on a macOS host/CI runner, so CI builds each
+OS's installer natively on that OS's own runner.
 
 **Download a build without building it yourself:** every PR and push to
 `.github/workflows/ci.yml`'s `build` job uploads the Windows/macOS/Linux
