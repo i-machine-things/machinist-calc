@@ -10,8 +10,8 @@ import os
 from PIL import Image, ImageDraw
 
 SIZE = 1024
-BG = (30, 31, 36, 255)        # #1e1f24
-ACCENT = (224, 138, 44, 255)  # #e08a2c
+BG = (224, 138, 44, 255)   # #e08a2c — matches the in-app sidebar .brand-mark background
+ACCENT = (26, 27, 31, 255)  # #1a1b1f — matches the in-app sidebar .brand-mark text color
 
 OUT_DIR = os.path.join(os.path.dirname(__file__), '..', 'build')
 
