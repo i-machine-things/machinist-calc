@@ -28,7 +28,6 @@
     "appId": "com.allan.machinistcalc",
     "productName": "Machinist Calc",
     "icon": "build/icon.png",
-    "desktopName": "machinist-calc.desktop",
     "win": {
       "target": "nsis",
       "icon": "build/icon.ico"
@@ -45,8 +44,7 @@
     "linux": {
       "target": ["AppImage", "deb"],
       "icon": "build/icon.png",
-      "category": "Utility",
-      "syncDesktopName": true
+      "category": "Utility"
     },
     "files": [
       "main.js",
