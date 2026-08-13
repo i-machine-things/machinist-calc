@@ -200,7 +200,8 @@
     }
     function recalc() {
       var range = currentRange();
-      out.textContent = range[0] + '–' + range[1];
+      var smmMin = calc.sfmToSmm(range[0]), smmMax = calc.sfmToSmm(range[1]);
+      out.textContent = range[0] + '–' + range[1] + ' SFM (' + smmMin + '–' + smmMax + ' m/min)';
     }
     [material, tool].forEach(function (el) { el.addEventListener('change', recalc); });
     recalc();
