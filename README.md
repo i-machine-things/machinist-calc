@@ -41,10 +41,14 @@ npm run lint       # lint
 ## Building installers
 
 ```bash
-npm run dist:win     # Windows (NSIS installer)
-npm run dist:mac      # macOS (DMG) — must run on macOS
+npm run dist:win     # Windows (NSIS installer + portable .exe)
+npm run dist:mac      # macOS (DMG + .zip) — must run on macOS
 npm run dist:linux     # Linux (AppImage + .deb)
 ```
+
+Each platform also has a no-install-required "portable" option: the
+Windows *portable* `.exe` and macOS `.zip` need no installer, and Linux's
+`AppImage` is already portable by design.
 
 Cross-compiling macOS builds only works on a macOS host/CI runner, so CI
 builds each OS's installer natively on that OS's own runner rather than
