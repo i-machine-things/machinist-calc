@@ -1,19 +1,36 @@
 #!/usr/bin/env python3
 """
 Generates placeholder app icons for MachinistCalc (build/icon.png/.ico/.icns).
-Draws a simple "MC" monogram badge — not final branding, just enough to give
-the packaged app a real icon on all three platforms instead of a dangling
-reference to a file that doesn't exist. Uses only Pillow (already installed).
+Renders an "MC" monogram badge using the app's own font (Segoe UI Bold, the
+first cross-platform-available face in src/css/style.css's --font stack) —
+not final branding, just enough to give the packaged app a real icon on all
+three platforms instead of a dangling reference to a file that doesn't exist.
+Uses only Pillow (already installed).
 """
 
 import os
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 SIZE = 1024
 BG = (224, 138, 44, 255)   # #e08a2c — matches the in-app sidebar .brand-mark background
 ACCENT = (26, 27, 31, 255)  # #1a1b1f — matches the in-app sidebar .brand-mark text color
 
+# Segoe UI Bold — the first face in style.css's --font stack that's actually
+# present on this build machine (Windows). Falls back to Arial Bold if the
+# build ever runs somewhere without Segoe UI installed.
+FONT_CANDIDATES = [
+    r'C:\Windows\Fonts\segoeuib.ttf',
+    r'C:\Windows\Fonts\arialbd.ttf',
+]
+
 OUT_DIR = os.path.join(os.path.dirname(__file__), '..', 'build')
+
+
+def load_font(size):
+    for path in FONT_CANDIDATES:
+        if os.path.isfile(path):
+            return ImageFont.truetype(path, size)
+    raise FileNotFoundError('No bold sans-serif font found: ' + ', '.join(FONT_CANDIDATES))
 
 
 def build_base_image():
@@ -26,35 +43,13 @@ def build_base_image():
         radius=180, fill=BG
     )
 
-    stroke = 88
-    top = 340
-    bottom = 684
-    mid_y = 460
-
-    # "M": left leg -> down to a mid dip -> up -> right leg (single polyline).
-    m_left = 210
-    m_right = 470
-    m_mid = (m_left + m_right) // 2
-    draw.line(
-        [(m_left, bottom), (m_left, top), (m_mid, mid_y), (m_right, top), (m_right, bottom)],
-        fill=ACCENT, width=stroke, joint='curve'
-    )
-    for pt in [(m_left, bottom), (m_left, top), (m_mid, mid_y), (m_right, top), (m_right, bottom)]:
-        r = stroke // 2
-        draw.ellipse([pt[0] - r, pt[1] - r, pt[0] + r, pt[1] + r], fill=ACCENT)
-
-    # "C": open arc on the right side.
-    c_box = [560, top - 20, 860, bottom + 20]
-    draw.arc(c_box, start=55, end=305, fill=ACCENT, width=stroke)
-    # Round off the arc endpoints (PIL's arc has flat caps).
-    import math
-    cx, cy = (c_box[0] + c_box[2]) / 2, (c_box[1] + c_box[3]) / 2
-    rx, ry = (c_box[2] - c_box[0]) / 2, (c_box[3] - c_box[1]) / 2
-    for ang in (55, 305):
-        rad = math.radians(ang)
-        px, py = cx + rx * math.cos(rad), cy + ry * math.sin(rad)
-        r = stroke // 2
-        draw.ellipse([px - r, py - r, px + r, py + r], fill=ACCENT)
+    text = 'MC'
+    font = load_font(560)
+    bbox = draw.textbbox((0, 0), text, font=font)
+    text_w, text_h = bbox[2] - bbox[0], bbox[3] - bbox[1]
+    x = (SIZE - text_w) / 2 - bbox[0]
+    y = (SIZE - text_h) / 2 - bbox[1]
+    draw.text((x, y), text, font=font, fill=ACCENT)
 
     return img
 
