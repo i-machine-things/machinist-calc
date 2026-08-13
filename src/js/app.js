@@ -187,7 +187,7 @@
   // Speeds & Feeds
   // ------------------------------------------------------------------
   function setupRecommendedSfm() {
-    var material = $('sf-material'), tool = $('sf-tool'), out = $('sf-recommended'), apply = $('sf-apply');
+    var material = $('sf-material'), tool = $('sf-tool'), out = $('sf-recommended');
     calc.recommendedSfm.forEach(function (row, i) {
       var opt = document.createElement('option');
       opt.value = i;
@@ -198,23 +198,23 @@
       var row = calc.recommendedSfm[+material.value];
       return tool.value === 'carbide' ? row.carbide : row.hss;
     }
+    // Fills the surface-speed fields with the recommended midpoint whenever
+    // the material/tool selection changes — a starting point, not a lock;
+    // the fields stay plain inputs the user can type over afterward.
     function recalc() {
       var range = currentRange();
       var smmMin = calc.sfmToSmm(range[0]), smmMax = calc.sfmToSmm(range[1]);
       out.textContent = range[0] + '–' + range[1] + ' SFM (' + smmMin + '–' + smmMax + ' m/min)';
-    }
-    [material, tool].forEach(function (el) { el.addEventListener('change', recalc); });
-    recalc();
 
-    apply.addEventListener('click', function () {
-      var range = currentRange();
       var mid = Math.round((range[0] + range[1]) / 2);
       var sfmInput = $('sf-imp-sfm'), smmInput = $('sf-met-smm');
       sfmInput.value = mid;
       sfmInput.dispatchEvent(new Event('input'));
       smmInput.value = calc.sfmToSmm(mid);
       smmInput.dispatchEvent(new Event('input'));
-    });
+    }
+    [material, tool].forEach(function (el) { el.addEventListener('change', recalc); });
+    recalc();
   }
 
   function setupSpeedsFeedsImperial() {
