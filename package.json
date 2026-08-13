@@ -4,7 +4,10 @@
   "version": "0.1.0",
   "description": "Offline machinist calculator suite: thread calcs, tap drills, speeds & feeds, surface finish, bolt circle, true position, tolerances, and reference charts.",
   "main": "main.js",
-  "author": "Allan",
+  "author": {
+    "name": "Allan",
+    "email": "allann2020@gmail.com"
+  },
   "license": "MIT",
   "private": true,
   "scripts": {
@@ -41,7 +44,9 @@
     "linux": {
       "target": ["AppImage", "deb"],
       "icon": "build/icon.png",
-      "category": "Utility"
+      "category": "Utility",
+      "desktopName": "machinist-calc.desktop",
+      "syncDesktopName": true
     },
     "files": [
       "main.js",
