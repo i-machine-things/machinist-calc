@@ -14,7 +14,8 @@ module.exports = [
         document: 'readonly',
         console: 'readonly',
         module: 'readonly',
-        self: 'readonly'
+        self: 'readonly',
+        Event: 'readonly'
       }
     },
     rules: {

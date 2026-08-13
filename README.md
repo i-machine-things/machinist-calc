@@ -41,14 +41,23 @@ npm run lint       # lint
 ## Building installers
 
 ```bash
-npm run dist:win     # Windows (NSIS installer)
-npm run dist:mac      # macOS (DMG) — must run on macOS
+npm run dist:win     # Windows (NSIS installer + portable .exe)
+npm run dist:mac      # macOS (DMG + .zip) — must run on macOS
 npm run dist:linux     # Linux (AppImage + .deb)
 ```
 
-Cross-compiling macOS builds only works on a macOS host/CI runner; the
-GitHub Actions workflow in `.github/workflows/ci.yml` builds and validates
-packaging on all three OSes on every push and pull request.
+Each platform also has a no-install-required "portable" option: the
+Windows *portable* `.exe` and macOS `.zip` need no installer, and Linux's
+`AppImage` is already portable by design.
+
+macOS installers must be built on a macOS host/CI runner, so CI builds each
+OS's installer natively on that OS's own runner.
+
+**Download a build without building it yourself:** every PR and push to
+`.github/workflows/ci.yml`'s `build` job uploads the Windows/macOS/Linux
+installers as workflow artifacts (14-day retention) — open the run under the
+PR's checks and grab them from the *Artifacts* section. Pushing a `v*` tag
+additionally attaches all three installers to a GitHub Release for that tag.
 
 ## Project structure
 

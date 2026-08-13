@@ -122,6 +122,16 @@ test('mrr', () => {
   approx(calc.mrr(8, 0.1, 0.5), 0.4, 0.0001);
 });
 
+test('recommendedSfm: every row has ordered HSS/carbide ranges, carbide faster than HSS', () => {
+  assert.ok(calc.recommendedSfm.length > 0);
+  for (const row of calc.recommendedSfm) {
+    assert.ok(typeof row.material === 'string' && row.material.length > 0);
+    assert.ok(row.hss[0] < row.hss[1], `${row.material}: hss range out of order`);
+    assert.ok(row.carbide[0] < row.carbide[1], `${row.material}: carbide range out of order`);
+    assert.ok(row.carbide[0] >= row.hss[0], `${row.material}: carbide should cut faster than HSS`);
+  }
+});
+
 // -------------------------------------------------------------------------
 // Bolt circle
 // -------------------------------------------------------------------------

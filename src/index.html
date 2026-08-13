@@ -174,6 +174,25 @@
     <section class="panel" id="panel-speedsfeeds">
       <h1>Speeds &amp; Feeds</h1>
       <p class="standard-note">Conventional machining relations (Machinery's Handbook) — not a formal ISO/ANSI standard.</p>
+
+      <h2>Recommended Cutting Speed (Turning)</h2>
+      <p class="standard-note">General shop-reference starting ranges, not a formal standard — always confirm against your tooling manufacturer's data. Actual optimal speed depends on the specific alloy/temper, rigidity, coolant, and tool coating.</p>
+      <div class="grid grid-2">
+        <label>Workpiece Material
+          <select id="sf-material"></select>
+        </label>
+        <label>Tool Material
+          <select id="sf-tool">
+            <option value="hss">HSS</option>
+            <option value="carbide">Carbide</option>
+          </select>
+        </label>
+      </div>
+      <div class="result-box">
+        <div class="result-line">Recommended range: <span id="sf-recommended">—</span></div>
+      </div>
+      <p class="hint">Selecting a material/tool fills the Surface Speed field below with the recommended midpoint — edit it directly to override.</p>
+
       <div class="tabs">
         <button class="tab-btn active" data-tab="sf-imperial">Imperial</button>
         <button class="tab-btn" data-tab="sf-metric">Metric</button>
