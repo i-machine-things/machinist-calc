@@ -29,6 +29,11 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 
 - **Count-like inputs (flute count, hole count, etc.) must be validated as positive integers, not just non-NaN.** `setupFeedPerToothImperial`/`Metric` accepted 0, negative, and fractional flute counts, producing meaningless feed results — caught by CodeRabbit in machinist-calc. Use `!Number.isInteger(f) || f <= 0` alongside the `isNaN` check.
 
+## Auto-Update (Network Exception)
+
+- **machinist-calc**: the only network call in the app is the GitHub Releases update check in `main.js` (`electron-updater`, `build.publish` in `package.json`). Everything else must stay offline — don't add other outbound calls without updating the "no network calls" claims in README.md and `.claude/CLAUDE.md`.
+- Only NSIS (win), `.zip` (mac), and AppImage (linux) targets self-update via `electron-updater`; portable/dmg/deb builds don't — this is inherent to those target types, not a bug to fix.
+
 ## Easter Eggs
 
 - **machinist-calc**: Ctrl+Alt+Shift+M toggles a small hidden "Machinist's Rule 0" ASCII-art note (`#easter-egg` in `src/index.html`, wired in `src/js/app.js`'s `setupEasterEgg()`). Not referenced anywhere in the visible UI. Dismiss with Esc or a click.

@@ -3,8 +3,9 @@
 An offline desktop calculator suite for machinists — thread calculations, tap
 drills, speeds & feeds, surface finish, bolt circles, true position, and ISO
 tolerances — inspired by [theoreticalmachinist.com](https://theoreticalmachinist.com).
-Built with Electron; runs on **Windows, macOS, and Linux**. No network access,
-no telemetry — everything runs locally in the app.
+Built with Electron; runs on **Windows, macOS, and Linux**. No telemetry, and
+no network access beyond an optional update check against GitHub Releases —
+every calculation runs locally in the app.
 
 ## Calculators
 
@@ -58,6 +59,20 @@ OS's installer natively on that OS's own runner.
 installers as workflow artifacts (14-day retention) — open the run under the
 PR's checks and grab them from the *Artifacts* section. Pushing a `v*` tag
 additionally attaches all three installers to a GitHub Release for that tag.
+
+## Auto-Update
+
+Packaged builds check GitHub Releases for a newer version a few seconds after
+launch, and via **Help → Check for Updates...** at any time. This is the only
+network call the app makes. If a newer release is found it downloads
+automatically and prompts to restart once ready; a failed background check
+fails silently, while a manual check always reports the result (up to date,
+update found, or error).
+
+Only the **Windows NSIS installer**, **macOS `.zip`**, and **Linux
+`AppImage`** targets can self-update in place. The Windows *portable* `.exe`,
+macOS `.dmg`, and Linux `.deb` users need to grab the new installer manually
+from the [releases page](https://github.com/i-machine-things/machinist-calc/releases).
 
 ## Project structure
 

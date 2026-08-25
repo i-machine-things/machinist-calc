@@ -6,10 +6,10 @@ You are a senior software developer. These rules override your default behavior.
 
 ## Project Overview
 
-**Machinist Calc** — Offline, cross-platform (Windows/macOS/Linux) Electron desktop app providing a suite of machinist calculators modeled on [theoreticalmachinist.com](https://theoreticalmachinist.com): thread calculator, tap drills, speeds & feeds, surface finish, bolt circle, true position, ISO tolerances, and reference charts. No backend, no network calls, no telemetry.
+**Machinist Calc** — Offline-first, cross-platform (Windows/macOS/Linux) Electron desktop app providing a suite of machinist calculators modeled on [theoreticalmachinist.com](https://theoreticalmachinist.com): thread calculator, tap drills, speeds & feeds, surface finish, bolt circle, true position, ISO tolerances, and reference charts. No backend, no telemetry; the only network call is an optional GitHub Releases update check (`electron-updater`, see `main.js`) — every calculation runs locally.
 
 Key files:
-- `main.js` — Electron main process (window, native menu, icon)
+- `main.js` — Electron main process (window, native menu, icon, `electron-updater` auto-update wiring)
 - `preload.js` — no-op; renderer is fully self-contained, no IPC
 - `src/js/calc-core.js` — pure calculation engine (dependency-free; shared by the renderer *and* `tests/run.js`); every formula's JSDoc cites the ISO/ANSI standard it implements
 - `src/js/app.js` — DOM wiring for the calculator panels
