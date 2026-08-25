@@ -222,7 +222,9 @@
       rpmOut = $('sf-imp-rpm'), feedOut = $('sf-imp-feed');
     function recalc() {
       var s = parseFloat(sfm.value), d = parseFloat(dia.value), f = parseFloat(flutes.value), c = parseFloat(chip.value);
-      if ([s, d, f, c].some(isNaN) || d <= 0) { rpmOut.textContent = '—'; feedOut.textContent = '—'; return; }
+      if ([s, d, f, c].some(isNaN) || d <= 0 || !Number.isInteger(f) || f <= 0) {
+        rpmOut.textContent = '—'; feedOut.textContent = '—'; return;
+      }
       var rpm = calc.rpmFromSfm(s, d);
       rpmOut.textContent = rpm;
       feedOut.textContent = calc.feedRate(rpm, c, f);
@@ -236,12 +238,44 @@
       rpmOut = $('sf-met-rpm'), feedOut = $('sf-met-feed');
     function recalc() {
       var s = parseFloat(smm.value), d = parseFloat(dia.value), f = parseFloat(flutes.value), c = parseFloat(chip.value);
-      if ([s, d, f, c].some(isNaN) || d <= 0) { rpmOut.textContent = '—'; feedOut.textContent = '—'; return; }
+      if ([s, d, f, c].some(isNaN) || d <= 0 || !Number.isInteger(f) || f <= 0) {
+        rpmOut.textContent = '—'; feedOut.textContent = '—'; return;
+      }
       var rpm = calc.rpmFromSmm(s, d);
       rpmOut.textContent = rpm;
       feedOut.textContent = calc.feedRate(rpm, c, f);
     }
     [smm, dia, flutes, chip].forEach(function (el) { el.addEventListener('input', recalc); });
+    recalc();
+  }
+
+  function setupFeedPerToothImperial() {
+    var rpm = $('sf-imp-fpt-rpm'), flutes = $('sf-imp-fpt-flutes'), chip = $('sf-imp-fpt-chipload'),
+      iprOut = $('sf-imp-fpt-ipr'), feedOut = $('sf-imp-fpt-feed');
+    function recalc() {
+      var r = parseFloat(rpm.value), f = parseFloat(flutes.value), c = parseFloat(chip.value);
+      if ([r, f, c].some(isNaN) || !Number.isInteger(f) || f <= 0) {
+        iprOut.textContent = '—'; feedOut.textContent = '—'; return;
+      }
+      iprOut.textContent = calc.feedPerRev(c, f);
+      feedOut.textContent = calc.feedRate(r, c, f);
+    }
+    [rpm, flutes, chip].forEach(function (el) { el.addEventListener('input', recalc); });
+    recalc();
+  }
+
+  function setupFeedPerToothMetric() {
+    var rpm = $('sf-met-fpt-rpm'), flutes = $('sf-met-fpt-flutes'), chip = $('sf-met-fpt-chipload'),
+      iprOut = $('sf-met-fpt-ipr'), feedOut = $('sf-met-fpt-feed');
+    function recalc() {
+      var r = parseFloat(rpm.value), f = parseFloat(flutes.value), c = parseFloat(chip.value);
+      if ([r, f, c].some(isNaN) || !Number.isInteger(f) || f <= 0) {
+        iprOut.textContent = '—'; feedOut.textContent = '—'; return;
+      }
+      iprOut.textContent = calc.feedPerRev(c, f);
+      feedOut.textContent = calc.feedRate(r, c, f);
+    }
+    [rpm, flutes, chip].forEach(function (el) { el.addEventListener('input', recalc); });
     recalc();
   }
 
@@ -412,6 +446,8 @@
     setupRecommendedSfm();
     setupSpeedsFeedsImperial();
     setupSpeedsFeedsMetric();
+    setupFeedPerToothImperial();
+    setupFeedPerToothMetric();
     setupBoltCircle();
     setupTruePosition();
     setupSurfaceFinish();
