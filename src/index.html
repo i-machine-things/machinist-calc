@@ -217,6 +217,24 @@
           <div class="result-line">RPM: <span id="sf-imp-rpm">—</span></div>
           <div class="result-line">Feed Rate: <span id="sf-imp-feed">—</span> in/min</div>
         </div>
+
+        <h2>Feed Per Tooth Conversion</h2>
+        <p class="hint">Standalone conversion — enter a known/actual spindle RPM directly (no SFM/diameter needed) to convert chip load into feed per revolution and feed rate.</p>
+        <div class="grid grid-3">
+          <label>RPM
+            <input type="number" id="sf-imp-fpt-rpm" step="any" value="1750" />
+          </label>
+          <label>Number of Flutes
+            <input type="number" id="sf-imp-fpt-flutes" step="1" value="4" />
+          </label>
+          <label>Feed per Tooth (in)
+            <input type="number" id="sf-imp-fpt-chipload" step="any" value="0.002" />
+          </label>
+        </div>
+        <div class="result-box">
+          <div class="result-line">Feed per Revolution: <span id="sf-imp-fpt-ipr">—</span> in/rev</div>
+          <div class="result-line">Feed Rate: <span id="sf-imp-fpt-feed">—</span> in/min</div>
+        </div>
       </div>
 
       <div class="tab-panel" id="sf-metric">
@@ -237,6 +255,24 @@
         <div class="result-box">
           <div class="result-line">RPM: <span id="sf-met-rpm">—</span></div>
           <div class="result-line">Feed Rate: <span id="sf-met-feed">—</span> mm/min</div>
+        </div>
+
+        <h2>Feed Per Tooth Conversion</h2>
+        <p class="hint">Standalone conversion — enter a known/actual spindle RPM directly (no surface speed/diameter needed) to convert chip load into feed per revolution and feed rate.</p>
+        <div class="grid grid-3">
+          <label>RPM
+            <input type="number" id="sf-met-fpt-rpm" step="any" value="1750" />
+          </label>
+          <label>Number of Flutes
+            <input type="number" id="sf-met-fpt-flutes" step="1" value="4" />
+          </label>
+          <label>Feed per Tooth (mm)
+            <input type="number" id="sf-met-fpt-chipload" step="any" value="0.05" />
+          </label>
+        </div>
+        <div class="result-box">
+          <div class="result-line">Feed per Revolution: <span id="sf-met-fpt-ipr">—</span> mm/rev</div>
+          <div class="result-line">Feed Rate: <span id="sf-met-fpt-feed">—</span> mm/min</div>
         </div>
       </div>
     </section>

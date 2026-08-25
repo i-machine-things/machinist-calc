@@ -118,6 +118,10 @@ test('feedRate', () => {
   approx(calc.feedRate(1000, 0.002, 4), 8, 0.0001);
 });
 
+test('feedPerRev', () => {
+  approx(calc.feedPerRev(0.002, 4), 0.008, 0.00001);
+});
+
 test('mrr', () => {
   approx(calc.mrr(8, 0.1, 0.5), 0.4, 0.0001);
 });

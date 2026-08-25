@@ -328,6 +328,10 @@
   calc.feedRate = function (rpm, chipLoad, numFlutes) {
     return round(rpm * chipLoad * numFlutes, 4);
   };
+  /** Feed per revolution = chip load per tooth * number of flutes (feed-per-flute conversion). */
+  calc.feedPerRev = function (chipLoad, numFlutes) {
+    return round(chipLoad * numFlutes, 5);
+  };
   /** Material removal rate = feed rate * depth of cut * width of cut (consistent linear units). */
   calc.mrr = function (feedRate, depthOfCut, widthOfCut) {
     return round(feedRate * depthOfCut * widthOfCut, 4);

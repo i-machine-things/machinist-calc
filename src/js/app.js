@@ -245,6 +245,32 @@
     recalc();
   }
 
+  function setupFeedPerToothImperial() {
+    var rpm = $('sf-imp-fpt-rpm'), flutes = $('sf-imp-fpt-flutes'), chip = $('sf-imp-fpt-chipload'),
+      iprOut = $('sf-imp-fpt-ipr'), feedOut = $('sf-imp-fpt-feed');
+    function recalc() {
+      var r = parseFloat(rpm.value), f = parseFloat(flutes.value), c = parseFloat(chip.value);
+      if ([r, f, c].some(isNaN)) { iprOut.textContent = '—'; feedOut.textContent = '—'; return; }
+      iprOut.textContent = calc.feedPerRev(c, f);
+      feedOut.textContent = calc.feedRate(r, c, f);
+    }
+    [rpm, flutes, chip].forEach(function (el) { el.addEventListener('input', recalc); });
+    recalc();
+  }
+
+  function setupFeedPerToothMetric() {
+    var rpm = $('sf-met-fpt-rpm'), flutes = $('sf-met-fpt-flutes'), chip = $('sf-met-fpt-chipload'),
+      iprOut = $('sf-met-fpt-ipr'), feedOut = $('sf-met-fpt-feed');
+    function recalc() {
+      var r = parseFloat(rpm.value), f = parseFloat(flutes.value), c = parseFloat(chip.value);
+      if ([r, f, c].some(isNaN)) { iprOut.textContent = '—'; feedOut.textContent = '—'; return; }
+      iprOut.textContent = calc.feedPerRev(c, f);
+      feedOut.textContent = calc.feedRate(r, c, f);
+    }
+    [rpm, flutes, chip].forEach(function (el) { el.addEventListener('input', recalc); });
+    recalc();
+  }
+
   // ------------------------------------------------------------------
   // Bolt Circle
   // ------------------------------------------------------------------
@@ -412,6 +438,8 @@
     setupRecommendedSfm();
     setupSpeedsFeedsImperial();
     setupSpeedsFeedsMetric();
+    setupFeedPerToothImperial();
+    setupFeedPerToothMetric();
     setupBoltCircle();
     setupTruePosition();
     setupSurfaceFinish();

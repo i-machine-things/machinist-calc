@@ -13,7 +13,7 @@ no telemetry — everything runs locally in the app.
 | Unit Converter | Exact length/speed unit definitions |
 | Tap Drills (Imperial & Metric) | ASME B1.1 / ISO 68-1, ISO 965-1 |
 | Thread Calculator (Unified & Metric) | ASME B1.1 / ISO 68-1 |
-| Speeds & Feeds (with recommended SFM by material/tool) | Conventional machining relations |
+| Speeds & Feeds (with recommended SFM by material/tool, feed-per-tooth conversion) | Conventional machining relations |
 | Bolt Circle | Analytic geometry |
 | True Position | ASME Y14.5 |
 | Surface Finish | Theoretical Ra approximation (Machinery's Handbook) |
