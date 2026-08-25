@@ -39,6 +39,10 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 - **`once()` listeners for a user-triggered action must clean up on *every* outcome, not just the one you're watching for.** `checkForUpdatesManually` only removed its `update-not-available`/`error` listeners in those two handlers; an update-found result left them attached, firing again as stale duplicates on a later, unrelated check. Also guard re-entrancy (e.g. a double-click) with an in-progress flag. Caught by Claude review in machinist-calc.
 - **Never pass a `BrowserWindow` as a dialog parent without checking `!win.isDestroyed()`.** On macOS the app outlives its windows (`window-all-closed` doesn't quit), so a long-running background op (e.g. an update download) can complete after the window that started it was closed — passing the stale reference throws. Null the reference on `'closed'` and fall back to no parent.
 
+## ESLint Config Globals
+
+- **`eslint.config.js`'s `main.js`/`preload.js` block hand-lists Node globals instead of using the `globals` package's Node set — it's missing timer functions (`setTimeout`, etc.) that weren't used until now.** Adding the auto-updater's `setTimeout` call failed CI (`no-undef`) on a global the main process has always had at runtime. Add each newly-used Node global explicitly here rather than assuming it's covered.
+
 ## Easter Eggs
 
 - **machinist-calc**: Ctrl+Alt+Shift+M toggles a small hidden "Machinist's Rule 0" ASCII-art note (`#easter-egg` in `src/index.html`, wired in `src/js/app.js`'s `setupEasterEgg()`). Not referenced anywhere in the visible UI. Dismiss with Esc or a click.
