@@ -6,6 +6,12 @@ const isMac = process.platform === 'darwin';
 const iconPath = path.join(__dirname, 'build', isMac ? 'icon.icns' : (process.platform === 'win32' ? 'icon.ico' : 'icon.png'));
 
 let mainWindow = null;
+let updateCheckInProgress = false;
+
+/** Parent for update dialogs — falls back to none if the window has since been closed. */
+function getDialogParent() {
+  return mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
+}
 
 /**
  * Auto-download and prompt-to-restart on a background release check.
@@ -18,7 +24,7 @@ function setupAutoUpdater() {
     console.error('Auto-update error:', err);
   });
   autoUpdater.on('update-downloaded', (info) => {
-    dialog.showMessageBox(mainWindow, {
+    dialog.showMessageBox(getDialogParent(), {
       type: 'info',
       title: 'Update Ready',
       message: `Machinist Calc ${info.version} has been downloaded.`,
@@ -35,33 +41,44 @@ function setupAutoUpdater() {
 /** Manual "Check for Updates" — surfaces both the up-to-date and error cases, unlike the silent auto-check. */
 function checkForUpdatesManually() {
   if (!app.isPackaged) {
-    dialog.showMessageBox(mainWindow, {
+    dialog.showMessageBox(getDialogParent(), {
       type: 'info',
       title: 'Check for Updates',
       message: 'Update checks are only available in packaged builds.'
     });
     return;
   }
+  // Guard against overlapping checks (e.g. a double-click) attaching duplicate one-shot listeners.
+  if (updateCheckInProgress) return;
+  updateCheckInProgress = true;
+
+  const onAvailable = () => cleanup();
   const onNotAvailable = () => { cleanup(); showUpToDate(); };
   const onError = (err) => { cleanup(); showCheckFailed(err); };
+  // Every outcome (found, not found, error) must clean up — an update-found result used to leave
+  // the not-available/error listeners attached forever, firing again (as stale duplicates) on a
+  // later, unrelated check.
   function cleanup() {
+    updateCheckInProgress = false;
+    autoUpdater.removeListener('update-available', onAvailable);
     autoUpdater.removeListener('update-not-available', onNotAvailable);
     autoUpdater.removeListener('error', onError);
   }
   function showUpToDate() {
-    dialog.showMessageBox(mainWindow, {
+    dialog.showMessageBox(getDialogParent(), {
       type: 'info',
       title: 'Up to Date',
       message: 'Machinist Calc is up to date.'
     });
   }
   function showCheckFailed(err) {
-    dialog.showMessageBox(mainWindow, {
+    dialog.showMessageBox(getDialogParent(), {
       type: 'warning',
       title: 'Update Check Failed',
       message: `Could not check for updates:\n${err.message}`
     });
   }
+  autoUpdater.once('update-available', onAvailable);
   autoUpdater.once('update-not-available', onNotAvailable);
   autoUpdater.once('error', onError);
   autoUpdater.checkForUpdates();
@@ -158,6 +175,12 @@ function createWindow() {
   });
 
   win.loadFile(path.join(__dirname, 'src', 'index.html'));
+  // Mac apps outlive their windows (see window-all-closed below); drop the reference so a
+  // pending background operation (e.g. an in-flight update download) doesn't later try to
+  // parent a dialog to an already-destroyed window.
+  win.on('closed', () => {
+    if (mainWindow === win) mainWindow = null;
+  });
   return win;
 }
 
