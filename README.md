@@ -69,10 +69,18 @@ automatically and prompts to restart once ready; a failed background check
 fails silently, while a manual check always reports the result (up to date,
 update found, or error).
 
-Only the **Windows NSIS installer**, **macOS `.zip`**, and **Linux
-`AppImage`** targets can self-update in place. The Windows *portable* `.exe`,
-macOS `.dmg`, and Linux `.deb` users need to grab the new installer manually
-from the [releases page](https://github.com/i-machine-things/machinist-calc/releases).
+The **Windows NSIS installer**, **Linux `AppImage`**, and **Linux `.deb`**
+targets can self-update in place. The Windows *portable* `.exe` can't (inherent
+to that target type) and needs a manual grab from the releases page.
+
+**macOS currently can't self-update either** — not because of `.dmg` vs.
+`.zip` (self-update on macOS works from either once installed, since it's the
+same running app bundle checking for updates), but because self-update on
+macOS requires the app to be code-signed, and this project's CI builds macOS
+unsigned (`CSC_IDENTITY_AUTO_DISCOVERY: false`, no signing certificate). Mac
+users need to grab the new installer manually from the
+[releases page](https://github.com/i-machine-things/machinist-calc/releases)
+until the app is code-signed.
 
 ## Project structure
 
