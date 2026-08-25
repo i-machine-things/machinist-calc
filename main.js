@@ -81,7 +81,9 @@ function checkForUpdatesManually() {
   autoUpdater.once('update-available', onAvailable);
   autoUpdater.once('update-not-available', onNotAvailable);
   autoUpdater.once('error', onError);
-  autoUpdater.checkForUpdates();
+  // checkForUpdates() rejects on the same failure that also emits 'error' (handled by onError
+  // above) — swallow the rejection here so it doesn't surface as an unhandled promise rejection.
+  autoUpdater.checkForUpdates().catch(() => {});
 }
 
 function buildMenu() {
@@ -189,8 +191,10 @@ app.whenReady().then(() => {
   mainWindow = createWindow();
   setupAutoUpdater();
   if (app.isPackaged) {
-    // Delay so the window is up and responsive before making any network call.
-    setTimeout(() => autoUpdater.checkForUpdatesAndNotify(), 3000);
+    // Delay so the window is up and responsive before making any network call. The 'error'
+    // listener in setupAutoUpdater already logs failures — catch() here only prevents an
+    // unhandled promise rejection from the same failure.
+    setTimeout(() => autoUpdater.checkForUpdatesAndNotify().catch(() => {}), 3000);
   }
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) mainWindow = createWindow();
