@@ -34,7 +34,8 @@
     "publish": {
       "provider": "github",
       "owner": "i-machine-things",
-      "repo": "machinist-calc"
+      "repo": "machinist-calc",
+      "releaseType": "release"
     },
     "win": {
       "target": ["nsis", "portable"],

@@ -58,7 +58,8 @@ OS's installer natively on that OS's own runner.
 `.github/workflows/ci.yml`'s `build` job uploads the Windows/macOS/Linux
 installers as workflow artifacts (14-day retention) — open the run under the
 PR's checks and grab them from the *Artifacts* section. Pushing a `v*` tag
-additionally attaches all three installers to a GitHub Release for that tag.
+rebuilds and publishes all three installers to a GitHub Release for that tag,
+along with the update metadata the in-app auto-updater checks against.
 
 ## Auto-Update
 

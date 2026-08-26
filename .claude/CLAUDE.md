@@ -103,7 +103,7 @@ Tag releases using `vMAJOR.MINOR.PATCH`:
 - **MINOR** — new features that do not break existing functionality
 - **PATCH** — bug fixes, typo corrections, minor improvements
 
-PRs are gated by `.github/workflows/ci.yml` — do not tag until all CI jobs are green on master. Pushing a `v*` tag triggers `.github/workflows/ci.yml`'s `release` job: it downloads the Windows/macOS/Linux installers the `build` matrix already produced for that commit and attaches them to a GitHub Release (auto-generated notes, no rebuild). The `build` job's own per-OS installer artifacts are also uploaded on every PR/push (14-day retention) so a PR's installers can be downloaded and tested before merge, without needing a tag.
+PRs are gated by `.github/workflows/ci.yml` — do not tag until all CI jobs are green on master. Pushing a `v*` tag triggers `.github/workflows/ci.yml`'s `release` job: a per-OS matrix rebuilds and runs `electron-builder --publish always`, which publishes the release directly (not a draft — `releaseType: "release"` in `package.json`) with the installers **and** the `latest.yml`/`latest-mac.yml`/`latest-linux.yml` metadata `electron-updater` needs to detect new versions. This job rebuilds rather than reusing the `build` job's artifacts because `--publish never` (used by `build`) skips generating that metadata entirely — not just uploading it. The `build` job's own per-OS installer artifacts are still uploaded on every PR/push (14-day retention) so a PR's installers can be downloaded and tested before merge, without needing a tag.
 
 Before tagging, complete the management review sign-off (Rule 6). Do not tag on the user's silence — get an explicit go/no-go.
 
