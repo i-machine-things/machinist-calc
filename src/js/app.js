@@ -316,37 +316,73 @@
   // ------------------------------------------------------------------
   // Right Triangle Solver
   // ------------------------------------------------------------------
+  // Diagram has 6 positions (side a/b/c, angle A/B/C) but only 4 independent quantities --
+  // angle C is fixed at 90 and angle A/B are complementary (A+B=90), so the two angle fields
+  // are kept mirrored (like the SFM/SMM pair in the Unit Converter) and tracked as one 'angle'
+  // slot. After a solve every field holds a value (inputs *and* derived results share the same
+  // 5 fields), so "which 2 fields are non-empty" can't tell knowns from stale leftovers once
+  // all 5 are filled -- instead, track the 2 field keys the user most recently typed into and
+  // solve from only those, treating everything else as output to overwrite.
   function setupRightTriangle() {
-    var aIn = $('rt-a'), bIn = $('rt-b'), cIn = $('rt-c'), angleIn = $('rt-angle'),
-      outA = $('rt-out-a'), outB = $('rt-out-b'), outC = $('rt-out-c'),
-      outAngleA = $('rt-out-anglea'), outAngleB = $('rt-out-angleb'), errOut = $('rt-error');
-    var outs = [outA, outB, outC, outAngleA, outAngleB];
+    var aIn = $('rt-a'), bIn = $('rt-b'), cIn = $('rt-c'),
+      angleAIn = $('rt-anglea'), angleBIn = $('rt-angleb'), errOut = $('rt-error');
+    var editOrder = ['a', 'b']; // most-recently-edited last; matches the default seed below
+
+    function markEdited(key) {
+      var idx = editOrder.indexOf(key);
+      if (idx !== -1) editOrder.splice(idx, 1);
+      editOrder.push(key);
+      if (editOrder.length > 2) editOrder.shift();
+    }
+
     function recalc() {
+      var values = {
+        a: parseFloat(aIn.value), b: parseFloat(bIn.value), c: parseFloat(cIn.value),
+        angle: parseFloat(angleAIn.value)
+      };
       var known = {};
-      var a = parseFloat(aIn.value), b = parseFloat(bIn.value), c = parseFloat(cIn.value), ang = parseFloat(angleIn.value);
-      if (!isNaN(a)) known.a = a;
-      if (!isNaN(b)) known.b = b;
-      if (!isNaN(c)) known.c = c;
-      if (!isNaN(ang)) known.angleADeg = ang;
-      var count = Object.keys(known).length;
-      errOut.textContent = count > 2 ? 'Enter exactly 2 values — clear one to recalculate.' : '';
-      if (count !== 2) {
-        outs.forEach(function (el) { el.textContent = '—'; });
-        return;
-      }
+      editOrder.forEach(function (key) {
+        if (isNaN(values[key])) return;
+        if (key === 'angle') known.angleADeg = values[key]; else known[key] = values[key];
+      });
+      if (Object.keys(known).length !== 2) { errOut.textContent = ''; return; }
       try {
         var r = calc.rightTriangleSolve(known);
-        outA.textContent = r.a;
-        outB.textContent = r.b;
-        outC.textContent = r.c;
-        outAngleA.textContent = r.angleADeg + '°';
-        outAngleB.textContent = r.angleBDeg + '°';
+        errOut.textContent = '';
+        // Never overwrite the field the user is actively typing into, or a live recalc mid
+        // keystroke would clobber what they're typing and move their cursor.
+        var focused = document.activeElement;
+        if (focused !== aIn) aIn.value = r.a;
+        if (focused !== bIn) bIn.value = r.b;
+        if (focused !== cIn) cIn.value = r.c;
+        if (focused !== angleAIn) angleAIn.value = r.angleADeg;
+        if (focused !== angleBIn) angleBIn.value = r.angleBDeg;
       } catch (err) {
-        outs.forEach(function (el) { el.textContent = '—'; });
         errOut.textContent = err.message;
       }
     }
-    [aIn, bIn, cIn, angleIn].forEach(function (el) { el.addEventListener('input', recalc); });
+
+    aIn.addEventListener('input', function () { markEdited('a'); recalc(); });
+    bIn.addEventListener('input', function () { markEdited('b'); recalc(); });
+    cIn.addEventListener('input', function () { markEdited('c'); recalc(); });
+    angleAIn.addEventListener('input', function () {
+      markEdited('angle');
+      var v = parseFloat(angleAIn.value);
+      angleBIn.value = isNaN(v) ? '' : calc.round(90 - v, 4);
+      recalc();
+    });
+    angleBIn.addEventListener('input', function () {
+      markEdited('angle');
+      var v = parseFloat(angleBIn.value);
+      angleAIn.value = isNaN(v) ? '' : calc.round(90 - v, 4);
+      recalc();
+    });
+    [aIn, bIn, cIn, angleAIn, angleBIn].forEach(function (el) {
+      el.addEventListener('focus', function () { el.select(); });
+    });
+
+    aIn.value = 3;
+    bIn.value = 4;
     recalc();
   }
 

@@ -32,6 +32,10 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 - **This project's shared `round(value, decimals)` helper (`calc-core.js`) computes `value * 10^decimals` internally, which can itself overflow back to `Infinity` for a value large enough to survive the calculation above but not that multiplication.** Check `Number.isFinite` on the *rounded* return values, not just the raw pre-rounding ones, or a sufficiently extreme (but technically finite) input still silently returns `Infinity`. Self-caught in machinist-calc while fixing the overflow issue above — CodeRabbit's own suggested fix missed this second step.
 - **`Number.isFinite` must guard *every* numeric-ish field a function accepts, not just the ones that were failing.** Adding `!Number.isFinite(a/b/c)` guards but leaving a coercive `angleADeg <= 0` bounds check let a string like `'30'` slip through (relational operators coerce; `Number.isFinite` doesn't) — same function, inconsistent rigor. Caught by CodeRabbit in machinist-calc (`rightTriangleSolve`).
 
+## Multi-Way Solver UI Pattern (JS)
+
+- **When the same fields serve as both input and auto-filled output (e.g. "enter any 2 of N, the rest solve"), don't decide "which N are known" from which fields are currently non-empty — once a solve fills every field, editing any one of them makes all N look filled.** Track the (at most 2) field keys the user most recently *typed into* and solve from only those, treating every other field as pure output to overwrite. Also skip overwriting whichever field currently has focus, or a live recalc mid-keystroke clobbers what's being typed. See `setupRightTriangle` in `src/js/app.js`. Self-caught in machinist-calc before this shipped.
+
 ## Easter Eggs
 
 - **machinist-calc**: Ctrl+Alt+Shift+M toggles a small hidden "Machinist's Rule 0" ASCII-art note (`#easter-egg` in `src/index.html`, wired in `src/js/app.js`'s `setupEasterEgg()`). Not referenced anywhere in the visible UI. Dismiss with Esc or a click.

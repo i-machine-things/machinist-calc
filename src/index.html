@@ -318,29 +318,24 @@
     <section class="panel" id="panel-righttriangle">
       <h1>Right Triangle Solver</h1>
       <p class="standard-note">Plain trigonometry (Pythagorean theorem / SOH-CAH-TOA) — no ISO/ANSI standard governs this; used for angle layout, tapers, and angle-plate or sine-bar setup work.</p>
-      <p class="hint">Enter any 2 of the 4 values below — the rest solve automatically. Angle C (the right angle) is always 90°.</p>
-      <div class="grid grid-2">
-        <label>Side a (opposite angle A)
-          <input type="number" id="rt-a" step="any" placeholder="—" />
-        </label>
-        <label>Side b (adjacent to angle A)
-          <input type="number" id="rt-b" step="any" placeholder="—" />
-        </label>
-        <label>Hypotenuse c
-          <input type="number" id="rt-c" step="any" placeholder="—" />
-        </label>
-        <label>Angle A (degrees)
-          <input type="number" id="rt-angle" step="any" placeholder="—" />
-        </label>
+      <p class="hint">Enter any 2 of the 6 positions on the diagram — the rest solve automatically. Angle C (the right angle) is always 90° and isn't editable.</p>
+      <div class="rt-diagram-wrap">
+        <svg id="rt-svg" width="380" height="260" viewBox="0 0 380 260">
+          <polygon class="rt-triangle" points="60,210 320,210 320,40" />
+          <path class="rt-rightangle-mark" d="M304,210 L304,194 L320,194" />
+          <path class="rt-anglearc" d="M85,210 A25,25 0 0,0 68,187" />
+          <path class="rt-anglearc" d="M320,65 A25,25 0 0,1 298,46" />
+        </svg>
+        <div class="rt-fields">
+          <input class="rt-field" id="rt-b" placeholder="b" title="Side b (bottom, adjacent to angle A)" />
+          <input class="rt-field" id="rt-a" placeholder="a" title="Side a (right, opposite angle A)" />
+          <input class="rt-field" id="rt-c" placeholder="c" title="Hypotenuse c" />
+          <input class="rt-field rt-field-angle" id="rt-anglea" placeholder="A°" title="Angle A" />
+          <input class="rt-field rt-field-angle" id="rt-angleb" placeholder="B°" title="Angle B" />
+          <span class="rt-field rt-field-anglec" title="Angle C (fixed)">90°</span>
+        </div>
       </div>
       <p class="hint" id="rt-error"></p>
-      <div class="result-box">
-        <div class="result-line">Side a: <span id="rt-out-a">—</span></div>
-        <div class="result-line">Side b: <span id="rt-out-b">—</span></div>
-        <div class="result-line">Hypotenuse c: <span id="rt-out-c">—</span></div>
-        <div class="result-line">Angle A: <span id="rt-out-anglea">—</span></div>
-        <div class="result-value">Angle B: <span id="rt-out-angleb">—</span></div>
-      </div>
     </section>
 
     <!-- True Position -->

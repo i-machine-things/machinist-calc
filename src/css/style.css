@@ -278,6 +278,62 @@ input:focus, select:focus {
 .bc-crosshair { stroke: var(--text-dim); stroke-width: 0.5; }
 .bc-label { fill: var(--text-dim); font-size: 7px; }
 
+/* Right triangle solver */
+.rt-diagram-wrap {
+  position: relative;
+  width: 380px;
+  height: 260px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+#rt-svg { display: block; }
+.rt-triangle { fill: none; stroke: var(--text-dim); stroke-width: 1.5; }
+.rt-rightangle-mark { fill: none; stroke: var(--text-dim); stroke-width: 1.5; }
+.rt-anglearc { fill: none; stroke: var(--accent); stroke-width: 1.25; }
+
+.rt-fields { position: absolute; inset: 0; }
+
+.rt-field {
+  position: absolute;
+  width: 74px;
+  height: 26px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--font);
+  text-align: center;
+  padding: 0 4px;
+}
+.rt-field:focus { outline: none; border-color: var(--accent); }
+.rt-field-angle { width: 56px; }
+
+.rt-field-anglec {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  color: var(--text-dim);
+  background: transparent;
+  border-color: transparent;
+  left: 270px;
+  top: 178px;
+}
+
+/* Side b: bottom edge, centered below it */
+#rt-b { left: 150px; top: 216px; }
+/* Side a: right edge, to the right of it */
+#rt-a { left: 326px; top: 112px; }
+/* Hypotenuse c: above-left of its midpoint */
+#rt-c { left: 140px; top: 78px; }
+/* Angle A: inset from the bottom-left vertex */
+#rt-anglea { left: 70px; top: 178px; }
+/* Angle B: inset from the top vertex */
+#rt-angleb { left: 250px; top: 48px; }
+
 /* Hidden Ctrl+Alt+Shift+M easter egg — see CODING_NOTES.md */
 .easter-egg {
   position: fixed;
