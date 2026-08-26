@@ -316,45 +316,31 @@
   // ------------------------------------------------------------------
   // Right Triangle Solver
   // ------------------------------------------------------------------
-  // Origin (vertex A) is fixed; leg b runs right, leg a runs up, mirroring the unit-circle
-  // convention of measuring angle A from a fixed origin. The scale factor is the *minimum* of
-  // three independent budgets (leg b's width, leg a's height, and the hypotenuse-as-radius arc's
-  // own reach) so that whichever one is most restrictive for a given triangle's shape is the one
-  // that binds -- every other extent is then guaranteed to fit, for any a/b/c ratio, rather than
-  // relying on checking a few "worst case" shapes by hand and hoping nothing else overflows.
-  var RT_ORIGIN_X = 60, RT_ORIGIN_Y = 210, RT_MAX_W = 220, RT_MAX_H = 165, RT_MAX_RADIUS = 300;
+  // Origin (vertex A) is fixed relative to the diagram's current pixel width (measured fresh on
+  // every redraw, not a hardcoded canvas size); leg b runs right, leg a runs up. A single scale
+  // factor maps the real a/b onto their pixel budgets while preserving the true aspect ratio, so
+  // the drawing morphs to the actual proportions instead of a fixed generic shape, and reflows to
+  // the panel's available width instead of a fixed-size box.
+  var RT_HEIGHT = 260, RT_ORIGIN_X = 50, RT_ORIGIN_Y = RT_HEIGHT - 50, RT_RIGHT_MARGIN = 90, RT_TOP_MARGIN = 40;
 
-  /** Pixel-space vertex positions and radius for a solved (real-unit) a/b/c triangle. */
-  function rtGeometry(a, b, c) {
-    var scale = Math.min(RT_MAX_W / b, RT_MAX_H / a, RT_MAX_RADIUS / c);
-    var bPx = b * scale, aPx = a * scale, cPx = c * scale;
+  /** Pixel-space vertex positions for a solved (real-unit) a/b/c triangle within a `width`-wide canvas. */
+  function rtGeometry(a, b, c, width) {
+    var maxW = Math.max(width - RT_ORIGIN_X - RT_RIGHT_MARGIN, 40);
+    var maxH = Math.max(RT_ORIGIN_Y - RT_TOP_MARGIN, 40);
+    var scale = Math.min(maxW / b, maxH / a);
+    var bPx = b * scale, aPx = a * scale;
     return {
       A: { x: RT_ORIGIN_X, y: RT_ORIGIN_Y },
       C: { x: RT_ORIGIN_X + bPx, y: RT_ORIGIN_Y },
-      B: { x: RT_ORIGIN_X + bPx, y: RT_ORIGIN_Y - aPx },
-      radiusPx: cPx
+      B: { x: RT_ORIGIN_X + bPx, y: RT_ORIGIN_Y - aPx }
     };
   }
 
-  /**
-   * Draws the triangle plus a dashed arc of radius c centered on vertex A -- the same
-   * "hypotenuse as a radius" construction as the classic unit-circle trig diagram, scaled here
-   * to the triangle's actual (non-unit) hypotenuse instead of a fixed radius of 1. The arc is
-   * plotted as explicit points from A rather than an SVG elliptical-arc command: an arc command
-   * only specifies the radius, not the center, so which of the two circles (and which of the two
-   * directions around it) gets drawn depends on flag bits that are easy to get backwards -- a
-   * wrong guess draws the *other*, much larger arc, which is what actually happened here.
-   */
-  function renderRightTriangle(svg, geo) {
+  /** Draws the triangle outline and the right-angle marker at C. */
+  function renderRightTriangle(svg, geo, width) {
     var A = geo.A, B = geo.B, C = geo.C, mark = 14;
-    var angleARad = Math.atan2(A.y - B.y, B.x - A.x);
-    var steps = 16, arcPts = [];
-    for (var i = 0; i <= steps; i++) {
-      var t = angleARad * (i / steps);
-      arcPts.push((A.x + geo.radiusPx * Math.cos(t)).toFixed(1) + ',' + (A.y - geo.radiusPx * Math.sin(t)).toFixed(1));
-    }
+    svg.setAttribute('viewBox', '0 0 ' + width + ' ' + RT_HEIGHT);
     svg.innerHTML =
-      '<path class="rt-arc" d="M' + arcPts.join(' L') + '" />' +
       '<polygon class="rt-triangle" points="' + A.x + ',' + A.y + ' ' + C.x + ',' + C.y + ' ' +
         B.x + ',' + B.y + '" />' +
       '<path class="rt-rightangle-mark" d="M' + (C.x - mark) + ',' + C.y + ' L' + (C.x - mark) + ',' + (C.y - mark) +
@@ -382,6 +368,7 @@
   // all 5 are filled -- instead, track the 2 field keys the user most recently typed into and
   // solve from only those, treating everything else as output to overwrite.
   function setupRightTriangle() {
+    var wrap = document.querySelector('#panel-righttriangle .rt-diagram-wrap');
     var svg = $('rt-svg');
     var aIn = $('rt-a'), bIn = $('rt-b'), cIn = $('rt-c'),
       angleAIn = $('rt-anglea'), angleBIn = $('rt-angleb'), angleCEl = $('rt-anglec'), errOut = $('rt-error');
@@ -396,8 +383,12 @@
     }
 
     function redraw(a, b, c) {
-      var geo = rtGeometry(a, b, c);
-      renderRightTriangle(svg, geo);
+      // clientWidth reads 0 while this panel is hidden (display: none) -- fall back to a sane
+      // width so the diagram still lays out once the panel becomes visible (see the nav
+      // click/resize listeners below, which redraw with the real measured width).
+      var width = wrap.clientWidth || 380;
+      var geo = rtGeometry(a, b, c, width);
+      renderRightTriangle(svg, geo, width);
       var style = rtFieldStyle(geo);
       Object.keys(style).forEach(function (key) {
         fieldEls[key].style.left = style[key].left + 'px';
@@ -450,6 +441,17 @@
     });
     [aIn, bIn, cIn, angleAIn, angleBIn].forEach(function (el) {
       el.addEventListener('focus', function () { el.select(); });
+    });
+
+    // clientWidth is 0 while this panel is hidden, so the diagram drawn at page load (on
+    // whichever panel starts active) uses the fallback width -- reflow with the real width
+    // once this panel is actually shown, and again on any window resize while it's visible.
+    var navBtn = document.querySelector('.nav-btn[data-panel="panel-righttriangle"]');
+    if (navBtn) navBtn.addEventListener('click', recalc);
+    var resizeTimer;
+    window.addEventListener('resize', function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(recalc, 150);
     });
 
     aIn.value = 3;

@@ -281,19 +281,19 @@ input:focus, select:focus {
 /* Right triangle solver */
 .rt-diagram-wrap {
   position: relative;
-  width: 380px;
+  width: 100%;
   height: 260px;
   background: var(--bg-panel);
   border: 1px solid var(--border);
   border-radius: 8px;
   margin-bottom: 8px;
 }
-#rt-svg { display: block; }
+/* Width follows the panel (up to .panel's own max-width); height stays fixed. viewBox is kept
+   in sync with the measured pixel width in JS, so the internal coordinate space always matches
+   real CSS pixels 1:1 -- no separate scale transform needed for the overlaid HTML fields. */
+#rt-svg { display: block; width: 100%; height: 260px; }
 .rt-triangle { fill: none; stroke: var(--text-dim); stroke-width: 1.5; }
 .rt-rightangle-mark { fill: none; stroke: var(--text-dim); stroke-width: 1.5; }
-/* Arc of radius c centered on angle A's vertex, echoing the unit-circle construction where the
-   hypotenuse is a radius -- here scaled to the triangle's actual (non-unit) hypotenuse length. */
-.rt-arc { fill: none; stroke: var(--accent); stroke-width: 1.25; stroke-dasharray: 3 3; }
 
 /* Field positions are computed in JS (renderRightTriangle in app.js), not fixed here -- the
    diagram redraws to the actual solved triangle's proportions on every recalc. */
