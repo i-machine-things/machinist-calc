@@ -327,8 +327,12 @@
   function rtGeometry(a, b, c, width) {
     var maxW = Math.max(width - RT_ORIGIN_X - RT_RIGHT_MARGIN, 40);
     var maxH = Math.max(RT_ORIGIN_Y - RT_TOP_MARGIN, 40);
-    var scale = Math.min(maxW / b, maxH / a);
-    var bPx = b * scale, aPx = a * scale;
+    // A leg can round to exactly 0 at the displayed precision even though the solver validated
+    // it as positive pre-rounding (e.g. a raw 4e-7 rounds to 0.00000) -- dividing by that would
+    // turn every downstream coordinate into Infinity/NaN, so floor it to a nominal positive size.
+    var drawA = a > 0 ? a : 1, drawB = b > 0 ? b : 1;
+    var scale = Math.min(maxW / drawB, maxH / drawA);
+    var bPx = drawB * scale, aPx = drawA * scale;
     return {
       A: { x: RT_ORIGIN_X, y: RT_ORIGIN_Y },
       C: { x: RT_ORIGIN_X + bPx, y: RT_ORIGIN_Y },
