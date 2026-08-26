@@ -150,6 +150,90 @@ test('boltCirclePoints: 4 holes on a 10" BCD starting at top, clockwise', () => 
 });
 
 // -------------------------------------------------------------------------
+// Right triangle solver
+// -------------------------------------------------------------------------
+
+test('rightTriangleSolve: legs a=3, b=4 -> classic 3-4-5 triangle', () => {
+  const r = calc.rightTriangleSolve({ a: 3, b: 4 });
+  approx(r.c, 5, 1e-4);
+  approx(r.angleADeg, 36.8699, 1e-3);
+  approx(r.angleBDeg, 53.1301, 1e-3);
+});
+
+test('rightTriangleSolve: leg a and hypotenuse c -> solves b and both angles', () => {
+  const r = calc.rightTriangleSolve({ a: 3, c: 5 });
+  approx(r.b, 4, 1e-4);
+  approx(r.angleADeg, 36.8699, 1e-3);
+});
+
+test('rightTriangleSolve: leg b and hypotenuse c -> solves a and both angles', () => {
+  const r = calc.rightTriangleSolve({ b: 4, c: 5 });
+  approx(r.a, 3, 1e-4);
+  approx(r.angleBDeg, 53.1301, 1e-3);
+});
+
+test('rightTriangleSolve: leg a and angle A -> solves b and c', () => {
+  const r = calc.rightTriangleSolve({ a: 3, angleADeg: 36.8699 });
+  approx(r.b, 4, 1e-3);
+  approx(r.c, 5, 1e-3);
+});
+
+test('rightTriangleSolve: leg b and angle A -> solves a and c', () => {
+  const r = calc.rightTriangleSolve({ b: 4, angleADeg: 36.8699 });
+  approx(r.a, 3, 1e-3);
+  approx(r.c, 5, 1e-3);
+});
+
+test('rightTriangleSolve: hypotenuse c and angle A -> solves both legs', () => {
+  const r = calc.rightTriangleSolve({ c: 10, angleADeg: 30 });
+  approx(r.a, 5, 1e-3);
+  approx(r.b, 8.6603, 1e-3);
+});
+
+test('rightTriangleSolve: rejects a count other than exactly 2 knowns', () => {
+  assert.throws(() => calc.rightTriangleSolve({ a: 3 }), RangeError);
+  assert.throws(() => calc.rightTriangleSolve({ a: 3, b: 4, c: 5 }), RangeError);
+});
+
+test('rightTriangleSolve: angle A alone (no side) does not determine size', () => {
+  assert.throws(() => calc.rightTriangleSolve({ angleADeg: 30 }), RangeError);
+});
+
+test('rightTriangleSolve: rejects a leg that is not shorter than the given hypotenuse', () => {
+  assert.throws(() => calc.rightTriangleSolve({ a: 6, c: 5 }), RangeError);
+});
+
+test('rightTriangleSolve: rejects non-finite inputs', () => {
+  assert.throws(() => calc.rightTriangleSolve({ a: Infinity, b: 4 }), RangeError);
+  assert.throws(() => calc.rightTriangleSolve({ a: NaN, c: 5 }), RangeError);
+});
+
+test('rightTriangleSolve: rejects a non-number angleADeg (e.g. a string) instead of coercing it', () => {
+  // '30' <= 0 / '30' >= 90 coerce and pass the bounds check even though '30' isn't a number;
+  // Number.isFinite('30') is false and must be checked explicitly, same as the a/b/c guards.
+  assert.throws(() => calc.rightTriangleSolve({ a: 3, angleADeg: '30' }), RangeError);
+});
+
+test('rightTriangleSolve: large finite legs/hypotenuse do not overflow to Infinity/NaN', () => {
+  // sqrt(a*a + b*b) would overflow a=b=1e200 to Infinity before sqrt ever runs (1e200^2 alone
+  // exceeds Number.MAX_VALUE); Math.hypot avoids that. Scale down to check the answer's shape.
+  const legs = calc.rightTriangleSolve({ a: 1e200, b: 1e200 });
+  assert.ok(Number.isFinite(legs.c));
+  approx(legs.c / 1e200, Math.sqrt(2), 1e-9);
+  approx(legs.angleADeg, 45, 1e-6);
+
+  const legHyp = calc.rightTriangleSolve({ a: 6e199, c: 1e200 });
+  assert.ok(Number.isFinite(legHyp.b));
+  approx(legHyp.b / 1e200, Math.sqrt(1 - 0.6 * 0.6), 1e-6);
+});
+
+test('rightTriangleSolve: rejects inputs so extreme that even the safe formulas cannot round', () => {
+  // a=b=1e308 solves to a finite c via Math.hypot, but round(c, 5) multiplies by 1e5 internally,
+  // which overflows c back to Infinity -- must throw rather than return a non-finite result.
+  assert.throws(() => calc.rightTriangleSolve({ a: 1e308, b: 1e308 }), RangeError);
+});
+
+// -------------------------------------------------------------------------
 // True position (ASME Y14.5)
 // -------------------------------------------------------------------------
 

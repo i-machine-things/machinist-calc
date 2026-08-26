@@ -16,6 +16,7 @@ every calculation runs locally in the app.
 | Thread Calculator (Unified & Metric) | ASME B1.1 / ISO 68-1 |
 | Speeds & Feeds (with recommended SFM by material/tool, feed-per-tooth conversion) | Conventional machining relations |
 | Bolt Circle | Analytic geometry |
+| Right Triangle Solver | Plain trigonometry (Pythagorean theorem / SOH-CAH-TOA) |
 | True Position | ASME Y14.5 |
 | Surface Finish | Theoretical Ra approximation (Machinery's Handbook) |
 | ISO Tolerance / Limits | ISO 286-1 |
