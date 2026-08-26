@@ -19,6 +19,7 @@
       <li><button class="nav-btn" data-panel="panel-thread">Thread Calculator</button></li>
       <li><button class="nav-btn" data-panel="panel-speedsfeeds">Speeds &amp; Feeds</button></li>
       <li><button class="nav-btn" data-panel="panel-boltcircle">Bolt Circle</button></li>
+      <li><button class="nav-btn" data-panel="panel-righttriangle">Right Triangle</button></li>
       <li><button class="nav-btn" data-panel="panel-trueposition">True Position</button></li>
       <li><button class="nav-btn" data-panel="panel-surfacefinish">Surface Finish</button></li>
       <li><button class="nav-btn" data-panel="panel-tolerance">ISO Tolerance</button></li>
@@ -336,6 +337,25 @@
           <svg id="bc-svg" viewBox="-110 -110 220 220" width="320" height="320"></svg>
         </div>
       </div>
+    </section>
+
+    <!-- Right Triangle -->
+    <section class="panel" id="panel-righttriangle">
+      <h1>Right Triangle Solver</h1>
+      <p class="standard-note">Plain trigonometry (Pythagorean theorem / SOH-CAH-TOA) — no ISO/ANSI standard governs this; used for angle layout, tapers, and angle-plate or sine-bar setup work.</p>
+      <p class="hint">Enter any 2 of the 5 editable fields on the diagram — the rest solve automatically. Angle C (the right angle) is fixed at 90° and isn't editable.</p>
+      <div class="rt-diagram-wrap">
+        <svg id="rt-svg"></svg>
+        <div class="rt-fields">
+          <input class="rt-field" id="rt-b" placeholder="b" title="Side b (bottom, adjacent to angle A)" />
+          <input class="rt-field" id="rt-a" placeholder="a" title="Side a (right, opposite angle A)" />
+          <input class="rt-field" id="rt-c" placeholder="c" title="Hypotenuse c" />
+          <input class="rt-field rt-field-angle" id="rt-anglea" placeholder="A°" title="Angle A" />
+          <input class="rt-field rt-field-angle" id="rt-angleb" placeholder="B°" title="Angle B" />
+          <span class="rt-field rt-field-anglec" id="rt-anglec" title="Angle C (fixed)">90°</span>
+        </div>
+      </div>
+      <p class="hint" id="rt-error"></p>
     </section>
 
     <!-- True Position -->

@@ -1150,6 +1150,81 @@
   };
 
   // ---------------------------------------------------------------------
+  // Right triangle solver
+  // Plain trigonometry (Pythagorean theorem, SOH-CAH-TOA) — no ISO/ANSI
+  // standard governs this; it's general-purpose geometry used for angle
+  // layout, tapers, and angle-plate/sine-bar setup work.
+  // ---------------------------------------------------------------------
+
+  /**
+   * Solve a right triangle (right angle at C) given exactly 2 of: leg a,
+   * leg b, hypotenuse c, angle A in degrees (opposite side a; B = 90 - A).
+   * Any count other than exactly 2 knowns is rejected — including angle A
+   * alone, which doesn't fix the triangle's size — rather than silently
+   * guessing, per the project's enum/precondition-validation convention
+   * (see calc.bonusTolerance). The six branches below are the complete set
+   * of 2-of-4 combinations, so there's no further fallback case. Inputs
+   * must be finite; a result that's still non-finite (numeric overflow)
+   * throws rather than returning Infinity/NaN.
+   */
+  calc.rightTriangleSolve = function (known) {
+    var a = known.a, b = known.b, c = known.c, A = known.angleADeg;
+    var haveA = a != null, haveB = b != null, haveC = c != null, haveAngle = A != null;
+    var count = [haveA, haveB, haveC, haveAngle].filter(Boolean).length;
+    if (count !== 2) {
+      throw new RangeError('Provide exactly 2 of: side a, side b, hypotenuse c, angle A');
+    }
+    if (haveAngle && (!Number.isFinite(A) || A <= 0 || A >= 90)) {
+      throw new RangeError('Angle A must be a finite number between 0 and 90 degrees, exclusive');
+    }
+    if (haveA && (!Number.isFinite(a) || a <= 0)) throw new RangeError('Side a must be finite and positive');
+    if (haveB && (!Number.isFinite(b) || b <= 0)) throw new RangeError('Side b must be finite and positive');
+    if (haveC && (!Number.isFinite(c) || c <= 0)) throw new RangeError('Hypotenuse c must be finite and positive');
+
+    if (haveA && haveB) {
+      // Math.hypot (not sqrt(a*a + b*b)) avoids intermediate overflow for very large legs —
+      // e.g. a=b=1e308 would otherwise square to Infinity before sqrt ever runs.
+      c = Math.hypot(a, b);
+      A = calc.radToDeg(Math.atan2(a, b));
+    } else if (haveA && haveC) {
+      if (a >= c) throw new RangeError('Side a must be less than hypotenuse c');
+      // c*sqrt(1-(a/c)^2), algebraically sqrt(c^2-a^2), squares a bounded ratio instead of the
+      // raw values, avoiding the same overflow (or NaN from catastrophic cancellation) risk.
+      b = c * Math.sqrt(1 - (a / c) * (a / c));
+      A = calc.radToDeg(Math.asin(a / c));
+    } else if (haveB && haveC) {
+      if (b >= c) throw new RangeError('Side b must be less than hypotenuse c');
+      a = c * Math.sqrt(1 - (b / c) * (b / c));
+      A = calc.radToDeg(Math.acos(b / c));
+    } else if (haveA && haveAngle) {
+      b = a / Math.tan(calc.degToRad(A));
+      c = a / Math.sin(calc.degToRad(A));
+    } else if (haveB && haveAngle) {
+      a = b * Math.tan(calc.degToRad(A));
+      c = b / Math.cos(calc.degToRad(A));
+    } else if (haveC && haveAngle) {
+      a = c * Math.sin(calc.degToRad(A));
+      b = c * Math.cos(calc.degToRad(A));
+    }
+
+    var result = {
+      a: round(a, 5),
+      b: round(b, 5),
+      c: round(c, 5),
+      angleADeg: round(A, 4),
+      angleBDeg: round(90 - A, 4)
+    };
+    // Checked post-rounding, not on the raw a/b/c/A: round()'s own *10^decimals step can
+    // overflow back to Infinity for a value large enough to survive Math.hypot/the scaled-ratio
+    // formula above but not this multiplication — e.g. a=b=1e308 solves to a finite c via
+    // Math.hypot, but round(c, 5) internally computes c*1e5, which overflows.
+    if (!Object.values(result).every(Number.isFinite)) {
+      throw new RangeError('Values are outside the supported numeric range');
+    }
+    return result;
+  };
+
+  // ---------------------------------------------------------------------
   // True position
   // Standard: ASME Y14.5 (Dimensioning and Tolerancing) — position
   // tolerance and material-condition (MMC/LMC) bonus tolerance.

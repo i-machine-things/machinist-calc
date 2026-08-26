@@ -33,6 +33,19 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 ## Numeric Input Validation (JS)
 
 - **Count-like inputs (flute count, hole count, etc.) must be validated as positive integers, not just non-NaN.** `setupFeedPerToothImperial`/`Metric` accepted 0, negative, and fractional flute counts, producing meaningless feed results — caught by CodeRabbit in machinist-calc. Use `!Number.isInteger(f) || f <= 0` alongside the `isNaN` check.
+- **Squaring large-but-finite inputs (`a*a + b*b`, `c*c - a*a`) can overflow to `Infinity`/`NaN` well before any individual value looks unreasonable.** Use `Math.hypot(a, b)` instead of `Math.sqrt(a*a+b*b)`, and a scaled-ratio form (`c*Math.sqrt(1-(a/c)**2)`, algebraically `sqrt(c*c-a*a)`) instead of squaring raw large values directly — caught by CodeRabbit in machinist-calc (`rightTriangleSolve`).
+- **This project's shared `round(value, decimals)` helper (`calc-core.js`) computes `value * 10^decimals` internally, which can itself overflow back to `Infinity` for a value large enough to survive the calculation above but not that multiplication.** Check `Number.isFinite` on the *rounded* return values, not just the raw pre-rounding ones, or a sufficiently extreme (but technically finite) input still silently returns `Infinity`. Self-caught in machinist-calc while fixing the overflow issue above — CodeRabbit's own suggested fix missed this second step.
+- **`Number.isFinite` must guard *every* numeric-ish field a function accepts, not just the ones that were failing.** Adding `!Number.isFinite(a/b/c)` guards but leaving a coercive `angleADeg <= 0` bounds check let a string like `'30'` slip through (relational operators coerce; `Number.isFinite` doesn't) — same function, inconsistent rigor. Caught by CodeRabbit in machinist-calc (`rightTriangleSolve`).
+
+- **A value validated as positive *before* rounding can still round to exactly 0 for display, and downstream code that only ever sees the rounded value won't know the difference.** `rtGeometry` divided by a solved leg's *rounded* value to compute a diagram scale factor; a raw leg of e.g. `4e-7` rounds to `0.00000`, so `maxW / 0` produced `Infinity`, cascading into `NaN` coordinates everywhere. Floor any value used as a divisor to a nominal positive fallback if it could legitimately round to 0. Caught by CodeRabbit in machinist-calc (`rtGeometry`).
+
+## Multi-Way Solver UI Pattern (JS)
+
+- **When the same fields serve as both input and auto-filled output (e.g. "enter any 2 of N, the rest solve"), don't decide "which N are known" from which fields are currently non-empty — once a solve fills every field, editing any one of them makes all N look filled.** Track the (at most 2) field keys the user most recently *typed into* and solve from only those, treating every other field as pure output to overwrite. Also skip overwriting whichever field currently has focus, or a live recalc mid-keystroke clobbers what's being typed. See `setupRightTriangle` in `src/js/app.js`. Self-caught in machinist-calc before this shipped.
+
+## ESLint Config Globals
+
+- **`eslint.config.js` hand-lists globals per file group instead of using the `globals` package's built-in sets — each group is missing whichever globals its code hadn't needed yet.** Both the `main.js`/`preload.js`/`tests` block and the `src/js/**/*.js` (renderer) block were missing `setTimeout`/`clearTimeout` until something actually called them, failing CI (`no-undef`) each time. Add each newly-used global explicitly to the right block rather than assuming it's covered.
 
 ## Auto-Update (Network Exception)
 
