@@ -203,6 +203,30 @@ test('rightTriangleSolve: rejects a leg that is not shorter than the given hypot
   assert.throws(() => calc.rightTriangleSolve({ a: 6, c: 5 }), RangeError);
 });
 
+test('rightTriangleSolve: rejects non-finite inputs', () => {
+  assert.throws(() => calc.rightTriangleSolve({ a: Infinity, b: 4 }), RangeError);
+  assert.throws(() => calc.rightTriangleSolve({ a: NaN, c: 5 }), RangeError);
+});
+
+test('rightTriangleSolve: large finite legs/hypotenuse do not overflow to Infinity/NaN', () => {
+  // sqrt(a*a + b*b) would overflow a=b=1e200 to Infinity before sqrt ever runs (1e200^2 alone
+  // exceeds Number.MAX_VALUE); Math.hypot avoids that. Scale down to check the answer's shape.
+  const legs = calc.rightTriangleSolve({ a: 1e200, b: 1e200 });
+  assert.ok(Number.isFinite(legs.c));
+  approx(legs.c / 1e200, Math.sqrt(2), 1e-9);
+  approx(legs.angleADeg, 45, 1e-6);
+
+  const legHyp = calc.rightTriangleSolve({ a: 6e199, c: 1e200 });
+  assert.ok(Number.isFinite(legHyp.b));
+  approx(legHyp.b / 1e200, Math.sqrt(1 - 0.6 * 0.6), 1e-6);
+});
+
+test('rightTriangleSolve: rejects inputs so extreme that even the safe formulas cannot round', () => {
+  // a=b=1e308 solves to a finite c via Math.hypot, but round(c, 5) multiplies by 1e5 internally,
+  // which overflows c back to Infinity -- must throw rather than return a non-finite result.
+  assert.throws(() => calc.rightTriangleSolve({ a: 1e308, b: 1e308 }), RangeError);
+});
+
 // -------------------------------------------------------------------------
 // True position (ASME Y14.5)
 // -------------------------------------------------------------------------

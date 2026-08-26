@@ -28,6 +28,8 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 ## Numeric Input Validation (JS)
 
 - **Count-like inputs (flute count, hole count, etc.) must be validated as positive integers, not just non-NaN.** `setupFeedPerToothImperial`/`Metric` accepted 0, negative, and fractional flute counts, producing meaningless feed results — caught by CodeRabbit in machinist-calc. Use `!Number.isInteger(f) || f <= 0` alongside the `isNaN` check.
+- **Squaring large-but-finite inputs (`a*a + b*b`, `c*c - a*a`) can overflow to `Infinity`/`NaN` well before any individual value looks unreasonable.** Use `Math.hypot(a, b)` instead of `Math.sqrt(a*a+b*b)`, and a scaled-ratio form (`c*Math.sqrt(1-(a/c)**2)`, algebraically `sqrt(c*c-a*a)`) instead of squaring raw large values directly — caught by CodeRabbit in machinist-calc (`rightTriangleSolve`).
+- **This project's shared `round(value, decimals)` helper (`calc-core.js`) computes `value * 10^decimals` internally, which can itself overflow back to `Infinity` for a value large enough to survive the calculation above but not that multiplication.** Check `Number.isFinite` on the *rounded* return values, not just the raw pre-rounding ones, or a sufficiently extreme (but technically finite) input still silently returns `Infinity`. Self-caught in machinist-calc while fixing the overflow issue above — CodeRabbit's own suggested fix missed this second step.
 
 ## Easter Eggs
 

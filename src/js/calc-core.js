@@ -404,7 +404,9 @@
    * alone, which doesn't fix the triangle's size — rather than silently
    * guessing, per the project's enum/precondition-validation convention
    * (see calc.bonusTolerance). The six branches below are the complete set
-   * of 2-of-4 combinations, so there's no further fallback case.
+   * of 2-of-4 combinations, so there's no further fallback case. Inputs
+   * must be finite; a result that's still non-finite (numeric overflow)
+   * throws rather than returning Infinity/NaN.
    */
   calc.rightTriangleSolve = function (known) {
     var a = known.a, b = known.b, c = known.c, A = known.angleADeg;
@@ -416,20 +418,24 @@
     if (haveAngle && (A <= 0 || A >= 90)) {
       throw new RangeError('Angle A must be between 0 and 90 degrees, exclusive');
     }
-    if (haveA && a <= 0) throw new RangeError('Side a must be positive');
-    if (haveB && b <= 0) throw new RangeError('Side b must be positive');
-    if (haveC && c <= 0) throw new RangeError('Hypotenuse c must be positive');
+    if (haveA && (!Number.isFinite(a) || a <= 0)) throw new RangeError('Side a must be finite and positive');
+    if (haveB && (!Number.isFinite(b) || b <= 0)) throw new RangeError('Side b must be finite and positive');
+    if (haveC && (!Number.isFinite(c) || c <= 0)) throw new RangeError('Hypotenuse c must be finite and positive');
 
     if (haveA && haveB) {
-      c = Math.sqrt(a * a + b * b);
+      // Math.hypot (not sqrt(a*a + b*b)) avoids intermediate overflow for very large legs —
+      // e.g. a=b=1e308 would otherwise square to Infinity before sqrt ever runs.
+      c = Math.hypot(a, b);
       A = calc.radToDeg(Math.atan2(a, b));
     } else if (haveA && haveC) {
       if (a >= c) throw new RangeError('Side a must be less than hypotenuse c');
-      b = Math.sqrt(c * c - a * a);
+      // c*sqrt(1-(a/c)^2), algebraically sqrt(c^2-a^2), squares a bounded ratio instead of the
+      // raw values, avoiding the same overflow (or NaN from catastrophic cancellation) risk.
+      b = c * Math.sqrt(1 - (a / c) * (a / c));
       A = calc.radToDeg(Math.asin(a / c));
     } else if (haveB && haveC) {
       if (b >= c) throw new RangeError('Side b must be less than hypotenuse c');
-      a = Math.sqrt(c * c - b * b);
+      a = c * Math.sqrt(1 - (b / c) * (b / c));
       A = calc.radToDeg(Math.acos(b / c));
     } else if (haveA && haveAngle) {
       b = a / Math.tan(calc.degToRad(A));
@@ -442,13 +448,21 @@
       b = c * Math.cos(calc.degToRad(A));
     }
 
-    return {
+    var result = {
       a: round(a, 5),
       b: round(b, 5),
       c: round(c, 5),
       angleADeg: round(A, 4),
       angleBDeg: round(90 - A, 4)
     };
+    // Checked post-rounding, not on the raw a/b/c/A: round()'s own *10^decimals step can
+    // overflow back to Infinity for a value large enough to survive Math.hypot/the scaled-ratio
+    // formula above but not this multiplication — e.g. a=b=1e308 solves to a finite c via
+    // Math.hypot, but round(c, 5) internally computes c*1e5, which overflows.
+    if (!Object.values(result).every(Number.isFinite)) {
+      throw new RangeError('Values are outside the supported numeric range');
+    }
+    return result;
   };
 
   // ---------------------------------------------------------------------
