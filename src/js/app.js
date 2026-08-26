@@ -314,6 +314,169 @@
   }
 
   // ------------------------------------------------------------------
+  // Right Triangle Solver
+  // ------------------------------------------------------------------
+  // A single scale factor maps the real a/b onto the available drawing budget (canvas size minus
+  // the margin reserved for each field label) while preserving the true aspect ratio, so the
+  // drawing morphs to the actual proportions instead of a fixed generic shape. The triangle plus
+  // its label margins is then centered as one block within the canvas, rather than anchored to a
+  // fixed corner, so leftover space (whichever dimension wasn't the binding constraint) is split
+  // evenly instead of piling up on one side.
+  var RT_LEFT_PAD = 20, RT_RIGHT_PAD = 90, RT_TOP_PAD = 45, RT_BOTTOM_PAD = 45;
+
+  /** Pixel-space vertex positions for a solved (real-unit) a/b/c triangle, centered within a `width` x `height` box. */
+  function rtGeometry(a, b, c, width, height) {
+    var usableW = Math.max(width - RT_LEFT_PAD - RT_RIGHT_PAD, 40);
+    var usableH = Math.max(height - RT_TOP_PAD - RT_BOTTOM_PAD, 40);
+    // A leg can round to exactly 0 at the displayed precision even though the solver validated
+    // it as positive pre-rounding (e.g. a raw 4e-7 rounds to 0.00000) -- dividing by that would
+    // turn every downstream coordinate into Infinity/NaN, so floor it to a nominal positive size.
+    var drawA = a > 0 ? a : 1, drawB = b > 0 ? b : 1;
+    var scale = Math.min(usableW / drawB, usableH / drawA);
+    var bPx = drawB * scale, aPx = drawA * scale;
+    var contentW = bPx + RT_LEFT_PAD + RT_RIGHT_PAD, contentH = aPx + RT_TOP_PAD + RT_BOTTOM_PAD;
+    var offsetX = Math.max((width - contentW) / 2, 0), offsetY = Math.max((height - contentH) / 2, 0);
+    var originX = offsetX + RT_LEFT_PAD, originY = offsetY + RT_TOP_PAD + aPx;
+    return {
+      A: { x: originX, y: originY },
+      C: { x: originX + bPx, y: originY },
+      B: { x: originX + bPx, y: originY - aPx }
+    };
+  }
+
+  /** Draws the triangle outline and the right-angle marker at C. */
+  function renderRightTriangle(svg, geo, width, height) {
+    var A = geo.A, B = geo.B, C = geo.C, mark = 14;
+    svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+    svg.innerHTML =
+      '<polygon class="rt-triangle" points="' + A.x + ',' + A.y + ' ' + C.x + ',' + C.y + ' ' +
+        B.x + ',' + B.y + '" />' +
+      '<path class="rt-rightangle-mark" d="M' + (C.x - mark) + ',' + C.y + ' L' + (C.x - mark) + ',' + (C.y - mark) +
+        ' L' + C.x + ',' + (C.y - mark) + '" />';
+  }
+
+  /** Positions (CSS left/top) for the 6 field overlays, derived from the same solved geometry. */
+  function rtFieldStyle(geo) {
+    var A = geo.A, B = geo.B, C = geo.C;
+    return {
+      b: { left: (A.x + C.x) / 2 - 37, top: C.y + 6 },
+      a: { left: C.x + 6, top: (C.y + B.y) / 2 - 13 },
+      c: { left: (A.x + B.x) / 2 - 60, top: (A.y + B.y) / 2 - 35 },
+      anglea: { left: A.x + 10, top: A.y - 34 },
+      angleb: { left: B.x - 62, top: B.y + 8 },
+      anglec: { left: C.x - 54, top: C.y - 34 }
+    };
+  }
+
+  // Diagram has 6 positions (side a/b/c, angle A/B/C) but only 4 independent quantities --
+  // angle C is fixed at 90 and angle A/B are complementary (A+B=90), so the two angle fields
+  // are kept mirrored (like the SFM/SMM pair in the Unit Converter) and tracked as one 'angle'
+  // slot. After a solve every field holds a value (inputs *and* derived results share the same
+  // 5 fields), so "which 2 fields are non-empty" can't tell knowns from stale leftovers once
+  // all 5 are filled -- instead, track the 2 field keys the user most recently typed into and
+  // solve from only those, treating everything else as output to overwrite.
+  function setupRightTriangle() {
+    var wrap = document.querySelector('#panel-righttriangle .rt-diagram-wrap');
+    var svg = $('rt-svg');
+    var aIn = $('rt-a'), bIn = $('rt-b'), cIn = $('rt-c'),
+      angleAIn = $('rt-anglea'), angleBIn = $('rt-angleb'), angleCEl = $('rt-anglec'), errOut = $('rt-error');
+    var fieldEls = { a: aIn, b: bIn, c: cIn, anglea: angleAIn, angleb: angleBIn, anglec: angleCEl };
+    var editOrder = ['a', 'b']; // most-recently-edited last; matches the default seed below
+
+    function markEdited(key) {
+      var idx = editOrder.indexOf(key);
+      if (idx !== -1) editOrder.splice(idx, 1);
+      editOrder.push(key);
+      if (editOrder.length > 2) editOrder.shift();
+    }
+
+    function redraw(a, b, c) {
+      // clientWidth reads 0 while this panel is hidden (display: none) -- fall back to sane
+      // defaults so the diagram still lays out until the panel becomes visible (see the nav
+      // click/resize listeners below, which redraw with the real measured size). Height fills
+      // whatever vertical space is left in the viewport below the diagram's top, clamped to a
+      // reasonable range rather than growing unbounded.
+      var width = wrap.clientWidth, height;
+      if (!width) {
+        width = 380;
+        height = 260;
+      } else {
+        height = Math.max(Math.min(window.innerHeight - wrap.getBoundingClientRect().top - 40, 600), 220);
+      }
+      wrap.style.height = height + 'px';
+      var geo = rtGeometry(a, b, c, width, height);
+      renderRightTriangle(svg, geo, width, height);
+      var style = rtFieldStyle(geo);
+      Object.keys(style).forEach(function (key) {
+        fieldEls[key].style.left = style[key].left + 'px';
+        fieldEls[key].style.top = style[key].top + 'px';
+      });
+    }
+
+    function recalc() {
+      var values = {
+        a: parseFloat(aIn.value), b: parseFloat(bIn.value), c: parseFloat(cIn.value),
+        angle: parseFloat(angleAIn.value)
+      };
+      var known = {};
+      editOrder.forEach(function (key) {
+        if (isNaN(values[key])) return;
+        if (key === 'angle') known.angleADeg = values[key]; else known[key] = values[key];
+      });
+      if (Object.keys(known).length !== 2) { errOut.textContent = ''; return; }
+      try {
+        var r = calc.rightTriangleSolve(known);
+        errOut.textContent = '';
+        // Never overwrite the field the user is actively typing into, or a live recalc mid
+        // keystroke would clobber what they're typing and move their cursor.
+        var focused = document.activeElement;
+        if (focused !== aIn) aIn.value = r.a;
+        if (focused !== bIn) bIn.value = r.b;
+        if (focused !== cIn) cIn.value = r.c;
+        if (focused !== angleAIn) angleAIn.value = r.angleADeg;
+        if (focused !== angleBIn) angleBIn.value = r.angleBDeg;
+        redraw(r.a, r.b, r.c);
+      } catch (err) {
+        errOut.textContent = err.message;
+      }
+    }
+
+    aIn.addEventListener('input', function () { markEdited('a'); recalc(); });
+    bIn.addEventListener('input', function () { markEdited('b'); recalc(); });
+    cIn.addEventListener('input', function () { markEdited('c'); recalc(); });
+    angleAIn.addEventListener('input', function () {
+      markEdited('angle');
+      var v = parseFloat(angleAIn.value);
+      angleBIn.value = isNaN(v) ? '' : calc.round(90 - v, 4);
+      recalc();
+    });
+    angleBIn.addEventListener('input', function () {
+      markEdited('angle');
+      var v = parseFloat(angleBIn.value);
+      angleAIn.value = isNaN(v) ? '' : calc.round(90 - v, 4);
+      recalc();
+    });
+    [aIn, bIn, cIn, angleAIn, angleBIn].forEach(function (el) {
+      el.addEventListener('focus', function () { el.select(); });
+    });
+
+    // clientWidth is 0 while this panel is hidden, so the diagram drawn at page load (on
+    // whichever panel starts active) uses the fallback width -- reflow with the real width
+    // once this panel is actually shown, and again on any window resize while it's visible.
+    var navBtn = document.querySelector('.nav-btn[data-panel="panel-righttriangle"]');
+    if (navBtn) navBtn.addEventListener('click', recalc);
+    var resizeTimer;
+    window.addEventListener('resize', function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(recalc, 150);
+    });
+
+    aIn.value = 3;
+    bIn.value = 4;
+    recalc();
+  }
+
+  // ------------------------------------------------------------------
   // True Position
   // ------------------------------------------------------------------
   function setupTruePosition() {
@@ -559,6 +722,7 @@
     setupFeedPerToothImperial();
     setupFeedPerToothMetric();
     setupBoltCircle();
+    setupRightTriangle();
     setupTruePosition();
     setupSurfaceFinish();
     setupTolerance();

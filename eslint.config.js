@@ -15,7 +15,9 @@ module.exports = [
         console: 'readonly',
         module: 'readonly',
         self: 'readonly',
-        Event: 'readonly'
+        Event: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly'
       }
     },
     rules: {
@@ -34,7 +36,8 @@ module.exports = [
         module: 'readonly',
         process: 'readonly',
         __dirname: 'readonly',
-        console: 'readonly'
+        console: 'readonly',
+        setTimeout: 'readonly'
       }
     },
     rules: {
