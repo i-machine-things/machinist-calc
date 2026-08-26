@@ -16,6 +16,11 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 
 - **Never interpolate `${{ github.* }}` context values directly into a `run:` shell script.** GitHub Actions substitutes `${{ }}` expressions as raw text *before* the shell runs, so an attacker-controllable value (tag name, branch name, PR title, commit message) can break out of quoting and execute arbitrary commands. Assign the value to `env:` and reference the shell variable (`"$VAR"`) instead — caught by CodeRabbit/zizmor on `github.ref_name`/`github.repository` in the release job.
 
+## electron-builder Publish / Update Metadata
+
+- **`electron-builder --publish never` skips generating `latest.yml`/`latest-mac.yml`/`latest-linux.yml`, not just uploading them.** Metadata generation is gated on the same internal flag as publishing (`isPublish`, true only when the policy isn't `never`), so a build-once-then-attach-artifacts-elsewhere release flow silently ships a working installer with a permanently broken auto-updater — CodeRabbit caught this in machinist-calc PR #5; verified against electron-builder's own `PublishManager` source rather than taking the fix suggestion at face value. Use `--publish always` (electron-builder's own documented CI pattern) in whatever job actually publishes the release, so metadata and installers are generated together.
+- Electron-builder's GitHub publish defaults to a **draft** release (`releaseType: 'draft'`). Set `releaseType: 'release'` in `build.publish` (`package.json`) if the release should go live immediately on tag push, matching the previous `gh release create` (non-draft) behavior.
+
 ## Enum-like String Parameters (JS)
 
 - **Reject unrecognized values instead of silently defaulting to one branch.** `calc.bonusTolerance`'s `featureType` used to treat anything except `'external'` as `'internal'`, so a typo or omitted argument would silently apply the wrong GD&T direction and return a confidently-wrong number. Throw (`RangeError`) on an unmatched value instead — caught by CodeRabbit in machinist-calc.
@@ -28,6 +33,22 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 ## Numeric Input Validation (JS)
 
 - **Count-like inputs (flute count, hole count, etc.) must be validated as positive integers, not just non-NaN.** `setupFeedPerToothImperial`/`Metric` accepted 0, negative, and fractional flute counts, producing meaningless feed results — caught by CodeRabbit in machinist-calc. Use `!Number.isInteger(f) || f <= 0` alongside the `isNaN` check.
+
+## Auto-Update (Network Exception)
+
+- **machinist-calc**: the only network call in the app is the GitHub Releases update check in `main.js` (`electron-updater`, `build.publish` in `package.json`). Everything else must stay offline — don't add other outbound calls without updating the "no network calls" claims in README.md and `.claude/CLAUDE.md`.
+- **Don't assume "which installer format" determines self-update support — verify against the actual updater, not intuition.** `electron-updater` self-updates NSIS (win), AppImage *and* `.deb` (linux, via system package manager) in place; only the win *portable* `.exe` is inherently excluded. macOS is blocked by lack of code signing (`CSC_IDENTITY_AUTO_DISCOVERY: false` in CI), not by `.dmg` vs `.zip` — caught by CodeRabbit in machinist-calc, an earlier note here had this backwards.
+- **`checkForUpdates()`/`checkForUpdatesAndNotify()` resolve with `result.downloadPromise` when `autoDownload` finds an update — that's a separate promise from the check itself and needs its own `.catch()`**, or a later download failure (network drop mid-download, etc.) is an unhandled rejection even though the check-phase `.catch()` looks like it covers everything. Caught by CodeRabbit in machinist-calc.
+- **Prefer `checkForUpdates()` over `checkForUpdatesAndNotify()`.** The "AndNotify" variant has its own internal `downloadPromise.then()` (for its native OS notification) with no rejection handler of its own — attaching `.catch()` to *your* reference to `downloadPromise` doesn't reach it, so a failed auto-download can still be an unhandled rejection. Caught by CodeRabbit in machinist-calc.
+
+## Electron Event Listeners & Window Lifecycle
+
+- **`once()` listeners for a user-triggered action must clean up on *every* outcome, not just the one you're watching for.** `checkForUpdatesManually` only removed its `update-not-available`/`error` listeners in those two handlers; an update-found result left them attached, firing again as stale duplicates on a later, unrelated check. Also guard re-entrancy (e.g. a double-click) with an in-progress flag. Caught by Claude review in machinist-calc.
+- **Never pass a `BrowserWindow` as a dialog parent without checking `!win.isDestroyed()`.** On macOS the app outlives its windows (`window-all-closed` doesn't quit), so a long-running background op (e.g. an update download) can complete after the window that started it was closed — passing the stale reference throws. Null the reference on `'closed'` and fall back to no parent.
+
+## ESLint Config Globals
+
+- **`eslint.config.js`'s `main.js`/`preload.js` block hand-lists Node globals instead of using the `globals` package's Node set — it's missing timer functions (`setTimeout`, etc.) that weren't used until now.** Adding the auto-updater's `setTimeout` call failed CI (`no-undef`) on a global the main process has always had at runtime. Add each newly-used Node global explicitly here rather than assuming it's covered.
 
 ## Easter Eggs
 

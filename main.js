@@ -1,8 +1,94 @@
-const { app, BrowserWindow, Menu, shell } = require('electron');
+const { app, BrowserWindow, Menu, shell, dialog } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('path');
 
 const isMac = process.platform === 'darwin';
 const iconPath = path.join(__dirname, 'build', isMac ? 'icon.icns' : (process.platform === 'win32' ? 'icon.ico' : 'icon.png'));
+
+let mainWindow = null;
+let updateCheckInProgress = false;
+
+/** Parent for update dialogs — falls back to none if the window has since been closed. */
+function getDialogParent() {
+  return mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
+}
+
+/**
+ * Auto-download and prompt-to-restart on a background release check.
+ * Errors are only logged here (not shown to the user) — this runs silently
+ * on every launch, and a failed background check shouldn't interrupt work.
+ * Manual checks (Help menu) get their own listeners with user-facing dialogs.
+ */
+function setupAutoUpdater() {
+  autoUpdater.on('error', (err) => {
+    console.error('Auto-update error:', err);
+  });
+  autoUpdater.on('update-downloaded', (info) => {
+    dialog.showMessageBox(getDialogParent(), {
+      type: 'info',
+      title: 'Update Ready',
+      message: `Machinist Calc ${info.version} has been downloaded.`,
+      detail: 'Restart now to install the update?',
+      buttons: ['Restart Now', 'Later'],
+      defaultId: 0,
+      cancelId: 1
+    }).then((result) => {
+      if (result.response === 0) autoUpdater.quitAndInstall();
+    });
+  });
+}
+
+/** Manual "Check for Updates" — surfaces both the up-to-date and error cases, unlike the silent auto-check. */
+function checkForUpdatesManually() {
+  if (!app.isPackaged) {
+    dialog.showMessageBox(getDialogParent(), {
+      type: 'info',
+      title: 'Check for Updates',
+      message: 'Update checks are only available in packaged builds.'
+    });
+    return;
+  }
+  // Guard against overlapping checks (e.g. a double-click) attaching duplicate one-shot listeners.
+  if (updateCheckInProgress) return;
+  updateCheckInProgress = true;
+
+  const onAvailable = () => cleanup();
+  const onNotAvailable = () => { cleanup(); showUpToDate(); };
+  const onError = (err) => { cleanup(); showCheckFailed(err); };
+  // Every outcome (found, not found, error) must clean up — an update-found result used to leave
+  // the not-available/error listeners attached forever, firing again (as stale duplicates) on a
+  // later, unrelated check.
+  function cleanup() {
+    updateCheckInProgress = false;
+    autoUpdater.removeListener('update-available', onAvailable);
+    autoUpdater.removeListener('update-not-available', onNotAvailable);
+    autoUpdater.removeListener('error', onError);
+  }
+  function showUpToDate() {
+    dialog.showMessageBox(getDialogParent(), {
+      type: 'info',
+      title: 'Up to Date',
+      message: 'Machinist Calc is up to date.'
+    });
+  }
+  function showCheckFailed(err) {
+    dialog.showMessageBox(getDialogParent(), {
+      type: 'warning',
+      title: 'Update Check Failed',
+      message: `Could not check for updates:\n${err.message}`
+    });
+  }
+  autoUpdater.once('update-available', onAvailable);
+  autoUpdater.once('update-not-available', onNotAvailable);
+  autoUpdater.once('error', onError);
+  // checkForUpdates() rejects on the same failure that also emits 'error' (handled by onError
+  // above). With autoDownload on (the default), a *found* update also kicks off a download via
+  // a separate result.downloadPromise — a later download failure is a distinct rejection that
+  // needs its own handler, or it surfaces as unhandled (the 'error' event still reports it).
+  autoUpdater.checkForUpdates()
+    .then((result) => result?.downloadPromise?.catch(() => {}))
+    .catch(() => {});
+}
 
 function buildMenu() {
   const template = [];
@@ -65,6 +151,11 @@ function buildMenu() {
     label: 'Help',
     submenu: [
       {
+        label: 'Check for Updates...',
+        click: () => checkForUpdatesManually()
+      },
+      { type: 'separator' },
+      {
         label: 'About Machinist Calc',
         click: () => shell.openExternal('https://theoreticalmachinist.com')
       }
@@ -90,13 +181,34 @@ function createWindow() {
   });
 
   win.loadFile(path.join(__dirname, 'src', 'index.html'));
+  // Mac apps outlive their windows (see window-all-closed below); drop the reference so a
+  // pending background operation (e.g. an in-flight update download) doesn't later try to
+  // parent a dialog to an already-destroyed window.
+  win.on('closed', () => {
+    if (mainWindow === win) mainWindow = null;
+  });
+  return win;
 }
 
 app.whenReady().then(() => {
   Menu.setApplicationMenu(buildMenu());
-  createWindow();
+  mainWindow = createWindow();
+  setupAutoUpdater();
+  if (app.isPackaged) {
+    // Delay so the window is up and responsive before making any network call. Uses
+    // checkForUpdates() (not checkForUpdatesAndNotify()) to match the manual path: the
+    // "AndNotify" variant's own internal downloadPromise.then() has no rejection handler of
+    // its own, so a failed download is an unhandled rejection no matter what we do to *our*
+    // reference to that promise. Its native OS notification would also be redundant with the
+    // custom dialog setupAutoUpdater() already shows on 'update-downloaded'.
+    setTimeout(() => {
+      autoUpdater.checkForUpdates()
+        .then((result) => result?.downloadPromise?.catch(() => {}))
+        .catch(() => {});
+    }, 3000);
+  }
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) mainWindow = createWindow();
   });
 });
 
