@@ -151,6 +151,16 @@
           </label>
         </div>
         <div class="result-table" id="th-uni-result"></div>
+
+        <h2>Tolerance Class</h2>
+        <p class="standard-note">Standard: ASME B1.1, Table 3 (Machinery's Handbook 26th ed.) — lookup only, covering the standard sizes above. Non-tabulated sizes/pitches aren't supported (the handbook defers those to the ASME B1.1 standard document itself).</p>
+        <div class="grid grid-2">
+          <label>Class
+            <select id="th-uni-class"><option value="">None (basic profile only)</option></select>
+          </label>
+        </div>
+        <p class="hint" id="th-uni-tol-hint"></p>
+        <div class="result-table" id="th-uni-tol-result"></div>
       </div>
 
       <div class="tab-panel" id="thread-metric">
@@ -167,6 +177,21 @@
           </label>
         </div>
         <div class="result-table" id="th-met-result"></div>
+
+        <h2>Tolerance Class</h2>
+        <p class="standard-note">Standard: ISO 965-1 / ANSI-ASME B1.13M-1983 (R1995), Tables 7-11 (Machinery's Handbook 26th ed.) — general formulas, so any major diameter (1.5-355mm) and pitch (0.2-6mm) is supported, not just the standard sizes above.</p>
+        <div class="grid grid-2">
+          <label>Class
+            <select id="th-met-class">
+              <option value="">None (basic profile only)</option>
+              <option value="6H">6H (internal, general purpose)</option>
+              <option value="6g">6g (external, general purpose)</option>
+              <option value="4g6g">4g6g (external, precision / no allowance)</option>
+            </select>
+          </label>
+        </div>
+        <p class="hint" id="th-met-tol-hint"></p>
+        <div class="result-table" id="th-met-tol-result"></div>
       </div>
     </section>
 

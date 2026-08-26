@@ -123,8 +123,34 @@
   // ------------------------------------------------------------------
   // Thread Calculator
   // ------------------------------------------------------------------
+  /** Find the calc.unifiedThreadSizes entry exactly matching a major dia / TPI pair, or null. */
+  function findUnifiedSizeName(majorDia, tpi) {
+    for (var i = 0; i < calc.unifiedThreadSizes.length; i++) {
+      var s = calc.unifiedThreadSizes[i];
+      if (Math.abs(s.majorDia - majorDia) < 1e-6 && s.tpi === tpi) return s.name;
+    }
+    return null;
+  }
+
+  function unifiedToleranceTable(t) {
+    if (t.external) {
+      return '<table>' +
+        '<tr><th>Allowance</th><td class="num">' + t.allowance.toFixed(4) + ' in</td></tr>' +
+        '<tr><th>Major Dia</th><td class="num">' + t.majorMin.toFixed(4) + ' – ' + t.majorMax.toFixed(4) + ' in</td></tr>' +
+        '<tr><th>Pitch Dia</th><td class="num">' + t.pdMin.toFixed(4) + ' – ' + t.pdMax.toFixed(4) + ' in</td></tr>' +
+        '<tr><th>Minor Dia (ref, max)</th><td class="num">' + t.minorMax.toFixed(4) + ' in</td></tr>' +
+        '</table>';
+    }
+    return '<table>' +
+      '<tr><th>Major Dia (min)</th><td class="num">' + t.majorMin.toFixed(4) + ' in</td></tr>' +
+      '<tr><th>Pitch Dia</th><td class="num">' + t.pdMin.toFixed(4) + ' – ' + t.pdMax.toFixed(4) + ' in</td></tr>' +
+      '<tr><th>Minor Dia</th><td class="num">' + t.minorMin.toFixed(4) + ' – ' + t.minorMax.toFixed(4) + ' in</td></tr>' +
+      '</table>';
+  }
+
   function setupThreadUnified() {
     var preset = $('th-uni-preset'), major = $('th-uni-major'), tpi = $('th-uni-tpi'), out = $('th-uni-result');
+    var classSelect = $('th-uni-class'), tolHint = $('th-uni-tol-hint'), tolOut = $('th-uni-tol-result');
     fillSelect(preset, calc.unifiedThreadSizes);
     preset.addEventListener('change', function () {
       if (preset.value === '') return;
@@ -132,9 +158,38 @@
       major.value = t.majorDia; tpi.value = t.tpi;
       recalc();
     });
+
+    function refreshToleranceClasses(sizeName) {
+      var prevValue = classSelect.value;
+      classSelect.innerHTML = '<option value="">None (basic profile only)</option>';
+      var classes = sizeName ? calc.unifiedThreadToleranceClasses(sizeName) : [];
+      classes.forEach(function (c) {
+        var opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c + (c.charAt(1) === 'A' ? ' (external)' : ' (internal)');
+        classSelect.appendChild(opt);
+      });
+      classSelect.disabled = classes.length === 0;
+      classSelect.value = classes.indexOf(prevValue) !== -1 ? prevValue : '';
+    }
+
+    function renderTolerance(sizeName) {
+      var cls = classSelect.value;
+      if (!sizeName) {
+        tolHint.textContent = 'Tolerance classes are only available for the standard/selected sizes above — pick one from "Common size", or enter a major diameter and TPI that match one exactly.';
+        tolOut.innerHTML = '';
+        return;
+      }
+      tolHint.textContent = '';
+      if (!cls) { tolOut.innerHTML = ''; return; }
+      var t = calc.unifiedThreadTolerance(sizeName, cls);
+      tolOut.innerHTML = t ? unifiedToleranceTable(t) : '';
+    }
+
+    var currentSizeName = null;
     function recalc() {
       var m = parseFloat(major.value), t = parseFloat(tpi.value);
-      if (isNaN(m) || isNaN(t) || t <= 0) { out.innerHTML = ''; return; }
+      if (isNaN(m) || isNaN(t) || t <= 0) { out.innerHTML = ''; currentSizeName = null; refreshToleranceClasses(null); renderTolerance(null); return; }
       var g = calc.unifiedThreadGeometry({ majorDia: m, tpi: t });
       out.innerHTML =
         '<table>' +
@@ -148,13 +203,34 @@
         '<tr><th>Internal Minor Dia</th><td class="num">' + g.internal.minorDia.toFixed(4) + ' in</td></tr>' +
         '<tr><th>Tensile Stress Area</th><td class="num">' + g.tensileStressArea.toFixed(5) + ' in²</td></tr>' +
         '</table>';
+      currentSizeName = findUnifiedSizeName(m, t);
+      refreshToleranceClasses(currentSizeName);
+      renderTolerance(currentSizeName);
     }
     [major, tpi].forEach(function (el) { el.addEventListener('input', recalc); });
+    classSelect.addEventListener('change', function () { renderTolerance(currentSizeName); });
     recalc();
+  }
+
+  function metricToleranceTable(t) {
+    if (t.external) {
+      return '<table>' +
+        '<tr><th>Allowance</th><td class="num">' + t.allowance.toFixed(3) + ' mm</td></tr>' +
+        '<tr><th>Major Dia</th><td class="num">' + t.majorMin.toFixed(3) + ' – ' + t.majorMax.toFixed(3) + ' mm</td></tr>' +
+        '<tr><th>Pitch Dia</th><td class="num">' + t.pdMin.toFixed(3) + ' – ' + t.pdMax.toFixed(3) + ' mm</td></tr>' +
+        '<tr><th>Minor Dia</th><td class="num">' + t.minorMin.toFixed(3) + ' – ' + t.minorMax.toFixed(3) + ' mm</td></tr>' +
+        '</table>';
+    }
+    return '<table>' +
+      '<tr><th>Major Dia (min)</th><td class="num">' + t.majorMin.toFixed(3) + ' mm</td></tr>' +
+      '<tr><th>Pitch Dia</th><td class="num">' + t.pdMin.toFixed(3) + ' – ' + t.pdMax.toFixed(3) + ' mm</td></tr>' +
+      '<tr><th>Minor Dia</th><td class="num">' + t.minorMin.toFixed(3) + ' – ' + t.minorMax.toFixed(3) + ' mm</td></tr>' +
+      '</table>';
   }
 
   function setupThreadMetric() {
     var preset = $('th-met-preset'), major = $('th-met-major'), pitch = $('th-met-pitch'), out = $('th-met-result');
+    var classSelect = $('th-met-class'), tolHint = $('th-met-tol-hint'), tolOut = $('th-met-tol-result');
     fillSelect(preset, calc.metricThreadSizes);
     preset.addEventListener('change', function () {
       if (preset.value === '') return;
@@ -162,9 +238,23 @@
       major.value = t.majorDia; pitch.value = t.pitch;
       recalc();
     });
+
+    function renderTolerance(m, p) {
+      var cls = classSelect.value;
+      if (!cls) { tolHint.textContent = ''; tolOut.innerHTML = ''; return; }
+      var t = calc.metricThreadTolerance(m, p, cls);
+      if (!t) {
+        tolHint.textContent = 'No tolerance data for this diameter/pitch combination (outside the tabulated 1.5-355mm diameter / 0.2-6mm pitch range).';
+        tolOut.innerHTML = '';
+        return;
+      }
+      tolHint.textContent = '';
+      tolOut.innerHTML = metricToleranceTable(t);
+    }
+
     function recalc() {
       var m = parseFloat(major.value), p = parseFloat(pitch.value);
-      if (isNaN(m) || isNaN(p) || p <= 0) { out.innerHTML = ''; return; }
+      if (isNaN(m) || isNaN(p) || p <= 0) { out.innerHTML = ''; tolOut.innerHTML = ''; tolHint.textContent = ''; return; }
       var g = calc.metricThreadGeometry({ majorDia: m, pitch: p });
       out.innerHTML =
         '<table>' +
@@ -178,8 +268,13 @@
         '<tr><th>Internal Minor Dia (D1)</th><td class="num">' + g.internal.minorDia.toFixed(3) + ' mm</td></tr>' +
         '<tr><th>Tensile Stress Area</th><td class="num">' + g.tensileStressArea.toFixed(3) + ' mm²</td></tr>' +
         '</table>';
+      renderTolerance(m, p);
     }
     [major, pitch].forEach(function (el) { el.addEventListener('input', recalc); });
+    classSelect.addEventListener('change', function () {
+      var m = parseFloat(major.value), p = parseFloat(pitch.value);
+      if (!isNaN(m) && !isNaN(p) && p > 0) renderTolerance(m, p);
+    });
     recalc();
   }
 

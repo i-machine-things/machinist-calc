@@ -50,6 +50,16 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 
 - **`eslint.config.js`'s `main.js`/`preload.js` block hand-lists Node globals instead of using the `globals` package's Node set — it's missing timer functions (`setTimeout`, etc.) that weren't used until now.** Adding the auto-updater's `setTimeout` call failed CI (`no-undef`) on a global the main process has always had at runtime. Add each newly-used Node global explicitly here rather than assuming it's covered.
 
+## Reference Data Extraction (PDF-Sourced Standards Tables)
+
+- **When transcribing standards tables from a PDF, validate for *completeness* (every expected class/field present per row), not just internal *consistency*.** An automated regex parser for `unified_tolerances.json` (ASME B1.1 Table 3) silently dropped most external classes for ~30 of 39 sizes; a consistency-only validator (cross-checking present values against basic-profile geometry) found "0 issues" because it never checked whether expected classes were *missing*. Caught by manually re-deriving the data and comparing counts. Add an explicit completeness check (required-keys-present) alongside any consistency check.
+- **Prefer bbox/row-reconstructed PDF text extraction over a single flattened text blob + regex** for multi-column tables — `pdftext`'s dictionary output (Y-coordinate-clustered rows, X-sorted columns) reads cleanly line-by-line; a joined blob loses row/column structure and makes regex row-matching fragile, especially where designations get split across lines by stacked-fraction glyphs (e.g. "1/4-20").
+- **Cross-validate a formula implementation against the standard's own precomputed table, not just against itself.** `metricThreadTolerance`'s Tables 7-11 formulas were confirmed correct by recomputing every value in the book's own Table 12/13 (standard-size 6H/6g/4g6g limits, 100 rows) and finding 0 discrepancies — far stronger evidence than formula-internal consistency checks alone.
+
+## Metric Thread Tolerance Class Notation (ISO 965-1)
+
+- **A compound class like `4g6g` means pitch-diameter grade 4, *major*-diameter (external) or *minor*-diameter (internal) grade 6 — not "grade 4 for everything."** The first grade+letter is always the pitch diameter; the second (only shown if different) is the crest diameter. `6g` alone means `6g6g`. Confirmed empirically: Machinery's Handbook Table 13 shows identical major-diameter limits for `6g` and `4g6g` at the same size — only pitch-diameter limits differ.
+
 ## Easter Eggs
 
 - **machinist-calc**: Ctrl+Alt+Shift+M toggles a small hidden "Machinist's Rule 0" ASCII-art note (`#easter-egg` in `src/index.html`, wired in `src/js/app.js`'s `setupEasterEgg()`). Not referenced anywhere in the visible UI. Dismiss with Esc or a click.
