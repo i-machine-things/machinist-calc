@@ -316,6 +316,55 @@
   // ------------------------------------------------------------------
   // Right Triangle Solver
   // ------------------------------------------------------------------
+  // Origin (vertex A) is fixed; leg b runs right, leg a runs up, mirroring the unit-circle
+  // convention of measuring angle A from a fixed origin. A single scale factor maps the real
+  // a/b onto their pixel budgets while preserving the true aspect ratio, so the drawing morphs
+  // to the actual proportions instead of a fixed generic shape.
+  var RT_ORIGIN_X = 60, RT_ORIGIN_Y = 210, RT_MAX_W = 250, RT_MAX_H = 170;
+
+  /** Pixel-space vertex positions and radius for a solved (real-unit) a/b/c triangle. */
+  function rtGeometry(a, b, c) {
+    var scale = Math.min(RT_MAX_W / b, RT_MAX_H / a);
+    var bPx = b * scale, aPx = a * scale, cPx = c * scale;
+    return {
+      A: { x: RT_ORIGIN_X, y: RT_ORIGIN_Y },
+      C: { x: RT_ORIGIN_X + bPx, y: RT_ORIGIN_Y },
+      B: { x: RT_ORIGIN_X + bPx, y: RT_ORIGIN_Y - aPx },
+      radiusPx: cPx
+    };
+  }
+
+  /**
+   * Draws the triangle plus a dashed arc of radius c centered on vertex A -- the same
+   * "hypotenuse as a radius" construction as the classic unit-circle trig diagram, scaled here
+   * to the triangle's actual (non-unit) hypotenuse instead of a fixed radius of 1.
+   */
+  function renderRightTriangle(svg, geo) {
+    var A = geo.A, B = geo.B, C = geo.C, mark = 14;
+    var arcStart = { x: A.x + geo.radiusPx, y: A.y };
+    svg.innerHTML =
+      '<path class="rt-arc" d="M' + arcStart.x.toFixed(1) + ',' + arcStart.y.toFixed(1) +
+        ' A' + geo.radiusPx.toFixed(1) + ',' + geo.radiusPx.toFixed(1) + ' 0 0,0 ' +
+        B.x.toFixed(1) + ',' + B.y.toFixed(1) + '" />' +
+      '<polygon class="rt-triangle" points="' + A.x + ',' + A.y + ' ' + C.x + ',' + C.y + ' ' +
+        B.x + ',' + B.y + '" />' +
+      '<path class="rt-rightangle-mark" d="M' + (C.x - mark) + ',' + C.y + ' L' + (C.x - mark) + ',' + (C.y - mark) +
+        ' L' + C.x + ',' + (C.y - mark) + '" />';
+  }
+
+  /** Positions (CSS left/top) for the 6 field overlays, derived from the same solved geometry. */
+  function rtFieldStyle(geo) {
+    var A = geo.A, B = geo.B, C = geo.C;
+    return {
+      b: { left: (A.x + C.x) / 2 - 37, top: C.y + 6 },
+      a: { left: C.x + 6, top: (C.y + B.y) / 2 - 13 },
+      c: { left: (A.x + B.x) / 2 - 60, top: (A.y + B.y) / 2 - 35 },
+      anglea: { left: A.x + 10, top: A.y - 34 },
+      angleb: { left: B.x - 62, top: B.y + 8 },
+      anglec: { left: C.x - 54, top: C.y - 34 }
+    };
+  }
+
   // Diagram has 6 positions (side a/b/c, angle A/B/C) but only 4 independent quantities --
   // angle C is fixed at 90 and angle A/B are complementary (A+B=90), so the two angle fields
   // are kept mirrored (like the SFM/SMM pair in the Unit Converter) and tracked as one 'angle'
@@ -324,8 +373,10 @@
   // all 5 are filled -- instead, track the 2 field keys the user most recently typed into and
   // solve from only those, treating everything else as output to overwrite.
   function setupRightTriangle() {
+    var svg = $('rt-svg');
     var aIn = $('rt-a'), bIn = $('rt-b'), cIn = $('rt-c'),
-      angleAIn = $('rt-anglea'), angleBIn = $('rt-angleb'), errOut = $('rt-error');
+      angleAIn = $('rt-anglea'), angleBIn = $('rt-angleb'), angleCEl = $('rt-anglec'), errOut = $('rt-error');
+    var fieldEls = { a: aIn, b: bIn, c: cIn, anglea: angleAIn, angleb: angleBIn, anglec: angleCEl };
     var editOrder = ['a', 'b']; // most-recently-edited last; matches the default seed below
 
     function markEdited(key) {
@@ -333,6 +384,16 @@
       if (idx !== -1) editOrder.splice(idx, 1);
       editOrder.push(key);
       if (editOrder.length > 2) editOrder.shift();
+    }
+
+    function redraw(a, b, c) {
+      var geo = rtGeometry(a, b, c);
+      renderRightTriangle(svg, geo);
+      var style = rtFieldStyle(geo);
+      Object.keys(style).forEach(function (key) {
+        fieldEls[key].style.left = style[key].left + 'px';
+        fieldEls[key].style.top = style[key].top + 'px';
+      });
     }
 
     function recalc() {
@@ -357,6 +418,7 @@
         if (focused !== cIn) cIn.value = r.c;
         if (focused !== angleAIn) angleAIn.value = r.angleADeg;
         if (focused !== angleBIn) angleBIn.value = r.angleBDeg;
+        redraw(r.a, r.b, r.c);
       } catch (err) {
         errOut.textContent = err.message;
       }

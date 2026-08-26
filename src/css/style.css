@@ -291,8 +291,12 @@ input:focus, select:focus {
 #rt-svg { display: block; }
 .rt-triangle { fill: none; stroke: var(--text-dim); stroke-width: 1.5; }
 .rt-rightangle-mark { fill: none; stroke: var(--text-dim); stroke-width: 1.5; }
-.rt-anglearc { fill: none; stroke: var(--accent); stroke-width: 1.25; }
+/* Arc of radius c centered on angle A's vertex, echoing the unit-circle construction where the
+   hypotenuse is a radius -- here scaled to the triangle's actual (non-unit) hypotenuse length. */
+.rt-arc { fill: none; stroke: var(--accent); stroke-width: 1.25; stroke-dasharray: 3 3; }
 
+/* Field positions are computed in JS (renderRightTriangle in app.js), not fixed here -- the
+   diagram redraws to the actual solved triangle's proportions on every recalc. */
 .rt-fields { position: absolute; inset: 0; }
 
 .rt-field {
@@ -319,20 +323,7 @@ input:focus, select:focus {
   color: var(--text-dim);
   background: transparent;
   border-color: transparent;
-  left: 270px;
-  top: 178px;
 }
-
-/* Side b: bottom edge, centered below it */
-#rt-b { left: 150px; top: 216px; }
-/* Side a: right edge, to the right of it */
-#rt-a { left: 326px; top: 112px; }
-/* Hypotenuse c: above-left of its midpoint */
-#rt-c { left: 140px; top: 78px; }
-/* Angle A: inset from the bottom-left vertex */
-#rt-anglea { left: 70px; top: 178px; }
-/* Angle B: inset from the top vertex */
-#rt-angleb { left: 250px; top: 48px; }
 
 /* Hidden Ctrl+Alt+Shift+M easter egg — see CODING_NOTES.md */
 .easter-egg {
