@@ -15,7 +15,9 @@ module.exports = [
         console: 'readonly',
         module: 'readonly',
         self: 'readonly',
-        Event: 'readonly'
+        Event: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly'
       }
     },
     rules: {

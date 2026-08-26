@@ -36,6 +36,10 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 
 - **When the same fields serve as both input and auto-filled output (e.g. "enter any 2 of N, the rest solve"), don't decide "which N are known" from which fields are currently non-empty — once a solve fills every field, editing any one of them makes all N look filled.** Track the (at most 2) field keys the user most recently *typed into* and solve from only those, treating every other field as pure output to overwrite. Also skip overwriting whichever field currently has focus, or a live recalc mid-keystroke clobbers what's being typed. See `setupRightTriangle` in `src/js/app.js`. Self-caught in machinist-calc before this shipped.
 
+## ESLint Config Globals
+
+- **`eslint.config.js` hand-lists globals per file group instead of using the `globals` package's built-in sets — each group is missing whichever globals its code hadn't needed yet.** Both the `main.js`/`preload.js`/`tests` block and the `src/js/**/*.js` (renderer) block were missing `setTimeout`/`clearTimeout` until something actually called them, failing CI (`no-undef`) each time. Add each newly-used global explicitly to the right block rather than assuming it's covered.
+
 ## Easter Eggs
 
 - **machinist-calc**: Ctrl+Alt+Shift+M toggles a small hidden "Machinist's Rule 0" ASCII-art note (`#easter-egg` in `src/index.html`, wired in `src/js/app.js`'s `setupEasterEgg()`). Not referenced anywhere in the visible UI. Dismiss with Esc or a click.
