@@ -38,6 +38,7 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 
 - **machinist-calc**: the only network call in the app is the GitHub Releases update check in `main.js` (`electron-updater`, `build.publish` in `package.json`). Everything else must stay offline — don't add other outbound calls without updating the "no network calls" claims in README.md and `.claude/CLAUDE.md`.
 - **Don't assume "which installer format" determines self-update support — verify against the actual updater, not intuition.** `electron-updater` self-updates NSIS (win), AppImage *and* `.deb` (linux, via system package manager) in place; only the win *portable* `.exe` is inherently excluded. macOS is blocked by lack of code signing (`CSC_IDENTITY_AUTO_DISCOVERY: false` in CI), not by `.dmg` vs `.zip` — caught by CodeRabbit in machinist-calc, an earlier note here had this backwards.
+- **`checkForUpdates()`/`checkForUpdatesAndNotify()` resolve with `result.downloadPromise` when `autoDownload` finds an update — that's a separate promise from the check itself and needs its own `.catch()`**, or a later download failure (network drop mid-download, etc.) is an unhandled rejection even though the check-phase `.catch()` looks like it covers everything. Caught by CodeRabbit in machinist-calc.
 
 ## Electron Event Listeners & Window Lifecycle
 

@@ -82,8 +82,12 @@ function checkForUpdatesManually() {
   autoUpdater.once('update-not-available', onNotAvailable);
   autoUpdater.once('error', onError);
   // checkForUpdates() rejects on the same failure that also emits 'error' (handled by onError
-  // above) — swallow the rejection here so it doesn't surface as an unhandled promise rejection.
-  autoUpdater.checkForUpdates().catch(() => {});
+  // above). With autoDownload on (the default), a *found* update also kicks off a download via
+  // a separate result.downloadPromise — a later download failure is a distinct rejection that
+  // needs its own handler, or it surfaces as unhandled (the 'error' event still reports it).
+  autoUpdater.checkForUpdates()
+    .then((result) => result?.downloadPromise?.catch(() => {}))
+    .catch(() => {});
 }
 
 function buildMenu() {
@@ -192,9 +196,13 @@ app.whenReady().then(() => {
   setupAutoUpdater();
   if (app.isPackaged) {
     // Delay so the window is up and responsive before making any network call. The 'error'
-    // listener in setupAutoUpdater already logs failures — catch() here only prevents an
-    // unhandled promise rejection from the same failure.
-    setTimeout(() => autoUpdater.checkForUpdatesAndNotify().catch(() => {}), 3000);
+    // listener in setupAutoUpdater already logs failures — the catch()es here only prevent
+    // the check and the (separate) auto-download promise from surfacing as unhandled rejections.
+    setTimeout(() => {
+      autoUpdater.checkForUpdatesAndNotify()
+        .then((result) => result?.downloadPromise?.catch(() => {}))
+        .catch(() => {});
+    }, 3000);
   }
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) mainWindow = createWindow();
