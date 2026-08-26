@@ -587,10 +587,11 @@
   // Scientific calculator expression evaluator
   // General-purpose arithmetic/trigonometry — no ISO/ANSI standard governs
   // this. Deliberately a hand-written recursive-descent parser rather than
-  // eval()/Function() on the input string: the app's Content-Security-Policy
-  // (script-src 'self', no unsafe-eval) blocks both anyway, and evaluating
-  // an arbitrary string as code is a textbook injection risk regardless of
-  // CSP — see the source-scan regression test in tests/run.js.
+  // dynamically executing the input string via `eval` or `new Function`: the
+  // app's Content-Security-Policy (script-src 'self', no unsafe-eval) blocks
+  // both anyway, and evaluating an arbitrary string as code is a textbook
+  // injection risk regardless of CSP — see the source-scan regression test
+  // in tests/run.js.
   // ---------------------------------------------------------------------
 
   var SCI_FUNCTIONS = ['sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'sqrt', 'log', 'ln', 'abs'];
