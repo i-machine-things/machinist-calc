@@ -316,34 +316,38 @@
   // ------------------------------------------------------------------
   // Right Triangle Solver
   // ------------------------------------------------------------------
-  // Origin (vertex A) is fixed relative to the diagram's current pixel width (measured fresh on
-  // every redraw, not a hardcoded canvas size); leg b runs right, leg a runs up. A single scale
-  // factor maps the real a/b onto their pixel budgets while preserving the true aspect ratio, so
-  // the drawing morphs to the actual proportions instead of a fixed generic shape, and reflows to
-  // the panel's available width instead of a fixed-size box.
-  var RT_HEIGHT = 260, RT_ORIGIN_X = 50, RT_ORIGIN_Y = RT_HEIGHT - 50, RT_RIGHT_MARGIN = 90, RT_TOP_MARGIN = 40;
+  // A single scale factor maps the real a/b onto the available drawing budget (canvas size minus
+  // the margin reserved for each field label) while preserving the true aspect ratio, so the
+  // drawing morphs to the actual proportions instead of a fixed generic shape. The triangle plus
+  // its label margins is then centered as one block within the canvas, rather than anchored to a
+  // fixed corner, so leftover space (whichever dimension wasn't the binding constraint) is split
+  // evenly instead of piling up on one side.
+  var RT_LEFT_PAD = 20, RT_RIGHT_PAD = 90, RT_TOP_PAD = 45, RT_BOTTOM_PAD = 45;
 
-  /** Pixel-space vertex positions for a solved (real-unit) a/b/c triangle within a `width`-wide canvas. */
-  function rtGeometry(a, b, c, width) {
-    var maxW = Math.max(width - RT_ORIGIN_X - RT_RIGHT_MARGIN, 40);
-    var maxH = Math.max(RT_ORIGIN_Y - RT_TOP_MARGIN, 40);
+  /** Pixel-space vertex positions for a solved (real-unit) a/b/c triangle, centered within a `width` x `height` box. */
+  function rtGeometry(a, b, c, width, height) {
+    var usableW = Math.max(width - RT_LEFT_PAD - RT_RIGHT_PAD, 40);
+    var usableH = Math.max(height - RT_TOP_PAD - RT_BOTTOM_PAD, 40);
     // A leg can round to exactly 0 at the displayed precision even though the solver validated
     // it as positive pre-rounding (e.g. a raw 4e-7 rounds to 0.00000) -- dividing by that would
     // turn every downstream coordinate into Infinity/NaN, so floor it to a nominal positive size.
     var drawA = a > 0 ? a : 1, drawB = b > 0 ? b : 1;
-    var scale = Math.min(maxW / drawB, maxH / drawA);
+    var scale = Math.min(usableW / drawB, usableH / drawA);
     var bPx = drawB * scale, aPx = drawA * scale;
+    var contentW = bPx + RT_LEFT_PAD + RT_RIGHT_PAD, contentH = aPx + RT_TOP_PAD + RT_BOTTOM_PAD;
+    var offsetX = Math.max((width - contentW) / 2, 0), offsetY = Math.max((height - contentH) / 2, 0);
+    var originX = offsetX + RT_LEFT_PAD, originY = offsetY + RT_TOP_PAD + aPx;
     return {
-      A: { x: RT_ORIGIN_X, y: RT_ORIGIN_Y },
-      C: { x: RT_ORIGIN_X + bPx, y: RT_ORIGIN_Y },
-      B: { x: RT_ORIGIN_X + bPx, y: RT_ORIGIN_Y - aPx }
+      A: { x: originX, y: originY },
+      C: { x: originX + bPx, y: originY },
+      B: { x: originX + bPx, y: originY - aPx }
     };
   }
 
   /** Draws the triangle outline and the right-angle marker at C. */
-  function renderRightTriangle(svg, geo, width) {
+  function renderRightTriangle(svg, geo, width, height) {
     var A = geo.A, B = geo.B, C = geo.C, mark = 14;
-    svg.setAttribute('viewBox', '0 0 ' + width + ' ' + RT_HEIGHT);
+    svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
     svg.innerHTML =
       '<polygon class="rt-triangle" points="' + A.x + ',' + A.y + ' ' + C.x + ',' + C.y + ' ' +
         B.x + ',' + B.y + '" />' +
@@ -387,12 +391,21 @@
     }
 
     function redraw(a, b, c) {
-      // clientWidth reads 0 while this panel is hidden (display: none) -- fall back to a sane
-      // width so the diagram still lays out once the panel becomes visible (see the nav
-      // click/resize listeners below, which redraw with the real measured width).
-      var width = wrap.clientWidth || 380;
-      var geo = rtGeometry(a, b, c, width);
-      renderRightTriangle(svg, geo, width);
+      // clientWidth reads 0 while this panel is hidden (display: none) -- fall back to sane
+      // defaults so the diagram still lays out until the panel becomes visible (see the nav
+      // click/resize listeners below, which redraw with the real measured size). Height fills
+      // whatever vertical space is left in the viewport below the diagram's top, clamped to a
+      // reasonable range rather than growing unbounded.
+      var width = wrap.clientWidth, height;
+      if (!width) {
+        width = 380;
+        height = 260;
+      } else {
+        height = Math.max(Math.min(window.innerHeight - wrap.getBoundingClientRect().top - 40, 600), 220);
+      }
+      wrap.style.height = height + 'px';
+      var geo = rtGeometry(a, b, c, width, height);
+      renderRightTriangle(svg, geo, width, height);
       var style = rtFieldStyle(geo);
       Object.keys(style).forEach(function (key) {
         fieldEls[key].style.left = style[key].left + 'px';
