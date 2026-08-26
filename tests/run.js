@@ -222,6 +222,22 @@ test('evaluateExpression: unary minus binds looser than exponent (-2^2 = -4)', (
   approx(calc.evaluateExpression('-2^2'), -4, 1e-9);
 });
 
+test('evaluateExpression: parses exponent-suffixed number literals', () => {
+  approx(calc.evaluateExpression('1e-8'), 1e-8, 1e-20);
+  approx(calc.evaluateExpression('1.5E+10'), 1.5e10, 1);
+  approx(calc.evaluateExpression('2e3 + 1'), 2001, 1e-9);
+});
+
+test('evaluateExpression: round-trips a very small/large result through its own default string form', () => {
+  // MR (memory recall) and "=" chaining both re-insert String(result) into the display; if the
+  // magnitude is small/large enough that JS renders it in exponential form, the tokenizer must
+  // be able to parse that same string back, or recalling a stored value silently breaks.
+  const small = calc.evaluateExpression('1 / 100000000');
+  assert.strictEqual(calc.evaluateExpression(String(small)), small);
+  const large = calc.evaluateExpression('10^25');
+  assert.strictEqual(calc.evaluateExpression(String(large)), large);
+});
+
 test('evaluateExpression: exponent is right-associative (2^3^2 = 512)', () => {
   approx(calc.evaluateExpression('2^3^2'), 512, 1e-9);
 });

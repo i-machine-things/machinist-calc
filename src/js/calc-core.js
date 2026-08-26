@@ -531,6 +531,18 @@
       if (/[0-9.]/.test(ch)) {
         var start = i;
         while (i < expr.length && /[0-9.]/.test(expr[i])) i++;
+        // Optional exponent suffix (1e5, 1.5e-10) so a very large/small result's default
+        // string form (e.g. from Number#toString(), used when recalling memory or chaining
+        // off "=") round-trips back through this tokenizer instead of erroring as malformed.
+        if (i < expr.length && (expr[i] === 'e' || expr[i] === 'E')) {
+          var expDigitsStart = i + 1;
+          if (expDigitsStart < expr.length && (expr[expDigitsStart] === '+' || expr[expDigitsStart] === '-')) {
+            expDigitsStart++;
+          }
+          var expDigitsEnd = expDigitsStart;
+          while (expDigitsEnd < expr.length && /[0-9]/.test(expr[expDigitsEnd])) expDigitsEnd++;
+          if (expDigitsEnd > expDigitsStart) i = expDigitsEnd;
+        }
         var numStr = expr.slice(start, i);
         var dotCount = (numStr.match(/\./g) || []).length;
         var value = parseFloat(numStr);
@@ -677,7 +689,8 @@
 
   /**
    * Evaluate a scientific-calculator expression string: + - * / ^
-   * (right-associative power), unary +/-, parentheses,
+   * (right-associative power), unary +/-, parentheses, number literals
+   * with an optional exponent suffix (1e-8, 2.5E+10),
    * sin/cos/tan/asin/acos/atan/sqrt/log(base 10)/ln/abs, and the constants
    * pi/e. `angleMode` is 'deg' (default) or 'rad', controlling whether trig
    * functions take/return degrees or radians. Throws SyntaxError for

@@ -19,6 +19,7 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 ## User-Input Expression Evaluation (JS)
 
 - **Never use `eval()`/`new Function()` to evaluate a user-typed string (e.g. a calculator expression).** It's a textbook injection risk regardless of context, and this app's CSP (`script-src 'self'`, no `unsafe-eval` — see `src/index.html`) blocks both anyway. Write a real tokenizer + recursive-descent parser instead; see `calc.evaluateExpression` in `src/js/calc-core.js`. `tests/run.js` has a source-scan regression test asserting neither ever reappears.
+- **A custom number tokenizer must parse whatever `Number#toString()` can produce, not just what a user types.** Any feature that re-inserts a computed result back into the input (memory recall, "=" chaining) round-trips through `String(result)`, which switches to exponential notation (`"1e-8"`, `"1e+25"`) outside roughly 1e-6..1e21 — a tokenizer that only handles plain digits then rejects its own output as malformed. Self-caught in machinist-calc before it shipped.
 
 ## Enum-like String Parameters (JS)
 
