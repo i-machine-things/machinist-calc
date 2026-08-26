@@ -11,3 +11,6 @@ Thumbs.db
 
 # Claude Code local permission overrides — machine/session-specific, not shared template.
 .claude/settings.local.json
+
+# Local-only reference material (e.g. copyrighted standards excerpts) -- never committed.
+.refmaterial/
