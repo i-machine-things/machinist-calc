@@ -195,11 +195,14 @@ app.whenReady().then(() => {
   mainWindow = createWindow();
   setupAutoUpdater();
   if (app.isPackaged) {
-    // Delay so the window is up and responsive before making any network call. The 'error'
-    // listener in setupAutoUpdater already logs failures — the catch()es here only prevent
-    // the check and the (separate) auto-download promise from surfacing as unhandled rejections.
+    // Delay so the window is up and responsive before making any network call. Uses
+    // checkForUpdates() (not checkForUpdatesAndNotify()) to match the manual path: the
+    // "AndNotify" variant's own internal downloadPromise.then() has no rejection handler of
+    // its own, so a failed download is an unhandled rejection no matter what we do to *our*
+    // reference to that promise. Its native OS notification would also be redundant with the
+    // custom dialog setupAutoUpdater() already shows on 'update-downloaded'.
     setTimeout(() => {
-      autoUpdater.checkForUpdatesAndNotify()
+      autoUpdater.checkForUpdates()
         .then((result) => result?.downloadPromise?.catch(() => {}))
         .catch(() => {});
     }, 3000);
