@@ -6,6 +6,7 @@
  */
 
 const assert = require('assert');
+const fs = require('fs');
 const calc = require('../src/js/calc-core.js');
 
 let passed = 0;
@@ -206,6 +207,76 @@ test('limits: bilateral tolerance', () => {
   approx(r.minLimit, 9.98, 0.0001);
   approx(r.totalTolerance, 0.07, 0.0001);
   approx(r.midpoint, 10.015, 0.0001);
+});
+
+// -------------------------------------------------------------------------
+// Scientific calculator expression evaluator
+// -------------------------------------------------------------------------
+
+test('evaluateExpression: basic arithmetic with standard precedence', () => {
+  approx(calc.evaluateExpression('2 + 3 * 4'), 14, 1e-9);
+  approx(calc.evaluateExpression('(2 + 3) * 4'), 20, 1e-9);
+});
+
+test('evaluateExpression: unary minus binds looser than exponent (-2^2 = -4)', () => {
+  approx(calc.evaluateExpression('-2^2'), -4, 1e-9);
+});
+
+test('evaluateExpression: exponent is right-associative (2^3^2 = 512)', () => {
+  approx(calc.evaluateExpression('2^3^2'), 512, 1e-9);
+});
+
+test('evaluateExpression: negative exponent', () => {
+  approx(calc.evaluateExpression('2^-2'), 0.25, 1e-9);
+});
+
+test('evaluateExpression: trig functions default to degrees', () => {
+  approx(calc.evaluateExpression('sin(30)'), 0.5, 1e-9);
+  approx(calc.evaluateExpression('cos(60)'), 0.5, 1e-9);
+});
+
+test('evaluateExpression: trig functions honor radian mode', () => {
+  approx(calc.evaluateExpression('sin(pi/2)', 'rad'), 1, 1e-9);
+});
+
+test('evaluateExpression: inverse trig returns degrees by default', () => {
+  approx(calc.evaluateExpression('asin(1)'), 90, 1e-9);
+});
+
+test('evaluateExpression: sqrt, log, ln, abs, and constants', () => {
+  approx(calc.evaluateExpression('sqrt(9)'), 3, 1e-9);
+  approx(calc.evaluateExpression('log(100)'), 2, 1e-9);
+  approx(calc.evaluateExpression('ln(e)'), 1, 1e-9);
+  approx(calc.evaluateExpression('abs(-5)'), 5, 1e-9);
+  approx(calc.evaluateExpression('pi'), Math.PI, 1e-9);
+});
+
+test('evaluateExpression: rejects division by zero', () => {
+  assert.throws(() => calc.evaluateExpression('1/0'), RangeError);
+});
+
+test('evaluateExpression: rejects out-of-domain inputs instead of returning NaN', () => {
+  assert.throws(() => calc.evaluateExpression('asin(2)'), RangeError);
+  assert.throws(() => calc.evaluateExpression('sqrt(-1)'), RangeError);
+  assert.throws(() => calc.evaluateExpression('log(0)'), RangeError);
+});
+
+test('evaluateExpression: rejects malformed input instead of silently guessing', () => {
+  assert.throws(() => calc.evaluateExpression('2 + '), SyntaxError);
+  assert.throws(() => calc.evaluateExpression('2 3'), SyntaxError);
+  assert.throws(() => calc.evaluateExpression('2 + )'), SyntaxError);
+  assert.throws(() => calc.evaluateExpression('foo(1)'), SyntaxError);
+  assert.throws(() => calc.evaluateExpression(''), SyntaxError);
+  assert.throws(() => calc.evaluateExpression('1.2.3'), SyntaxError);
+});
+
+test('calc-core.js never calls eval() or the Function constructor (regression guard)', () => {
+  // The scientific calculator evaluates arbitrary user-typed strings; a hand-written parser is
+  // the whole point (see calc-core.js), so this scans the real source rather than trusting a
+  // future refactor not to reintroduce eval()/Function() as a shortcut.
+  const src = fs.readFileSync(require.resolve('../src/js/calc-core.js'), 'utf8');
+  assert.ok(!/\beval\s*\(/.test(src), 'calc-core.js must not call eval()');
+  assert.ok(!/new\s+Function\s*\(/.test(src), 'calc-core.js must not use the Function constructor');
 });
 
 // -------------------------------------------------------------------------

@@ -16,6 +16,10 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 
 - **Never interpolate `${{ github.* }}` context values directly into a `run:` shell script.** GitHub Actions substitutes `${{ }}` expressions as raw text *before* the shell runs, so an attacker-controllable value (tag name, branch name, PR title, commit message) can break out of quoting and execute arbitrary commands. Assign the value to `env:` and reference the shell variable (`"$VAR"`) instead — caught by CodeRabbit/zizmor on `github.ref_name`/`github.repository` in the release job.
 
+## User-Input Expression Evaluation (JS)
+
+- **Never use `eval()`/`new Function()` to evaluate a user-typed string (e.g. a calculator expression).** It's a textbook injection risk regardless of context, and this app's CSP (`script-src 'self'`, no `unsafe-eval` — see `src/index.html`) blocks both anyway. Write a real tokenizer + recursive-descent parser instead; see `calc.evaluateExpression` in `src/js/calc-core.js`. `tests/run.js` has a source-scan regression test asserting neither ever reappears.
+
 ## Enum-like String Parameters (JS)
 
 - **Reject unrecognized values instead of silently defaulting to one branch.** `calc.bonusTolerance`'s `featureType` used to treat anything except `'external'` as `'internal'`, so a typo or omitted argument would silently apply the wrong GD&T direction and return a confidently-wrong number. Throw (`RangeError`) on an unmatched value instead — caught by CodeRabbit in machinist-calc.

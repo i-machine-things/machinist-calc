@@ -19,6 +19,12 @@ no telemetry — everything runs locally in the app.
 | Surface Finish | Theoretical Ra approximation (Machinery's Handbook) |
 | ISO Tolerance / Limits | ISO 286-1 |
 | Reference Charts | ASME B94.11M drill size tables |
+| Scientific Calculator | General arithmetic/trigonometry — no ISO/ANSI standard applies |
+
+The scientific calculator evaluates typed expressions with a small
+hand-written parser — not `eval()` or `Function()` — since the app's
+Content-Security-Policy blocks both anyway and evaluating an arbitrary
+string as code is an injection risk regardless of CSP.
 
 Each panel in the app states which standard (if any) its formula is based
 on, and every formula in [`src/js/calc-core.js`](src/js/calc-core.js) is

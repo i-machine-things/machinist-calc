@@ -23,6 +23,7 @@
       <li><button class="nav-btn" data-panel="panel-surfacefinish">Surface Finish</button></li>
       <li><button class="nav-btn" data-panel="panel-tolerance">ISO Tolerance</button></li>
       <li><button class="nav-btn" data-panel="panel-charts">Reference Charts</button></li>
+      <li><button class="nav-btn" data-panel="panel-scientific">Scientific Calculator</button></li>
     </ul>
   </nav>
 
@@ -445,6 +446,73 @@
           <thead><tr><th>Size</th><th>Decimal (in)</th><th>mm</th></tr></thead>
           <tbody></tbody>
         </table>
+      </div>
+    </section>
+
+    <!-- Scientific Calculator -->
+    <section class="panel" id="panel-scientific">
+      <h1>Scientific Calculator</h1>
+      <p class="standard-note">General-purpose arithmetic and trigonometry — not a machinist-specific calculation, so no ISO/ANSI standard applies. Evaluated with a small hand-written parser, not <code>eval()</code>.</p>
+
+      <input type="text" id="sci-display" class="sci-display" placeholder="0" autocomplete="off" spellcheck="false" />
+      <div class="result-box sci-result">
+        <div class="result-value" id="sci-result">—</div>
+      </div>
+
+      <div class="sci-mode-row">
+        <label class="sci-mode-label">
+          <input type="radio" name="sci-anglemode" value="deg" id="sci-mode-deg" checked /> Degrees
+        </label>
+        <label class="sci-mode-label">
+          <input type="radio" name="sci-anglemode" value="rad" id="sci-mode-rad" /> Radians
+        </label>
+        <span class="sci-memory" id="sci-memory-out">M: 0</span>
+      </div>
+
+      <div class="sci-keypad">
+        <button class="sci-key" data-insert="(">(</button>
+        <button class="sci-key" data-insert=")">)</button>
+        <button class="sci-key sci-key-mem" data-action="mc">MC</button>
+        <button class="sci-key sci-key-mem" data-action="mr">MR</button>
+        <button class="sci-key" data-action="backspace">⌫</button>
+
+        <button class="sci-key" data-insert="sin(">sin</button>
+        <button class="sci-key" data-insert="cos(">cos</button>
+        <button class="sci-key" data-insert="tan(">tan</button>
+        <button class="sci-key sci-key-op" data-insert="^">x^y</button>
+        <button class="sci-key" data-insert="sqrt(">√</button>
+
+        <button class="sci-key" data-insert="asin(">asin</button>
+        <button class="sci-key" data-insert="acos(">acos</button>
+        <button class="sci-key" data-insert="atan(">atan</button>
+        <button class="sci-key" data-insert="log(">log</button>
+        <button class="sci-key" data-insert="ln(">ln</button>
+
+        <button class="sci-key" data-insert="7">7</button>
+        <button class="sci-key" data-insert="8">8</button>
+        <button class="sci-key" data-insert="9">9</button>
+        <button class="sci-key sci-key-op" data-insert="/">÷</button>
+        <button class="sci-key sci-key-mem" data-action="m-plus">M+</button>
+
+        <button class="sci-key" data-insert="4">4</button>
+        <button class="sci-key" data-insert="5">5</button>
+        <button class="sci-key" data-insert="6">6</button>
+        <button class="sci-key sci-key-op" data-insert="*">×</button>
+        <button class="sci-key sci-key-mem" data-action="m-minus">M−</button>
+
+        <button class="sci-key" data-insert="1">1</button>
+        <button class="sci-key" data-insert="2">2</button>
+        <button class="sci-key" data-insert="3">3</button>
+        <button class="sci-key sci-key-op" data-insert="-">−</button>
+        <button class="sci-key" data-insert="pi">π</button>
+
+        <button class="sci-key" data-insert="0">0</button>
+        <button class="sci-key" data-insert=".">.</button>
+        <button class="sci-key" data-action="clear">C</button>
+        <button class="sci-key sci-key-op" data-insert="+">+</button>
+        <button class="sci-key" data-insert="e">e</button>
+
+        <button class="sci-key sci-key-eq" data-action="equals">=</button>
       </div>
     </section>
 

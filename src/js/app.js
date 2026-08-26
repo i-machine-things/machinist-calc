@@ -419,6 +419,116 @@
     render();
   }
 
+  // ------------------------------------------------------------------
+  // Scientific Calculator
+  // ------------------------------------------------------------------
+  function setupScientificCalculator() {
+    var display = $('sci-display'), resultOut = $('sci-result'), memoryOut = $('sci-memory-out'),
+      modeDeg = $('sci-mode-deg'), modeRad = $('sci-mode-rad'),
+      keypad = document.querySelector('#panel-scientific .sci-keypad');
+    var memory = 0;
+
+    function angleMode() { return modeRad.checked ? 'rad' : 'deg'; }
+
+    // Returns a number, null (blank display), or the caught Error — callers branch on
+    // `instanceof Error` so recalc/equals/memory ops share one evaluation path.
+    function currentResult() {
+      var expr = display.value.trim();
+      if (!expr) return null;
+      try {
+        return calc.evaluateExpression(expr, angleMode());
+      } catch (err) {
+        return err;
+      }
+    }
+
+    function recalc() {
+      var r = currentResult();
+      if (r == null) {
+        resultOut.textContent = '—';
+        resultOut.classList.remove('sci-error');
+      } else if (r instanceof Error) {
+        resultOut.textContent = r.message;
+        resultOut.classList.add('sci-error');
+      } else {
+        resultOut.textContent = calc.round(r, 10);
+        resultOut.classList.remove('sci-error');
+      }
+    }
+
+    function updateMemoryOut() { memoryOut.textContent = 'M: ' + calc.round(memory, 10); }
+
+    function insertAtCursor(text) {
+      var start = display.selectionStart == null ? display.value.length : display.selectionStart;
+      var end = display.selectionEnd == null ? display.value.length : display.selectionEnd;
+      display.value = display.value.slice(0, start) + text + display.value.slice(end);
+      display.focus();
+      display.selectionStart = display.selectionEnd = start + text.length;
+      recalc();
+    }
+
+    function commitResultToDisplay() {
+      var r = currentResult();
+      if (r != null && !(r instanceof Error)) display.value = String(calc.round(r, 10));
+      recalc();
+    }
+
+    display.addEventListener('input', recalc);
+    display.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        commitResultToDisplay();
+      } else if (e.key === 'Escape') {
+        display.value = '';
+        recalc();
+      }
+    });
+    [modeDeg, modeRad].forEach(function (el) { el.addEventListener('change', recalc); });
+
+    keypad.addEventListener('click', function (e) {
+      var btn = e.target.closest('.sci-key');
+      if (!btn) return;
+      var insert = btn.dataset.insert;
+      if (insert != null) { insertAtCursor(insert); return; }
+
+      switch (btn.dataset.action) {
+        case 'clear':
+          display.value = '';
+          display.focus();
+          recalc();
+          break;
+        case 'backspace':
+          display.value = display.value.slice(0, -1);
+          display.focus();
+          recalc();
+          break;
+        case 'equals':
+          commitResultToDisplay();
+          break;
+        case 'mc':
+          memory = 0;
+          updateMemoryOut();
+          break;
+        case 'mr':
+          insertAtCursor(String(calc.round(memory, 10)));
+          break;
+        case 'm-plus': {
+          var rPlus = currentResult();
+          if (rPlus != null && !(rPlus instanceof Error)) { memory += rPlus; updateMemoryOut(); }
+          break;
+        }
+        case 'm-minus': {
+          var rMinus = currentResult();
+          if (rMinus != null && !(rMinus instanceof Error)) { memory -= rMinus; updateMemoryOut(); }
+          break;
+        }
+      }
+    });
+
+    updateMemoryOut();
+    recalc();
+  }
+
   // Hidden Ctrl+Alt+Shift+M easter egg — quiet, no accidental trigger, not
   // referenced anywhere in the UI. See CODING_NOTES.md "Easter Eggs".
   function setupEasterEgg() {
@@ -453,5 +563,6 @@
     setupSurfaceFinish();
     setupTolerance();
     setupCharts();
+    setupScientificCalculator();
   });
 })();

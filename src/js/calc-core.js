@@ -509,6 +509,197 @@
   };
 
   // ---------------------------------------------------------------------
+  // Scientific calculator expression evaluator
+  // General-purpose arithmetic/trigonometry — no ISO/ANSI standard governs
+  // this. Deliberately a hand-written recursive-descent parser rather than
+  // eval()/Function() on the input string: the app's Content-Security-Policy
+  // (script-src 'self', no unsafe-eval) blocks both anyway, and evaluating
+  // an arbitrary string as code is a textbook injection risk regardless of
+  // CSP — see the source-scan regression test in tests/run.js.
+  // ---------------------------------------------------------------------
+
+  var SCI_FUNCTIONS = ['sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'sqrt', 'log', 'ln', 'abs'];
+  var SCI_CONSTANTS = { pi: Math.PI, e: Math.E };
+
+  /** Split an expression string into number/identifier/operator tokens. Throws SyntaxError on anything unrecognized. */
+  function sciTokenize(expr) {
+    var tokens = [];
+    var i = 0;
+    while (i < expr.length) {
+      var ch = expr[i];
+      if (ch === ' ' || ch === '\t') { i++; continue; }
+      if (/[0-9.]/.test(ch)) {
+        var start = i;
+        while (i < expr.length && /[0-9.]/.test(expr[i])) i++;
+        var numStr = expr.slice(start, i);
+        var dotCount = (numStr.match(/\./g) || []).length;
+        var value = parseFloat(numStr);
+        if (dotCount > 1 || isNaN(value)) {
+          throw new SyntaxError('Malformed number: "' + numStr + '"');
+        }
+        tokens.push({ type: 'number', value: value });
+        continue;
+      }
+      if (/[a-zA-Z]/.test(ch)) {
+        var startId = i;
+        while (i < expr.length && /[a-zA-Z]/.test(expr[i])) i++;
+        tokens.push({ type: 'ident', value: expr.slice(startId, i) });
+        continue;
+      }
+      if ('+-*/^()'.indexOf(ch) !== -1) {
+        tokens.push({ type: ch });
+        i++;
+        continue;
+      }
+      throw new SyntaxError('Unexpected character: "' + ch + '"');
+    }
+    return tokens;
+  }
+
+  /** Evaluate a single-argument function by name, honoring the deg/rad angle mode for trig. */
+  function sciApplyFunction(name, arg, angleMode) {
+    var toRad = function (deg) { return angleMode === 'deg' ? calc.degToRad(deg) : deg; };
+    var fromRad = function (rad) { return angleMode === 'deg' ? calc.radToDeg(rad) : rad; };
+    switch (name) {
+      case 'sin': return Math.sin(toRad(arg));
+      case 'cos': return Math.cos(toRad(arg));
+      case 'tan': return Math.tan(toRad(arg));
+      case 'asin':
+        if (arg < -1 || arg > 1) throw new RangeError('asin domain is [-1, 1]');
+        return fromRad(Math.asin(arg));
+      case 'acos':
+        if (arg < -1 || arg > 1) throw new RangeError('acos domain is [-1, 1]');
+        return fromRad(Math.acos(arg));
+      case 'atan': return fromRad(Math.atan(arg));
+      case 'sqrt':
+        if (arg < 0) throw new RangeError('sqrt domain is >= 0');
+        return Math.sqrt(arg);
+      case 'log':
+        if (arg <= 0) throw new RangeError('log domain is > 0');
+        return Math.log10(arg);
+      case 'ln':
+        if (arg <= 0) throw new RangeError('ln domain is > 0');
+        return Math.log(arg);
+      case 'abs': return Math.abs(arg);
+      default: throw new SyntaxError('Unknown function: ' + name);
+    }
+  }
+
+  /**
+   * Recursive-descent parser/evaluator over a token stream. Grammar
+   * (standard precedence, `^` right-associative, unary +/- binds looser
+   * than `^` so `-2^2` is -4 not 4):
+   *   expr   := term (('+'|'-') term)*
+   *   term   := unary (('*'|'/') unary)*
+   *   unary  := ('-'|'+') unary | power
+   *   power  := atom ('^' unary)?
+   *   atom   := number | ident | ident '(' expr ')' | '(' expr ')'
+   */
+  function sciParse(tokens, angleMode) {
+    var pos = 0;
+    function peek() { return tokens[pos]; }
+    function next() { return tokens[pos++]; }
+    function expect(type) {
+      var t = next();
+      if (!t || t.type !== type) {
+        throw new SyntaxError('Expected "' + type + '"' +
+          (t ? ' but got "' + (t.value != null ? t.value : t.type) + '"' : ' but reached end of expression'));
+      }
+      return t;
+    }
+
+    function parseExpr() {
+      var value = parseTerm();
+      while (peek() && (peek().type === '+' || peek().type === '-')) {
+        var op = next().type;
+        var rhs = parseTerm();
+        value = op === '+' ? value + rhs : value - rhs;
+      }
+      return value;
+    }
+    function parseTerm() {
+      var value = parseUnary();
+      while (peek() && (peek().type === '*' || peek().type === '/')) {
+        var op = next().type;
+        var rhs = parseUnary();
+        if (op === '/' && rhs === 0) throw new RangeError('Division by zero');
+        value = op === '*' ? value * rhs : value / rhs;
+      }
+      return value;
+    }
+    function parseUnary() {
+      if (peek() && peek().type === '-') { next(); return -parseUnary(); }
+      if (peek() && peek().type === '+') { next(); return parseUnary(); }
+      return parsePower();
+    }
+    function parsePower() {
+      var base = parseAtom();
+      if (peek() && peek().type === '^') {
+        next();
+        return Math.pow(base, parseUnary());
+      }
+      return base;
+    }
+    function parseAtom() {
+      var t = peek();
+      if (!t) throw new SyntaxError('Unexpected end of expression');
+      if (t.type === 'number') { next(); return t.value; }
+      if (t.type === '(') {
+        next();
+        var value = parseExpr();
+        expect(')');
+        return value;
+      }
+      if (t.type === 'ident') {
+        next();
+        var name = t.value.toLowerCase();
+        if (Object.prototype.hasOwnProperty.call(SCI_CONSTANTS, name)) {
+          return SCI_CONSTANTS[name];
+        }
+        if (SCI_FUNCTIONS.indexOf(name) !== -1) {
+          expect('(');
+          var arg = parseExpr();
+          expect(')');
+          return sciApplyFunction(name, arg, angleMode);
+        }
+        throw new SyntaxError('Unknown identifier: "' + t.value + '"');
+      }
+      throw new SyntaxError('Unexpected token: "' + (t.value != null ? t.value : t.type) + '"');
+    }
+
+    var result = parseExpr();
+    if (pos !== tokens.length) {
+      var trailing = peek();
+      throw new SyntaxError('Unexpected token: "' + (trailing.value != null ? trailing.value : trailing.type) + '"');
+    }
+    return result;
+  }
+
+  /**
+   * Evaluate a scientific-calculator expression string: + - * / ^
+   * (right-associative power), unary +/-, parentheses,
+   * sin/cos/tan/asin/acos/atan/sqrt/log(base 10)/ln/abs, and the constants
+   * pi/e. `angleMode` is 'deg' (default) or 'rad', controlling whether trig
+   * functions take/return degrees or radians. Throws SyntaxError for
+   * malformed input and RangeError for a domain violation (divide by zero,
+   * asin/acos outside [-1,1], sqrt/log of a non-positive number, or a
+   * result that overflows to a non-finite number).
+   */
+  calc.evaluateExpression = function (expr, angleMode) {
+    angleMode = angleMode === 'rad' ? 'rad' : 'deg';
+    if (typeof expr !== 'string' || expr.trim() === '') {
+      throw new SyntaxError('Empty expression');
+    }
+    var tokens = sciTokenize(expr);
+    if (tokens.length === 0) throw new SyntaxError('Empty expression');
+    var result = sciParse(tokens, angleMode);
+    if (!isFinite(result)) {
+      throw new RangeError('Result is not a finite number');
+    }
+    return result;
+  };
+
+  // ---------------------------------------------------------------------
   // Unit conversion
   // Conversion factors are exact SI/imperial definitions (1 in = 25.4mm
   // exactly, per the 1959 international yard-and-pound agreement) —
