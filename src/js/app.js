@@ -317,14 +317,16 @@
   // Right Triangle Solver
   // ------------------------------------------------------------------
   // Origin (vertex A) is fixed; leg b runs right, leg a runs up, mirroring the unit-circle
-  // convention of measuring angle A from a fixed origin. A single scale factor maps the real
-  // a/b onto their pixel budgets while preserving the true aspect ratio, so the drawing morphs
-  // to the actual proportions instead of a fixed generic shape.
-  var RT_ORIGIN_X = 60, RT_ORIGIN_Y = 210, RT_MAX_W = 250, RT_MAX_H = 170;
+  // convention of measuring angle A from a fixed origin. The scale factor is the *minimum* of
+  // three independent budgets (leg b's width, leg a's height, and the hypotenuse-as-radius arc's
+  // own reach) so that whichever one is most restrictive for a given triangle's shape is the one
+  // that binds -- every other extent is then guaranteed to fit, for any a/b/c ratio, rather than
+  // relying on checking a few "worst case" shapes by hand and hoping nothing else overflows.
+  var RT_ORIGIN_X = 60, RT_ORIGIN_Y = 210, RT_MAX_W = 220, RT_MAX_H = 165, RT_MAX_RADIUS = 300;
 
   /** Pixel-space vertex positions and radius for a solved (real-unit) a/b/c triangle. */
   function rtGeometry(a, b, c) {
-    var scale = Math.min(RT_MAX_W / b, RT_MAX_H / a);
+    var scale = Math.min(RT_MAX_W / b, RT_MAX_H / a, RT_MAX_RADIUS / c);
     var bPx = b * scale, aPx = a * scale, cPx = c * scale;
     return {
       A: { x: RT_ORIGIN_X, y: RT_ORIGIN_Y },
@@ -337,15 +339,22 @@
   /**
    * Draws the triangle plus a dashed arc of radius c centered on vertex A -- the same
    * "hypotenuse as a radius" construction as the classic unit-circle trig diagram, scaled here
-   * to the triangle's actual (non-unit) hypotenuse instead of a fixed radius of 1.
+   * to the triangle's actual (non-unit) hypotenuse instead of a fixed radius of 1. The arc is
+   * plotted as explicit points from A rather than an SVG elliptical-arc command: an arc command
+   * only specifies the radius, not the center, so which of the two circles (and which of the two
+   * directions around it) gets drawn depends on flag bits that are easy to get backwards -- a
+   * wrong guess draws the *other*, much larger arc, which is what actually happened here.
    */
   function renderRightTriangle(svg, geo) {
     var A = geo.A, B = geo.B, C = geo.C, mark = 14;
-    var arcStart = { x: A.x + geo.radiusPx, y: A.y };
+    var angleARad = Math.atan2(A.y - B.y, B.x - A.x);
+    var steps = 16, arcPts = [];
+    for (var i = 0; i <= steps; i++) {
+      var t = angleARad * (i / steps);
+      arcPts.push((A.x + geo.radiusPx * Math.cos(t)).toFixed(1) + ',' + (A.y - geo.radiusPx * Math.sin(t)).toFixed(1));
+    }
     svg.innerHTML =
-      '<path class="rt-arc" d="M' + arcStart.x.toFixed(1) + ',' + arcStart.y.toFixed(1) +
-        ' A' + geo.radiusPx.toFixed(1) + ',' + geo.radiusPx.toFixed(1) + ' 0 0,0 ' +
-        B.x.toFixed(1) + ',' + B.y.toFixed(1) + '" />' +
+      '<path class="rt-arc" d="M' + arcPts.join(' L') + '" />' +
       '<polygon class="rt-triangle" points="' + A.x + ',' + A.y + ' ' + C.x + ',' + C.y + ' ' +
         B.x + ',' + B.y + '" />' +
       '<path class="rt-rightangle-mark" d="M' + (C.x - mark) + ',' + C.y + ' L' + (C.x - mark) + ',' + (C.y - mark) +
