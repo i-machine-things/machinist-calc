@@ -208,6 +208,12 @@ test('rightTriangleSolve: rejects non-finite inputs', () => {
   assert.throws(() => calc.rightTriangleSolve({ a: NaN, c: 5 }), RangeError);
 });
 
+test('rightTriangleSolve: rejects a non-number angleADeg (e.g. a string) instead of coercing it', () => {
+  // '30' <= 0 / '30' >= 90 coerce and pass the bounds check even though '30' isn't a number;
+  // Number.isFinite('30') is false and must be checked explicitly, same as the a/b/c guards.
+  assert.throws(() => calc.rightTriangleSolve({ a: 3, angleADeg: '30' }), RangeError);
+});
+
 test('rightTriangleSolve: large finite legs/hypotenuse do not overflow to Infinity/NaN', () => {
   // sqrt(a*a + b*b) would overflow a=b=1e200 to Infinity before sqrt ever runs (1e200^2 alone
   // exceeds Number.MAX_VALUE); Math.hypot avoids that. Scale down to check the answer's shape.

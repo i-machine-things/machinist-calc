@@ -415,8 +415,8 @@
     if (count !== 2) {
       throw new RangeError('Provide exactly 2 of: side a, side b, hypotenuse c, angle A');
     }
-    if (haveAngle && (A <= 0 || A >= 90)) {
-      throw new RangeError('Angle A must be between 0 and 90 degrees, exclusive');
+    if (haveAngle && (!Number.isFinite(A) || A <= 0 || A >= 90)) {
+      throw new RangeError('Angle A must be a finite number between 0 and 90 degrees, exclusive');
     }
     if (haveA && (!Number.isFinite(a) || a <= 0)) throw new RangeError('Side a must be finite and positive');
     if (haveB && (!Number.isFinite(b) || b <= 0)) throw new RangeError('Side b must be finite and positive');
