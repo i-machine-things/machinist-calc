@@ -314,6 +314,43 @@
   }
 
   // ------------------------------------------------------------------
+  // Right Triangle Solver
+  // ------------------------------------------------------------------
+  function setupRightTriangle() {
+    var aIn = $('rt-a'), bIn = $('rt-b'), cIn = $('rt-c'), angleIn = $('rt-angle'),
+      outA = $('rt-out-a'), outB = $('rt-out-b'), outC = $('rt-out-c'),
+      outAngleA = $('rt-out-anglea'), outAngleB = $('rt-out-angleb'), errOut = $('rt-error');
+    var outs = [outA, outB, outC, outAngleA, outAngleB];
+    function recalc() {
+      var known = {};
+      var a = parseFloat(aIn.value), b = parseFloat(bIn.value), c = parseFloat(cIn.value), ang = parseFloat(angleIn.value);
+      if (!isNaN(a)) known.a = a;
+      if (!isNaN(b)) known.b = b;
+      if (!isNaN(c)) known.c = c;
+      if (!isNaN(ang)) known.angleADeg = ang;
+      var count = Object.keys(known).length;
+      errOut.textContent = count > 2 ? 'Enter exactly 2 values — clear one to recalculate.' : '';
+      if (count !== 2) {
+        outs.forEach(function (el) { el.textContent = '—'; });
+        return;
+      }
+      try {
+        var r = calc.rightTriangleSolve(known);
+        outA.textContent = r.a;
+        outB.textContent = r.b;
+        outC.textContent = r.c;
+        outAngleA.textContent = r.angleADeg + '°';
+        outAngleB.textContent = r.angleBDeg + '°';
+      } catch (err) {
+        outs.forEach(function (el) { el.textContent = '—'; });
+        errOut.textContent = err.message;
+      }
+    }
+    [aIn, bIn, cIn, angleIn].forEach(function (el) { el.addEventListener('input', recalc); });
+    recalc();
+  }
+
+  // ------------------------------------------------------------------
   // True Position
   // ------------------------------------------------------------------
   function setupTruePosition() {
@@ -449,6 +486,7 @@
     setupFeedPerToothImperial();
     setupFeedPerToothMetric();
     setupBoltCircle();
+    setupRightTriangle();
     setupTruePosition();
     setupSurfaceFinish();
     setupTolerance();

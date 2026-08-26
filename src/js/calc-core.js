@@ -391,6 +391,67 @@
   };
 
   // ---------------------------------------------------------------------
+  // Right triangle solver
+  // Plain trigonometry (Pythagorean theorem, SOH-CAH-TOA) — no ISO/ANSI
+  // standard governs this; it's general-purpose geometry used for angle
+  // layout, tapers, and angle-plate/sine-bar setup work.
+  // ---------------------------------------------------------------------
+
+  /**
+   * Solve a right triangle (right angle at C) given exactly 2 of: leg a,
+   * leg b, hypotenuse c, angle A in degrees (opposite side a; B = 90 - A).
+   * Any count other than exactly 2 knowns is rejected — including angle A
+   * alone, which doesn't fix the triangle's size — rather than silently
+   * guessing, per the project's enum/precondition-validation convention
+   * (see calc.bonusTolerance). The six branches below are the complete set
+   * of 2-of-4 combinations, so there's no further fallback case.
+   */
+  calc.rightTriangleSolve = function (known) {
+    var a = known.a, b = known.b, c = known.c, A = known.angleADeg;
+    var haveA = a != null, haveB = b != null, haveC = c != null, haveAngle = A != null;
+    var count = [haveA, haveB, haveC, haveAngle].filter(Boolean).length;
+    if (count !== 2) {
+      throw new RangeError('Provide exactly 2 of: side a, side b, hypotenuse c, angle A');
+    }
+    if (haveAngle && (A <= 0 || A >= 90)) {
+      throw new RangeError('Angle A must be between 0 and 90 degrees, exclusive');
+    }
+    if (haveA && a <= 0) throw new RangeError('Side a must be positive');
+    if (haveB && b <= 0) throw new RangeError('Side b must be positive');
+    if (haveC && c <= 0) throw new RangeError('Hypotenuse c must be positive');
+
+    if (haveA && haveB) {
+      c = Math.sqrt(a * a + b * b);
+      A = calc.radToDeg(Math.atan2(a, b));
+    } else if (haveA && haveC) {
+      if (a >= c) throw new RangeError('Side a must be less than hypotenuse c');
+      b = Math.sqrt(c * c - a * a);
+      A = calc.radToDeg(Math.asin(a / c));
+    } else if (haveB && haveC) {
+      if (b >= c) throw new RangeError('Side b must be less than hypotenuse c');
+      a = Math.sqrt(c * c - b * b);
+      A = calc.radToDeg(Math.acos(b / c));
+    } else if (haveA && haveAngle) {
+      b = a / Math.tan(calc.degToRad(A));
+      c = a / Math.sin(calc.degToRad(A));
+    } else if (haveB && haveAngle) {
+      a = b * Math.tan(calc.degToRad(A));
+      c = b / Math.cos(calc.degToRad(A));
+    } else if (haveC && haveAngle) {
+      a = c * Math.sin(calc.degToRad(A));
+      b = c * Math.cos(calc.degToRad(A));
+    }
+
+    return {
+      a: round(a, 5),
+      b: round(b, 5),
+      c: round(c, 5),
+      angleADeg: round(A, 4),
+      angleBDeg: round(90 - A, 4)
+    };
+  };
+
+  // ---------------------------------------------------------------------
   // True position
   // Standard: ASME Y14.5 (Dimensioning and Tolerancing) — position
   // tolerance and material-condition (MMC/LMC) bonus tolerance.

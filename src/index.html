@@ -19,6 +19,7 @@
       <li><button class="nav-btn" data-panel="panel-thread">Thread Calculator</button></li>
       <li><button class="nav-btn" data-panel="panel-speedsfeeds">Speeds &amp; Feeds</button></li>
       <li><button class="nav-btn" data-panel="panel-boltcircle">Bolt Circle</button></li>
+      <li><button class="nav-btn" data-panel="panel-righttriangle">Right Triangle</button></li>
       <li><button class="nav-btn" data-panel="panel-trueposition">True Position</button></li>
       <li><button class="nav-btn" data-panel="panel-surfacefinish">Surface Finish</button></li>
       <li><button class="nav-btn" data-panel="panel-tolerance">ISO Tolerance</button></li>
@@ -310,6 +311,35 @@
         <div class="bc-svg-wrap">
           <svg id="bc-svg" viewBox="-110 -110 220 220" width="320" height="320"></svg>
         </div>
+      </div>
+    </section>
+
+    <!-- Right Triangle -->
+    <section class="panel" id="panel-righttriangle">
+      <h1>Right Triangle Solver</h1>
+      <p class="standard-note">Plain trigonometry (Pythagorean theorem / SOH-CAH-TOA) — no ISO/ANSI standard governs this; used for angle layout, tapers, and angle-plate or sine-bar setup work.</p>
+      <p class="hint">Enter any 2 of the 4 values below — the rest solve automatically. Angle C (opposite the hypotenuse) is always 90°.</p>
+      <div class="grid grid-2">
+        <label>Side a (opposite angle A)
+          <input type="number" id="rt-a" step="any" placeholder="—" />
+        </label>
+        <label>Side b (adjacent to angle A)
+          <input type="number" id="rt-b" step="any" placeholder="—" />
+        </label>
+        <label>Hypotenuse c
+          <input type="number" id="rt-c" step="any" placeholder="—" />
+        </label>
+        <label>Angle A (degrees)
+          <input type="number" id="rt-angle" step="any" placeholder="—" />
+        </label>
+      </div>
+      <p class="hint" id="rt-error"></p>
+      <div class="result-box">
+        <div class="result-line">Side a: <span id="rt-out-a">—</span></div>
+        <div class="result-line">Side b: <span id="rt-out-b">—</span></div>
+        <div class="result-line">Hypotenuse c: <span id="rt-out-c">—</span></div>
+        <div class="result-line">Angle A: <span id="rt-out-anglea">—</span></div>
+        <div class="result-value">Angle B: <span id="rt-out-angleb">—</span></div>
       </div>
     </section>
 

@@ -150,6 +150,60 @@ test('boltCirclePoints: 4 holes on a 10" BCD starting at top, clockwise', () => 
 });
 
 // -------------------------------------------------------------------------
+// Right triangle solver
+// -------------------------------------------------------------------------
+
+test('rightTriangleSolve: legs a=3, b=4 -> classic 3-4-5 triangle', () => {
+  const r = calc.rightTriangleSolve({ a: 3, b: 4 });
+  approx(r.c, 5, 1e-4);
+  approx(r.angleADeg, 36.8699, 1e-3);
+  approx(r.angleBDeg, 53.1301, 1e-3);
+});
+
+test('rightTriangleSolve: leg a and hypotenuse c -> solves b and both angles', () => {
+  const r = calc.rightTriangleSolve({ a: 3, c: 5 });
+  approx(r.b, 4, 1e-4);
+  approx(r.angleADeg, 36.8699, 1e-3);
+});
+
+test('rightTriangleSolve: leg b and hypotenuse c -> solves a and both angles', () => {
+  const r = calc.rightTriangleSolve({ b: 4, c: 5 });
+  approx(r.a, 3, 1e-4);
+  approx(r.angleBDeg, 53.1301, 1e-3);
+});
+
+test('rightTriangleSolve: leg a and angle A -> solves b and c', () => {
+  const r = calc.rightTriangleSolve({ a: 3, angleADeg: 36.8699 });
+  approx(r.b, 4, 1e-3);
+  approx(r.c, 5, 1e-3);
+});
+
+test('rightTriangleSolve: leg b and angle A -> solves a and c', () => {
+  const r = calc.rightTriangleSolve({ b: 4, angleADeg: 36.8699 });
+  approx(r.a, 3, 1e-3);
+  approx(r.c, 5, 1e-3);
+});
+
+test('rightTriangleSolve: hypotenuse c and angle A -> solves both legs', () => {
+  const r = calc.rightTriangleSolve({ c: 10, angleADeg: 30 });
+  approx(r.a, 5, 1e-3);
+  approx(r.b, 8.6603, 1e-3);
+});
+
+test('rightTriangleSolve: rejects a count other than exactly 2 knowns', () => {
+  assert.throws(() => calc.rightTriangleSolve({ a: 3 }), RangeError);
+  assert.throws(() => calc.rightTriangleSolve({ a: 3, b: 4, c: 5 }), RangeError);
+});
+
+test('rightTriangleSolve: angle A alone (no side) does not determine size', () => {
+  assert.throws(() => calc.rightTriangleSolve({ angleADeg: 30 }), RangeError);
+});
+
+test('rightTriangleSolve: rejects a leg that is not shorter than the given hypotenuse', () => {
+  assert.throws(() => calc.rightTriangleSolve({ a: 6, c: 5 }), RangeError);
+});
+
+// -------------------------------------------------------------------------
 // True position (ASME Y14.5)
 // -------------------------------------------------------------------------
 
