@@ -1121,7 +1121,15 @@
     { material: 'Tool steel, annealed', hss: [40, 60], carbide: [150, 250] },
     { material: 'Stainless steel, austenitic (300 series)', hss: [40, 70], carbide: [150, 300] },
     { material: 'Gray cast iron', hss: [50, 80], carbide: [200, 400] },
-    { material: 'Titanium alloys', hss: [20, 30], carbide: [100, 150] }
+    { material: 'Titanium alloys', hss: [20, 30], carbide: [100, 150] },
+    // HSS range is Machinery's Handbook Table 9 (Cutting Feeds and Speeds for Turning
+    // Superalloys), the "Inconel 625, 702, 706, 718 (wrought)...600" row (rough 15-20,
+    // finish 20-35 fpm). The carbide range isn't taken from that table -- its uncoated-carbide
+    // columns are split into Tough/Hard x Opt/Avg sub-values that couldn't be extracted
+    // unambiguously from the source PDF's multi-column layout -- so it's a conservative,
+    // independently-corroborated general shop-reference value instead, kept below Titanium's
+    // carbide ceiling since Inconel is regarded as harder on tooling at comparable speeds.
+    { material: 'Inconel & nickel-based superalloys', hss: [15, 35], carbide: [60, 120] }
   ];
 
   // ---------------------------------------------------------------------
