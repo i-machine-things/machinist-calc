@@ -136,6 +136,7 @@
       <div class="tabs">
         <button class="tab-btn active" data-tab="thread-unified">Unified (UN)</button>
         <button class="tab-btn" data-tab="thread-metric">Metric (M)</button>
+        <button class="tab-btn" data-tab="thread-acme">ACME</button>
       </div>
 
       <div class="tab-panel active" id="thread-unified">
@@ -187,6 +188,47 @@
         <p class="standard-note">Tolerance class: ISO 965-1 / ANSI-ASME B1.13M-1983 (R1995), Tables 7-11 (Machinery's Handbook 26th ed.) — general formulas, so any major diameter (1.5-355mm) and pitch (0.2-6mm) is supported, not just the standard sizes above.</p>
         <p class="hint" id="th-met-tol-hint"></p>
         <div class="result-table" id="th-met-result"></div>
+      </div>
+
+      <div class="tab-panel" id="thread-acme">
+        <p class="standard-note">Standard: ASME/ANSI B1.5-1988 (General Purpose Acme, single-start). Class 5G is not supported — the current standard tables don't include it and mark it "not recommended for new designs."</p>
+        <div class="grid grid-3">
+          <label>Common size
+            <select id="th-acme-preset"><option value="">Custom…</option></select>
+          </label>
+          <label>Major Diameter (in)
+            <input type="number" id="th-acme-major" step="any" value="0.5" />
+          </label>
+          <label>Threads Per Inch (TPI)
+            <input type="number" id="th-acme-tpi" step="any" value="10" />
+          </label>
+        </div>
+        <div class="grid grid-2">
+          <label>Tolerance Class
+            <select id="th-acme-class">
+              <option value="">None (basic profile only)</option>
+              <option value="2G-ext">2G external (general purpose)</option>
+              <option value="3G-ext">3G external</option>
+              <option value="4G-ext">4G external (precision)</option>
+              <option value="2G-int">2G internal (general purpose)</option>
+              <option value="3G-int">3G internal</option>
+              <option value="4G-int">4G internal (precision)</option>
+            </select>
+          </label>
+        </div>
+        <p class="standard-note">Tolerance class: ASME/ANSI B1.5-1988, Tables 4-5 — general formulas, so any major diameter (up to 5.5in) and pitch (1-16 TPI) is supported, not just the standard sizes above.</p>
+        <p class="hint" id="th-acme-tol-hint"></p>
+        <div class="result-table" id="th-acme-result"></div>
+
+        <h2>Measurement Over Wires</h2>
+        <p class="standard-note">Standard 3-wire method for a 29° thread (14.5° half-angle). Enter any wire/pin diameter you have on hand — there's no single "correct" wire size. Requires a tolerance class above (for the pitch diameter limits).</p>
+        <div class="grid grid-2">
+          <label>Wire Diameter (in)
+            <input type="number" id="th-acme-wire" step="any" placeholder="e.g. 0.045" />
+          </label>
+        </div>
+        <p class="hint" id="th-acme-wire-hint"></p>
+        <div class="result-table" id="th-acme-wire-result"></div>
       </div>
     </section>
 

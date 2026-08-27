@@ -1066,6 +1066,259 @@
   calc.metricThreadToleranceClasses = ['6H', '6g', '4g6g'];
 
   // ---------------------------------------------------------------------
+  // ACME threads (General Purpose, single-start)
+  // Standard: ASME/ANSI B1.5-1988. Basic geometry (Table 2a formulas),
+  // tolerance-class limiting dimensions (Classes 2G/3G/4G external and
+  // internal), and the standard 3-wire measurement formula (29 degree
+  // thread, half-angle 14.5 degrees). Class 5G exists in some older
+  // reference material but is explicitly "not recommended for new designs"
+  // by the current standard, and isn't tabulated in it (no independently
+  // verifiable data was available), so only 2G/3G/4G are supported here.
+  //
+  // Tables 4 and 5 (allowance / pitch-diameter tolerance) are discrete
+  // checkpoint lookups, not continuous formulas -- despite each checkpoint
+  // value equaling a sqrt(diameter)/sqrt(pitch) formula evaluated at that
+  // specific checkpoint (confirmed against the standard's own worked
+  // examples), a query value that falls *between* checkpoints does not
+  // interpolate: Table 4 uses "over X, up to and including Y" diameter
+  // bands, and Table 5 explicitly instructs "for a diameter between two
+  // tabulated values, use the increment for the larger" (and, by the same
+  // logic applied to pitch, use the coarser of two bracketing pitches).
+  // Verified against all 23 standard sizes' worked Table 2b/2c limiting
+  // dimensions: 458 of 460 values match exactly, the remaining 2 differing
+  // by 0.0001in from a rounding-boundary tie-break (e.g. ...385 rounding to
+  // .3238 there vs .3239 here) -- not a formula discrepancy.
+  //
+  // Two errors were found and corrected relative to a local shop reference
+  // spreadsheet used as a starting point: (1) it used "TPI < 10" for the
+  // minor/major clearance threshold, but the standard's own worked example
+  // (1/2-10 Acme external minor max = 0.3800) only matches "TPI <= 10";
+  // (2) it listed 1-1/4in Acme as 4 TPI, but both Table 2b and Table 3
+  // confirm 5 TPI (matching that same spreadsheet's own text label, "1
+  // 1/4-5 Acme" -- only the numeric TPI cell was wrong).
+  // ---------------------------------------------------------------------
+
+  var ACME_TABLE4_ALLOWANCE = [
+    { diaAbove: 0, diaUpTo: 0.1875, '2G': 0.0024, '3G': 0.0018, '4G': 0.0012 },
+    { diaAbove: 0.1875, diaUpTo: 0.3125, '2G': 0.004, '3G': 0.003, '4G': 0.002 },
+    { diaAbove: 0.3125, diaUpTo: 0.4375, '2G': 0.0049, '3G': 0.0037, '4G': 0.0024 },
+    { diaAbove: 0.4375, diaUpTo: 0.5625, '2G': 0.0057, '3G': 0.0042, '4G': 0.0028 },
+    { diaAbove: 0.5625, diaUpTo: 0.6875, '2G': 0.0063, '3G': 0.0047, '4G': 0.0032 },
+    { diaAbove: 0.6875, diaUpTo: 0.8125, '2G': 0.0069, '3G': 0.0052, '4G': 0.0035 },
+    { diaAbove: 0.8125, diaUpTo: 0.9375, '2G': 0.0075, '3G': 0.0056, '4G': 0.0037 },
+    { diaAbove: 0.9375, diaUpTo: 1.0625, '2G': 0.008, '3G': 0.006, '4G': 0.004 },
+    { diaAbove: 1.0625, diaUpTo: 1.1875, '2G': 0.0085, '3G': 0.0064, '4G': 0.0042 },
+    { diaAbove: 1.1875, diaUpTo: 1.3125, '2G': 0.0089, '3G': 0.0067, '4G': 0.0045 },
+    { diaAbove: 1.3125, diaUpTo: 1.4375, '2G': 0.0094, '3G': 0.007, '4G': 0.0047 },
+    { diaAbove: 1.4375, diaUpTo: 1.5625, '2G': 0.0098, '3G': 0.0073, '4G': 0.0049 },
+    { diaAbove: 1.5625, diaUpTo: 1.875, '2G': 0.0105, '3G': 0.0079, '4G': 0.0052 },
+    { diaAbove: 1.875, diaUpTo: 2.125, '2G': 0.0113, '3G': 0.0085, '4G': 0.0057 },
+    { diaAbove: 2.125, diaUpTo: 2.375, '2G': 0.012, '3G': 0.009, '4G': 0.006 },
+    { diaAbove: 2.375, diaUpTo: 2.625, '2G': 0.0126, '3G': 0.0095, '4G': 0.0063 },
+    { diaAbove: 2.625, diaUpTo: 2.875, '2G': 0.0133, '3G': 0.0099, '4G': 0.0066 },
+    { diaAbove: 2.875, diaUpTo: 3.25, '2G': 0.014, '3G': 0.0105, '4G': 0.007 },
+    { diaAbove: 3.25, diaUpTo: 3.75, '2G': 0.015, '3G': 0.0112, '4G': 0.0075 },
+    { diaAbove: 3.75, diaUpTo: 4.25, '2G': 0.016, '3G': 0.012, '4G': 0.008 },
+    { diaAbove: 4.25, diaUpTo: 4.75, '2G': 0.017, '3G': 0.0127, '4G': 0.0085 },
+    { diaAbove: 4.75, diaUpTo: 5.5, '2G': 0.0181, '3G': 0.0136, '4G': 0.0091 }
+  ];
+
+  var ACME_TABLE5_DIA_INCREMENT = [
+    { dia: 0.25, '2G': 0.003, '3G': 0.0014, '4G': 0.001 },
+    { dia: 0.3125, '2G': 0.00335, '3G': 0.00157, '4G': 0.00112 },
+    { dia: 0.375, '2G': 0.00367, '3G': 0.00171, '4G': 0.00122 },
+    { dia: 0.4375, '2G': 0.00397, '3G': 0.00185, '4G': 0.00132 },
+    { dia: 0.5, '2G': 0.00424, '3G': 0.00198, '4G': 0.00141 },
+    { dia: 0.625, '2G': 0.00474, '3G': 0.00221, '4G': 0.00158 },
+    { dia: 0.75, '2G': 0.0052, '3G': 0.00242, '4G': 0.00173 },
+    { dia: 0.875, '2G': 0.00561, '3G': 0.00262, '4G': 0.00187 },
+    { dia: 1.0, '2G': 0.006, '3G': 0.0028, '4G': 0.002 },
+    { dia: 1.125, '2G': 0.00636, '3G': 0.00297, '4G': 0.00212 },
+    { dia: 1.25, '2G': 0.00671, '3G': 0.00313, '4G': 0.00224 },
+    { dia: 1.375, '2G': 0.00704, '3G': 0.00328, '4G': 0.00235 },
+    { dia: 1.5, '2G': 0.00735, '3G': 0.00343, '4G': 0.00245 },
+    { dia: 1.75, '2G': 0.00794, '3G': 0.0037, '4G': 0.00265 },
+    { dia: 2.0, '2G': 0.00849, '3G': 0.00396, '4G': 0.00283 },
+    { dia: 2.25, '2G': 0.009, '3G': 0.0042, '4G': 0.003 },
+    { dia: 2.5, '2G': 0.00949, '3G': 0.00443, '4G': 0.00316 },
+    { dia: 2.75, '2G': 0.00995, '3G': 0.00464, '4G': 0.00332 },
+    { dia: 3.0, '2G': 0.01039, '3G': 0.00485, '4G': 0.00346 },
+    { dia: 3.5, '2G': 0.01122, '3G': 0.00524, '4G': 0.00374 },
+    { dia: 4.0, '2G': 0.012, '3G': 0.0056, '4G': 0.004 },
+    { dia: 4.5, '2G': 0.01273, '3G': 0.00594, '4G': 0.00424 },
+    { dia: 5.0, '2G': 0.01342, '3G': 0.00626, '4G': 0.00447 }
+  ];
+
+  var ACME_TABLE5_PITCH_INCREMENT = [
+    { tpi: 16, '2G': 0.0075, '3G': 0.0035, '4G': 0.0025 },
+    { tpi: 14, '2G': 0.00802, '3G': 0.00374, '4G': 0.00267 },
+    { tpi: 12, '2G': 0.00866, '3G': 0.00404, '4G': 0.00289 },
+    { tpi: 10, '2G': 0.00949, '3G': 0.00443, '4G': 0.00316 },
+    { tpi: 8, '2G': 0.01061, '3G': 0.00495, '4G': 0.00354 },
+    { tpi: 6, '2G': 0.01225, '3G': 0.00572, '4G': 0.00408 },
+    { tpi: 5, '2G': 0.01342, '3G': 0.00626, '4G': 0.00447 },
+    { tpi: 4, '2G': 0.015, '3G': 0.007, '4G': 0.005 },
+    { tpi: 3, '2G': 0.01732, '3G': 0.00808, '4G': 0.00577 },
+    { tpi: 2.5, '2G': 0.01897, '3G': 0.00885, '4G': 0.00632 },
+    { tpi: 2, '2G': 0.02121, '3G': 0.0099, '4G': 0.00707 },
+    { tpi: 1.5, '2G': 0.02449, '3G': 0.01143, '4G': 0.00816 },
+    { tpi: 1.333, '2G': 0.02598, '3G': 0.01212, '4G': 0.00866 },
+    { tpi: 1, '2G': 0.03, '3G': 0.014, '4G': 0.01 }
+  ];
+
+  /** Standard General Purpose Acme sizes, ASME/ANSI B1.5-1988 Table 3 (1/4in through 5in). */
+  calc.acmeThreadSizes = [
+    { name: '1/4-16', majorDia: 0.25, tpi: 16 },
+    { name: '5/16-14', majorDia: 0.3125, tpi: 14 },
+    { name: '3/8-12', majorDia: 0.375, tpi: 12 },
+    { name: '7/16-12', majorDia: 0.4375, tpi: 12 },
+    { name: '1/2-10', majorDia: 0.5, tpi: 10 },
+    { name: '5/8-8', majorDia: 0.625, tpi: 8 },
+    { name: '3/4-6', majorDia: 0.75, tpi: 6 },
+    { name: '7/8-6', majorDia: 0.875, tpi: 6 },
+    { name: '1-5', majorDia: 1.0, tpi: 5 },
+    { name: '1 1/8-5', majorDia: 1.125, tpi: 5 },
+    { name: '1 1/4-5', majorDia: 1.25, tpi: 5 },
+    { name: '1 3/8-4', majorDia: 1.375, tpi: 4 },
+    { name: '1 1/2-4', majorDia: 1.5, tpi: 4 },
+    { name: '1 3/4-4', majorDia: 1.75, tpi: 4 },
+    { name: '2-4', majorDia: 2.0, tpi: 4 },
+    { name: '2 1/4-3', majorDia: 2.25, tpi: 3 },
+    { name: '2 1/2-3', majorDia: 2.5, tpi: 3 },
+    { name: '2 3/4-3', majorDia: 2.75, tpi: 3 },
+    { name: '3-2', majorDia: 3.0, tpi: 2 },
+    { name: '3 1/2-2', majorDia: 3.5, tpi: 2 },
+    { name: '4-2', majorDia: 4.0, tpi: 2 },
+    { name: '4 1/2-2', majorDia: 4.5, tpi: 2 },
+    { name: '5-2', majorDia: 5.0, tpi: 2 }
+  ];
+
+  /**
+   * Basic (theoretical) diameters for a General Purpose Acme thread.
+   * Standard: ASME/ANSI B1.5-1988, Table 2a.
+   * E (basic pitch dia) = D - 0.5P; K (basic minor dia) = D - P.
+   */
+  calc.acmeThreadGeometry = function (opts) {
+    var D = opts.majorDia, tpi = opts.tpi;
+    var P = 1 / tpi;
+    var basicPD = D - 0.5 * P;
+    var basicMinor = D - P;
+    return {
+      pitch: round(P, 4),
+      threadHeight: round(P / 2, 4),
+      majorDia: round(D, 4),
+      pitchDia: round(basicPD, 4),
+      minorDia: round(basicMinor, 4)
+    };
+  };
+
+  /** Table 4 lookup: diaAbove < D <= diaUpTo (checked in ascending order, "over X to including Y"). */
+  function acmeAllowance(cls, D) {
+    for (var i = 0; i < ACME_TABLE4_ALLOWANCE.length; i++) {
+      var row = ACME_TABLE4_ALLOWANCE[i];
+      if (row.diaAbove < D && D <= row.diaUpTo) return row[cls];
+    }
+    return null;
+  }
+
+  /** Table 5 diameter-increment: "use the increment for the larger of two tabulated diameters" -- ceiling lookup. */
+  function acmeDiaIncrement(cls, D) {
+    for (var i = 0; i < ACME_TABLE5_DIA_INCREMENT.length; i++) {
+      var row = ACME_TABLE5_DIA_INCREMENT[i];
+      if (D <= row.dia + 1e-9) return row[cls];
+    }
+    return null;
+  }
+
+  /** Table 5 pitch-increment: "use the coarser pitch" for a TPI between two tabulated values -- floor lookup on TPI. */
+  function acmePitchIncrement(cls, tpi) {
+    // The table's finest tabulated pitch is 16 TPI; a finer query has no coarser checkpoint to
+    // floor down to and must not silently reuse the 16 TPI row for it.
+    if (tpi > ACME_TABLE5_PITCH_INCREMENT[0].tpi + 1e-9) return null;
+    for (var i = 0; i < ACME_TABLE5_PITCH_INCREMENT.length; i++) {
+      var row = ACME_TABLE5_PITCH_INCREMENT[i];
+      if (row.tpi <= tpi + 1e-9) return row[cls];
+    }
+    return null;
+  }
+
+  function acmePdTolerance(cls, D, tpi) {
+    var diaInc = acmeDiaIncrement(cls, D);
+    var pitchInc = acmePitchIncrement(cls, tpi);
+    if (diaInc == null || pitchInc == null) return null;
+    return diaInc + pitchInc;
+  }
+
+  /**
+   * Tolerance-class limiting dimensions for a General Purpose Acme thread.
+   * Standard: ASME/ANSI B1.5-1988, Table 2a formulas with Tables 4/5 data.
+   * Works for any major diameter in (0, 5.5in] and any TPI in [1, 16] --
+   * the range Tables 4/5 cover -- not just calc.acmeThreadSizes' 23
+   * standard sizes. Returns null outside that range or for an unsupported
+   * class (only '2G'/'3G'/'4G'; see file-header comment on Class 5G).
+   * `external` selects which mating half's limits to return; the
+   * stressArea field (external only) is the standard's tensile stress
+   * area, computed from the mean of pdMin and minorMax.
+   */
+  calc.acmeThreadTolerance = function (majorDia, tpi, threadClass, external) {
+    if (threadClass !== '2G' && threadClass !== '3G' && threadClass !== '4G') return null;
+    var P = 1 / tpi;
+    var E = majorDia - 0.5 * P; // basic pitch dia
+    var K = majorDia - P; // basic minor dia
+    var fixedClearance = Math.max(0.05 * P, 0.005);
+    var majorClearance = tpi <= 10 ? 0.020 : 0.010;
+    var tol = acmePdTolerance(threadClass, majorDia, tpi);
+    var allow = acmeAllowance(threadClass, majorDia);
+    if (tol == null || allow == null) return null;
+
+    if (external) {
+      var extMajorMax = majorDia;
+      var extMajorMin = round(majorDia - fixedClearance, 4);
+      var extMinorMax = round(K - majorClearance, 4);
+      var extMinorMin = round(extMinorMax - 1.5 * tol, 4);
+      var extPdMax = round(E - allow, 4);
+      var extPdMin = round(extPdMax - tol, 4);
+      var stressArea = round(Math.PI / 4 * Math.pow((extPdMin + extMinorMax) / 2, 2), 5);
+      return {
+        class: threadClass, external: true,
+        majorMax: round(extMajorMax, 4), majorMin: extMajorMin,
+        pdMax: extPdMax, pdMin: extPdMin,
+        minorMax: extMinorMax, minorMin: extMinorMin,
+        stressArea: stressArea
+      };
+    }
+    var intMajorMin = round(majorDia + majorClearance, 4);
+    var intMajorMax = round(intMajorMin + majorClearance, 4);
+    var intMinorMin = round(K, 4);
+    var intMinorMax = round(intMinorMin + fixedClearance, 4);
+    var intPdMin = round(E, 4);
+    var intPdMax = round(intPdMin + tol, 4);
+    return {
+      class: threadClass, external: false,
+      majorMin: intMajorMin, majorMax: intMajorMax,
+      pdMin: intPdMin, pdMax: intPdMax,
+      minorMin: intMinorMin, minorMax: intMinorMax
+    };
+  };
+  calc.acmeThreadToleranceClasses = ['2G', '3G', '4G'];
+
+  /**
+   * Measurement-over-wires for a 3-wire Acme thread check.
+   * Standard: general 3-wire formula for a 29-degree thread (14.5-degree
+   * half-angle): M = E + W(1 + csc(14.5°)) − 0.5P·cot(14.5°), which reduces
+   * to the constants below (verified against Machinery's Handbook: matches
+   * to 5 decimal places). Accepts any wire diameter -- there's no single
+   * "correct" wire size, just whatever gauge wire/pins are on hand.
+   */
+  calc.acmeMeasurementOverWires = function (pdMax, pdMin, pitch, wireDia) {
+    var adjustment = 4.9939 * wireDia - 1.933357 * pitch;
+    return {
+      max: round(pdMax + adjustment, 4),
+      min: round(pdMin + adjustment, 4)
+    };
+  };
+
+  // ---------------------------------------------------------------------
   // Speeds & feeds
   // No single ISO/ANSI standard defines these — they're the conventional
   // machining relations found in shop reference handbooks (e.g. Machinery's

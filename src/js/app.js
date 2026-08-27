@@ -269,6 +269,88 @@
     recalc();
   }
 
+  function acmeToleranceRows(t) {
+    var head = '<tr class="subhead"><th colspan="2">Class ' + t.class + ' (' + (t.external ? 'external' : 'internal') + ')</th></tr>';
+    if (t.external) {
+      return head +
+        '<tr><th>Major Dia</th><td class="num">' + t.majorMin.toFixed(4) + ' – ' + t.majorMax.toFixed(4) + ' in</td></tr>' +
+        '<tr><th>Pitch Dia</th><td class="num">' + t.pdMin.toFixed(4) + ' – ' + t.pdMax.toFixed(4) + ' in</td></tr>' +
+        '<tr><th>Minor Dia</th><td class="num">' + t.minorMin.toFixed(4) + ' – ' + t.minorMax.toFixed(4) + ' in</td></tr>' +
+        '<tr><th>Tensile Stress Area</th><td class="num">' + t.stressArea.toFixed(5) + ' in²</td></tr>';
+    }
+    return head +
+      '<tr><th>Major Dia</th><td class="num">' + t.majorMin.toFixed(4) + ' – ' + t.majorMax.toFixed(4) + ' in</td></tr>' +
+      '<tr><th>Pitch Dia</th><td class="num">' + t.pdMin.toFixed(4) + ' – ' + t.pdMax.toFixed(4) + ' in</td></tr>' +
+      '<tr><th>Minor Dia</th><td class="num">' + t.minorMin.toFixed(4) + ' – ' + t.minorMax.toFixed(4) + ' in</td></tr>';
+  }
+
+  function setupThreadAcme() {
+    var preset = $('th-acme-preset'), major = $('th-acme-major'), tpi = $('th-acme-tpi'), out = $('th-acme-result');
+    var classSelect = $('th-acme-class'), tolHint = $('th-acme-tol-hint');
+    var wireIn = $('th-acme-wire'), wireHint = $('th-acme-wire-hint'), wireOut = $('th-acme-wire-result');
+    fillSelect(preset, calc.acmeThreadSizes);
+    preset.addEventListener('change', function () {
+      if (preset.value === '') return;
+      var t = calc.acmeThreadSizes[+preset.value];
+      major.value = t.majorDia; tpi.value = t.tpi;
+      recalc();
+    });
+
+    var currentTol = null;
+    function recalcWire() {
+      var w = parseFloat(wireIn.value);
+      if (!currentTol || !currentTol.external) {
+        wireHint.textContent = 'Select an external tolerance class above to measure over wires.';
+        wireOut.innerHTML = '';
+        return;
+      }
+      if (isNaN(w) || w <= 0) { wireHint.textContent = ''; wireOut.innerHTML = ''; return; }
+      var t = parseFloat(tpi.value);
+      var m = calc.acmeMeasurementOverWires(currentTol.pdMax, currentTol.pdMin, 1 / t, w);
+      wireHint.textContent = '';
+      wireOut.innerHTML = '<table><tr><th>Measurement Over Wires</th><td class="num">' +
+        m.min.toFixed(4) + ' – ' + m.max.toFixed(4) + ' in</td></tr></table>';
+    }
+
+    function recalc() {
+      var m = parseFloat(major.value), t = parseFloat(tpi.value);
+      if (isNaN(m) || isNaN(t) || t <= 0 || m <= 0) {
+        out.innerHTML = ''; tolHint.textContent = ''; currentTol = null; recalcWire();
+        return;
+      }
+      var g = calc.acmeThreadGeometry({ majorDia: m, tpi: t });
+      var rows =
+        '<tr><th>Pitch</th><td class="num">' + g.pitch.toFixed(4) + ' in</td></tr>' +
+        '<tr><th>Thread Height</th><td class="num">' + g.threadHeight.toFixed(4) + ' in</td></tr>' +
+        '<tr><th>Basic Major Dia</th><td class="num">' + g.majorDia.toFixed(4) + ' in</td></tr>' +
+        '<tr><th>Basic Pitch Dia</th><td class="num">' + g.pitchDia.toFixed(4) + ' in</td></tr>' +
+        '<tr><th>Basic Minor Dia</th><td class="num">' + g.minorDia.toFixed(4) + ' in</td></tr>';
+
+      var cls = classSelect.value;
+      currentTol = null;
+      if (!cls) {
+        tolHint.textContent = '';
+      } else {
+        var external = cls.indexOf('-ext') !== -1;
+        var clsName = cls.replace('-ext', '').replace('-int', '');
+        var tol = calc.acmeThreadTolerance(m, t, clsName, external);
+        if (tol) {
+          tolHint.textContent = '';
+          rows += acmeToleranceRows(tol);
+          currentTol = tol;
+        } else {
+          tolHint.textContent = 'No tolerance data for this diameter/pitch combination (outside the tabulated 0-5.5in diameter / 1-16 TPI range).';
+        }
+      }
+      out.innerHTML = '<table>' + rows + '</table>';
+      recalcWire();
+    }
+    [major, tpi].forEach(function (el) { el.addEventListener('input', recalc); });
+    classSelect.addEventListener('change', recalc);
+    wireIn.addEventListener('input', recalcWire);
+    recalc();
+  }
+
   // ------------------------------------------------------------------
   // Speeds & Feeds
   // ------------------------------------------------------------------
@@ -692,6 +774,7 @@
     setupTapDrillMetric();
     setupThreadUnified();
     setupThreadMetric();
+    setupThreadAcme();
     setupRecommendedSfm();
     setupSpeedsFeedsImperial();
     setupSpeedsFeedsMetric();
