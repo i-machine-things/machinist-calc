@@ -148,6 +148,14 @@ test('unifiedThreadToleranceClasses: reflects the 1A/1B tabulation cutoff', () =
   );
 });
 
+test('unifiedMeasurementOverWires: 1/2-13 UNC Class 2A matches the ASME B1.2 / Machinery\'s Handbook 60-degree formula', () => {
+  // M = E - 0.86603P + 3W, applied to Class 2A's own pdMax/pdMin (verified elsewhere).
+  const t = calc.unifiedThreadTolerance('1/2-13', '2A');
+  const m = calc.unifiedMeasurementOverWires(t.pdMax, t.pdMin, 13, 0.0505);
+  approx(m.max, 0.5334, 1e-4);
+  approx(m.min, 0.5284, 1e-4);
+});
+
 test('metricThreadTolerance: M10x1.5 Class 6H (internal) matches Machinery\'s Handbook Table 12', () => {
   const t = calc.metricThreadTolerance(10, 1.5, '6H');
   assert.strictEqual(t.external, false);
@@ -229,6 +237,15 @@ test('metricThreadTolerance: a diameter exactly on a shared bracket boundary sti
 
 test('metricThreadTolerance: unknown class returns null', () => {
   assert.strictEqual(calc.metricThreadTolerance(10, 1.5, '6X'), null);
+});
+
+test('metricMeasurementOverWires: M10x1.5 Class 6g matches the same 60-degree formula as unifiedMeasurementOverWires', () => {
+  // Machinery's Handbook: "International Standard: use the formula given above for the American
+  // National Standard Unified Thread" -- metric M-profile shares the same 60-degree formula.
+  const t = calc.metricThreadTolerance(10, 1.5, '6g');
+  const m = calc.metricMeasurementOverWires(t.pdMax, t.pdMin, 1.5, 0.866);
+  approx(m.max, 10.293, 1e-3);
+  approx(m.min, 10.161, 1e-3);
 });
 
 // -------------------------------------------------------------------------

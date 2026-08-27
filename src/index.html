@@ -160,6 +160,16 @@
         <p class="standard-note">Tolerance class: ASME B1.1, Table 3 (Machinery's Handbook 26th ed.) — lookup only, covering the standard sizes above. Non-tabulated sizes/pitches aren't supported (the handbook defers those to the ASME B1.1 standard document itself).</p>
         <p class="hint" id="th-uni-tol-hint"></p>
         <div class="result-table" id="th-uni-result"></div>
+
+        <h2>Measurement Over Wires</h2>
+        <p class="standard-note">Standard 3-wire method for a 60° thread (ASME B1.2 / Machinery's Handbook). Enter any wire/pin diameter you have on hand. Requires an external tolerance class above (for the pitch diameter limits).</p>
+        <div class="grid grid-2">
+          <label>Wire Diameter (in)
+            <input type="number" id="th-uni-wire" step="any" placeholder="e.g. 0.0505" />
+          </label>
+        </div>
+        <p class="hint" id="th-uni-wire-hint"></p>
+        <div class="result-table" id="th-uni-wire-result"></div>
       </div>
 
       <div class="tab-panel" id="thread-metric">
@@ -188,6 +198,16 @@
         <p class="standard-note">Tolerance class: ISO 965-1 / ANSI-ASME B1.13M-1983 (R1995), Tables 7-11 (Machinery's Handbook 26th ed.) — general formulas, so any major diameter (1.5-355mm) and pitch (0.2-6mm) is supported, not just the standard sizes above.</p>
         <p class="hint" id="th-met-tol-hint"></p>
         <div class="result-table" id="th-met-result"></div>
+
+        <h2>Measurement Over Wires</h2>
+        <p class="standard-note">Standard 3-wire method for a 60° thread (ASME B1.2 / Machinery's Handbook — the same formula used for Unified threads applies to metric M-profile). Enter any wire/pin diameter you have on hand. Requires an external tolerance class above (6g or 4g6g).</p>
+        <div class="grid grid-2">
+          <label>Wire Diameter (mm)
+            <input type="number" id="th-met-wire" step="any" placeholder="e.g. 0.866" />
+          </label>
+        </div>
+        <p class="hint" id="th-met-wire-hint"></p>
+        <div class="result-table" id="th-met-wire-result"></div>
       </div>
 
       <div class="tab-panel" id="thread-acme">

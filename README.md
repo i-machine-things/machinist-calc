@@ -13,7 +13,7 @@ every calculation runs locally in the app.
 | --- | --- |
 | Unit Converter | Exact length/speed unit definitions |
 | Tap Drills (Imperial & Metric) | ASME B1.1 / ISO 68-1, ISO 965-1 |
-| Thread Calculator (Unified, Metric & ACME, incl. 1A/2A/3A, 1B/2B/3B, 6H/6g/4g6g, and 2G/3G/4G tolerance classes plus ACME measurement-over-wires) | ASME B1.1 / ISO 68-1, ISO 965-1 / ANSI-ASME B1.13M, ASME/ANSI B1.5 |
+| Thread Calculator (Unified, Metric & ACME, incl. 1A/2A/3A, 1B/2B/3B, 6H/6g/4g6g, and 2G/3G/4G tolerance classes plus 3-wire measurement-over-wires for all three) | ASME B1.1 / ISO 68-1, ISO 965-1 / ANSI-ASME B1.13M, ASME/ANSI B1.5, ASME B1.2 |
 | Speeds & Feeds (with recommended SFM by material/tool, feed-per-tooth conversion) | Conventional machining relations |
 | Bolt Circle | Analytic geometry |
 | Right Triangle Solver | Plain trigonometry (Pythagorean theorem / SOH-CAH-TOA) |

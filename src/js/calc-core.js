@@ -785,6 +785,24 @@
     return Object.keys(entry.external).concat(Object.keys(entry.internal));
   };
 
+  /**
+   * Measurement-over-wires for a 3-wire check on a Unified (60-degree)
+   * external thread. Standard: ASME B1.2 / Machinery's Handbook "Formula
+   * (1)" (the lead-angle-uncompensated general form), simplified for a
+   * 60-degree thread: M = E - 0.86603P + 3W. Sufficiently accurate for
+   * standard single-start UN/UNC/UNF threads per the handbook. Accepts any
+   * wire diameter -- there's no single "correct" size, just whatever
+   * gauge wire/pins are on hand.
+   */
+  calc.unifiedMeasurementOverWires = function (pdMax, pdMin, tpi, wireDia) {
+    var P = 1 / tpi;
+    var adjustment = 3 * wireDia - 0.86603 * P;
+    return {
+      max: round(pdMax + adjustment, 4),
+      min: round(pdMin + adjustment, 4)
+    };
+  };
+
   var METRIC_TABLE7_ALLOWANCE = [
     { pitch: 0.2, EI_G: 0.017, EI_H: 0, es_e: null, es_f: null, es_g: 0.017, es_h: 0 },
     { pitch: 0.25, EI_G: 0.018, EI_H: 0, es_e: null, es_f: null, es_g: 0.018, es_h: 0 },
@@ -1064,6 +1082,20 @@
     return result;
   };
   calc.metricThreadToleranceClasses = ['6H', '6g', '4g6g'];
+
+  /**
+   * Measurement-over-wires for a 3-wire check on a metric M-profile
+   * (60-degree) external thread. Same formula and standard citation as
+   * calc.unifiedMeasurementOverWires (ASME B1.2 / Machinery's Handbook
+   * Formula (1)), just taking pitch directly in mm rather than TPI.
+   */
+  calc.metricMeasurementOverWires = function (pdMax, pdMin, pitch, wireDia) {
+    var adjustment = 3 * wireDia - 0.86603 * pitch;
+    return {
+      max: round(pdMax + adjustment, 3),
+      min: round(pdMin + adjustment, 3)
+    };
+  };
 
   // ---------------------------------------------------------------------
   // ACME threads (General Purpose, single-start)

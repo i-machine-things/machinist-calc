@@ -150,6 +150,7 @@
   function setupThreadUnified() {
     var preset = $('th-uni-preset'), major = $('th-uni-major'), tpi = $('th-uni-tpi'), out = $('th-uni-result');
     var classSelect = $('th-uni-class'), tolHint = $('th-uni-tol-hint');
+    var wireIn = $('th-uni-wire'), wireHint = $('th-uni-wire-hint'), wireOut = $('th-uni-wire-result');
     fillSelect(preset, calc.unifiedThreadSizes);
     preset.addEventListener('change', function () {
       if (preset.value === '') return;
@@ -172,10 +173,26 @@
       classSelect.value = classes.indexOf(prevValue) !== -1 ? prevValue : '';
     }
 
+    var currentTol = null;
+    function recalcWire() {
+      var w = parseFloat(wireIn.value);
+      if (!currentTol || !currentTol.external) {
+        wireHint.textContent = 'Select an external tolerance class above to measure over wires.';
+        wireOut.innerHTML = '';
+        return;
+      }
+      if (isNaN(w) || w <= 0) { wireHint.textContent = ''; wireOut.innerHTML = ''; return; }
+      var t = parseFloat(tpi.value);
+      var m = calc.unifiedMeasurementOverWires(currentTol.pdMax, currentTol.pdMin, t, w);
+      wireHint.textContent = '';
+      wireOut.innerHTML = '<table><tr><th>Measurement Over Wires</th><td class="num">' +
+        m.min.toFixed(4) + ' – ' + m.max.toFixed(4) + ' in</td></tr></table>';
+    }
+
     function recalc() {
       var m = parseFloat(major.value), t = parseFloat(tpi.value);
       if (isNaN(m) || isNaN(t) || t <= 0) {
-        out.innerHTML = ''; tolHint.textContent = ''; refreshToleranceClasses(null);
+        out.innerHTML = ''; tolHint.textContent = ''; refreshToleranceClasses(null); currentTol = null; recalcWire();
         return;
       }
       var g = calc.unifiedThreadGeometry({ majorDia: m, tpi: t });
@@ -192,6 +209,7 @@
 
       var sizeName = findUnifiedSizeName(m, t);
       refreshToleranceClasses(sizeName);
+      currentTol = null;
       if (!sizeName) {
         tolHint.textContent = 'Tolerance classes are only available for the standard/selected sizes above — pick one from "Common size", or enter a major diameter and TPI that match one exactly.';
       } else {
@@ -199,13 +217,15 @@
         var cls = classSelect.value;
         if (cls) {
           var tol = calc.unifiedThreadTolerance(sizeName, cls);
-          if (tol) rows += unifiedToleranceRows(tol);
+          if (tol) { rows += unifiedToleranceRows(tol); currentTol = tol; }
         }
       }
       out.innerHTML = '<table>' + rows + '</table>';
+      recalcWire();
     }
     [major, tpi].forEach(function (el) { el.addEventListener('input', recalc); });
     classSelect.addEventListener('change', recalc);
+    wireIn.addEventListener('input', recalcWire);
     recalc();
   }
 
@@ -227,6 +247,7 @@
   function setupThreadMetric() {
     var preset = $('th-met-preset'), major = $('th-met-major'), pitch = $('th-met-pitch'), out = $('th-met-result');
     var classSelect = $('th-met-class'), tolHint = $('th-met-tol-hint');
+    var wireIn = $('th-met-wire'), wireHint = $('th-met-wire-hint'), wireOut = $('th-met-wire-result');
     fillSelect(preset, calc.metricThreadSizes);
     preset.addEventListener('change', function () {
       if (preset.value === '') return;
@@ -235,9 +256,25 @@
       recalc();
     });
 
+    var currentTol = null;
+    function recalcWire() {
+      var w = parseFloat(wireIn.value);
+      if (!currentTol || !currentTol.external) {
+        wireHint.textContent = 'Select an external tolerance class above (6g or 4g6g) to measure over wires.';
+        wireOut.innerHTML = '';
+        return;
+      }
+      if (isNaN(w) || w <= 0) { wireHint.textContent = ''; wireOut.innerHTML = ''; return; }
+      var p = parseFloat(pitch.value);
+      var m = calc.metricMeasurementOverWires(currentTol.pdMax, currentTol.pdMin, p, w);
+      wireHint.textContent = '';
+      wireOut.innerHTML = '<table><tr><th>Measurement Over Wires</th><td class="num">' +
+        m.min.toFixed(3) + ' – ' + m.max.toFixed(3) + ' mm</td></tr></table>';
+    }
+
     function recalc() {
       var m = parseFloat(major.value), p = parseFloat(pitch.value);
-      if (isNaN(m) || isNaN(p) || p <= 0) { out.innerHTML = ''; tolHint.textContent = ''; return; }
+      if (isNaN(m) || isNaN(p) || p <= 0) { out.innerHTML = ''; tolHint.textContent = ''; currentTol = null; recalcWire(); return; }
       var g = calc.metricThreadGeometry({ majorDia: m, pitch: p });
       var rows =
         '<tr><th>Pitch</th><td class="num">' + g.pitch.toFixed(4) + ' mm</td></tr>' +
@@ -251,6 +288,7 @@
         '<tr><th>Tensile Stress Area</th><td class="num">' + g.tensileStressArea.toFixed(3) + ' mm²</td></tr>';
 
       var cls = classSelect.value;
+      currentTol = null;
       if (!cls) {
         tolHint.textContent = '';
       } else {
@@ -258,14 +296,17 @@
         if (tol) {
           tolHint.textContent = '';
           rows += metricToleranceRows(tol);
+          currentTol = tol;
         } else {
           tolHint.textContent = 'No tolerance data for this diameter/pitch combination (outside the tabulated 1.5-355mm diameter / 0.2-6mm pitch range).';
         }
       }
       out.innerHTML = '<table>' + rows + '</table>';
+      recalcWire();
     }
     [major, pitch].forEach(function (el) { el.addEventListener('input', recalc); });
     classSelect.addEventListener('change', recalc);
+    wireIn.addEventListener('input', recalcWire);
     recalc();
   }
 
