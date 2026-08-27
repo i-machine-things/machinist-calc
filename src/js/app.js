@@ -198,7 +198,7 @@
 
     function recalc() {
       var m = parseFloat(major.value), t = parseFloat(tpi.value);
-      if (isNaN(m) || isNaN(t) || t <= 0) {
+      if (isNaN(m) || isNaN(t) || t <= 0 || m <= 0) {
         out.innerHTML = ''; tolHint.textContent = ''; refreshToleranceClasses(null); currentTol = null; currentBasicPD = null; recalcWire();
         return;
       }
@@ -289,7 +289,7 @@
 
     function recalc() {
       var m = parseFloat(major.value), p = parseFloat(pitch.value);
-      if (isNaN(m) || isNaN(p) || p <= 0) { out.innerHTML = ''; tolHint.textContent = ''; currentTol = null; currentBasicPD = null; recalcWire(); return; }
+      if (isNaN(m) || isNaN(p) || p <= 0 || m <= 0) { out.innerHTML = ''; tolHint.textContent = ''; currentTol = null; currentBasicPD = null; recalcWire(); return; }
       var g = calc.metricThreadGeometry({ majorDia: m, pitch: p });
       currentBasicPD = g.external.pitchDia;
       var rows =
