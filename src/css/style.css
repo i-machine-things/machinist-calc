@@ -248,6 +248,7 @@ input:focus, select:focus {
 .result-table th { color: var(--text-dim); font-weight: 500; }
 .result-table tr:last-child th, .result-table tr:last-child td { border-bottom: none; }
 .result-table td.num { color: var(--ok); font-weight: 600; }
+.result-table tr.subhead th { padding-top: 16px; color: var(--text); font-weight: 600; border-bottom: 1px solid var(--border); }
 
 /* Tables */
 .table-scroll { max-height: 320px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }

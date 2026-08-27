@@ -63,6 +63,16 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 
 - **`eslint.config.js`'s `main.js`/`preload.js` block hand-lists Node globals instead of using the `globals` package's Node set — it's missing timer functions (`setTimeout`, etc.) that weren't used until now.** Adding the auto-updater's `setTimeout` call failed CI (`no-undef`) on a global the main process has always had at runtime. Add each newly-used Node global explicitly here rather than assuming it's covered.
 
+## Reference Data Extraction (PDF-Sourced Standards Tables)
+
+- **Validate transcribed table data for completeness (every expected key present), not just consistency.** A regex parser dropped most external classes for ~30/39 sizes; a consistency-only check reported "0 issues" since it never checked for missing keys.
+- **Prefer bbox/row-reconstructed PDF extraction over a flattened text blob + regex** for multi-column tables — designations split across lines by stacked-fraction glyphs (e.g. "1/4-20") break blob-based row matching.
+- **Cross-validate a formula against the standard's own precomputed table, not just internal consistency.** `metricThreadTolerance` was confirmed by recomputing the book's Table 12/13 (100 rows) — 0 discrepancies.
+
+## Metric Thread Tolerance Class Notation (ISO 965-1)
+
+- **A compound class like `4g6g` means pitch-diameter grade 4, major/minor-diameter grade 6 — not "grade 4 for everything."** First grade+letter = pitch diameter; second (if shown) = crest diameter. `6g` alone means `6g6g`.
+
 ## Easter Eggs
 
 - **machinist-calc**: Ctrl+Alt+Shift+M toggles a small hidden "Machinist's Rule 0" ASCII-art note (`#easter-egg` in `src/index.html`, wired in `src/js/app.js`'s `setupEasterEgg()`). Not referenced anywhere in the visible UI. Dismiss with Esc or a click.

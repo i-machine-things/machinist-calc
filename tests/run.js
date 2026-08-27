@@ -100,6 +100,138 @@ test('metricThreadGeometry: M10x1.5 pitch diameter and minor diameters', () => {
 });
 
 // -------------------------------------------------------------------------
+// Thread tolerance classes
+// Unified (ASME B1.1) values spot-checked against Machinery's Handbook 26th
+// ed. Table 3. Metric (ISO 965-1 / ANSI-ASME B1.13M) values spot-checked
+// against Table 12/13 (standard-size precomputed 6H/6g/4g6g limits) — the
+// metric implementation was independently cross-validated by recomputing
+// all of Table 12/13 (33 internal + 67 external rows, sizes M1.6-M30) from
+// the Table 7-11 formulas and finding 0 discrepancies >0.0015mm.
+// -------------------------------------------------------------------------
+
+test('unifiedThreadTolerance: 1/4-20 UNC Class 2A (external)', () => {
+  const t = calc.unifiedThreadTolerance('1/4-20', '2A');
+  assert.strictEqual(t.class, '2A');
+  assert.strictEqual(t.external, true);
+  approx(t.allowance, 0.0011, 1e-4);
+  approx(t.majorMax, 0.2489, 1e-4);
+  approx(t.majorMin, 0.2408, 1e-4);
+  approx(t.pdMax, 0.2164, 1e-4);
+  approx(t.pdMin, 0.2127, 1e-4);
+});
+
+test('unifiedThreadTolerance: 1/4-20 UNC Class 2B (internal)', () => {
+  const t = calc.unifiedThreadTolerance('1/4-20', '2B');
+  assert.strictEqual(t.external, false);
+  approx(t.pdMin, 0.2175, 1e-4);
+  approx(t.pdMax, 0.2224, 1e-4);
+  approx(t.majorMin, 0.25, 1e-4);
+});
+
+test('unifiedThreadTolerance: Class 1A/1B is only tabulated for 1/4" and larger', () => {
+  assert.strictEqual(calc.unifiedThreadTolerance('#0-80', '1A'), null);
+  assert.strictEqual(calc.unifiedThreadTolerance('#0-80', '1B'), null);
+  assert.ok(calc.unifiedThreadTolerance('1/4-20', '1A'));
+  assert.ok(calc.unifiedThreadTolerance('1/4-20', '1B'));
+});
+
+test('unifiedThreadTolerance: unknown size or class returns null', () => {
+  assert.strictEqual(calc.unifiedThreadTolerance('M6x1.0', '2A'), null);
+  assert.strictEqual(calc.unifiedThreadTolerance('1/4-20', '5A'), null);
+});
+
+test('unifiedThreadToleranceClasses: reflects the 1A/1B tabulation cutoff', () => {
+  assert.deepStrictEqual(calc.unifiedThreadToleranceClasses('#0-80'), ['2A', '3A', '2B', '3B']);
+  assert.deepStrictEqual(
+    calc.unifiedThreadToleranceClasses('1/4-20'),
+    ['1A', '2A', '3A', '1B', '2B', '3B']
+  );
+});
+
+test('metricThreadTolerance: M10x1.5 Class 6H (internal) matches Machinery\'s Handbook Table 12', () => {
+  const t = calc.metricThreadTolerance(10, 1.5, '6H');
+  assert.strictEqual(t.external, false);
+  approx(t.minorMin, 8.376, 0.002);
+  approx(t.minorMax, 8.676, 0.002);
+  approx(t.pdMin, 9.026, 0.002);
+  approx(t.pdMax, 9.206, 0.002);
+  approx(t.majorMin, 10.0, 0.002);
+  approx(t.majorMax, 10.396, 0.002);
+});
+
+test('metricThreadTolerance: M10x1.5 Class 6g (external) matches Table 13', () => {
+  const t = calc.metricThreadTolerance(10, 1.5, '6g');
+  assert.strictEqual(t.external, true);
+  approx(t.allowance, 0.032, 0.002);
+  approx(t.majorMax, 9.968, 0.002);
+  approx(t.majorMin, 9.732, 0.002);
+  approx(t.pdMax, 8.994, 0.002);
+  approx(t.pdMin, 8.862, 0.002);
+});
+
+test('metricThreadTolerance: M10x1.5 Class 4g6g (external) matches Table 13', () => {
+  const t = calc.metricThreadTolerance(10, 1.5, '4g6g');
+  approx(t.pdMax, 8.994, 0.002);
+  approx(t.pdMin, 8.909, 0.002);
+  // 4g6g and 6g share the same major-diameter grade (6) -- only the
+  // pitch-diameter grade differs (4 vs 6) per the standard's compound-class
+  // notation, so major-diameter limits must match the 6g class exactly.
+  const g6 = calc.metricThreadTolerance(10, 1.5, '6g');
+  approx(t.majorMax, g6.majorMax, 1e-9);
+  approx(t.majorMin, g6.majorMin, 1e-9);
+});
+
+test('metricThreadTolerance: M30x3.5 Class 6H matches Table 12 at the largest supported standard size', () => {
+  const t = calc.metricThreadTolerance(30, 3.5, '6H');
+  approx(t.pdMin, 27.727, 0.002);
+  approx(t.pdMax, 28.007, 0.002);
+  approx(t.majorMax, 30.785, 0.002);
+});
+
+test('metricThreadTolerance: works for a non-standard "odd" size/pitch not in calc.metricThreadSizes', () => {
+  // M11x1.5 isn't a standard tabulated size, but the diameter (11mm) falls
+  // within Table 8/11's 5.6-11.2mm range and the pitch (1.5mm) is tabulated,
+  // so the general formula path should still resolve it.
+  const t = calc.metricThreadTolerance(11, 1.5, '6H');
+  assert.ok(t);
+  approx(t.majorMin, 11, 1e-9);
+  assert.ok(t.pdMax > t.pdMin);
+});
+
+test('metricThreadTolerance: out-of-range diameter/pitch returns null rather than extrapolating', () => {
+  assert.strictEqual(calc.metricThreadTolerance(500, 8, '6H'), null);
+});
+
+test('metricThreadTolerance: the documented 1.5mm lower diameter bound is actually reachable', () => {
+  // Regression test -- findByDiaRange used an exclusive lower bound (diaOver < majorDia), so a
+  // diameter of exactly 1.5mm (the table's own stated minimum, and the app's documented lower
+  // bound) fell through every bracket and returned null. Caught by CodeRabbit.
+  const internal = calc.metricThreadTolerance(1.5, 0.35, '6H');
+  const external = calc.metricThreadTolerance(1.5, 0.35, '6g');
+  assert.ok(internal, 'expected 1.5mm internal to resolve, not fall through to null');
+  assert.ok(external, 'expected 1.5mm external to resolve, not fall through to null');
+  approx(internal.majorMin, 1.5, 1e-9);
+});
+
+test('metricThreadTolerance: a diameter exactly on a shared bracket boundary still resolves to the lower bracket', () => {
+  // 2.8mm is the boundary between the (1.5,2.8] and (2.8,5.6] Table 8/11 brackets, which have
+  // different tolerance values at the same pitch -- confirms the fix for the test above (using
+  // <= for the lower bound too) didn't also make the *upper* bracket match early.
+  const atBoundary = calc.metricThreadTolerance(2.8, 0.35, '6H');
+  const justBelow = calc.metricThreadTolerance(2.79, 0.35, '6H');
+  const justAbove = calc.metricThreadTolerance(2.81, 0.35, '6H');
+  approx(atBoundary.pdMax - justBelow.pdMax, 0.01, 0.002, 'boundary value should track the lower bracket');
+  assert.ok(
+    Math.abs(atBoundary.pdMax - justBelow.pdMax) < Math.abs(atBoundary.pdMax - justAbove.pdMax),
+    'boundary value should be closer to the lower-bracket neighbor than the upper-bracket one'
+  );
+});
+
+test('metricThreadTolerance: unknown class returns null', () => {
+  assert.strictEqual(calc.metricThreadTolerance(10, 1.5, '6X'), null);
+});
+
+// -------------------------------------------------------------------------
 // Speeds & feeds
 // -------------------------------------------------------------------------
 
