@@ -173,29 +173,37 @@
       classSelect.value = classes.indexOf(prevValue) !== -1 ? prevValue : '';
     }
 
-    var currentTol = null;
+    var currentTol = null, currentBasicPD = null;
     function recalcWire() {
       var w = parseFloat(wireIn.value);
-      if (!currentTol || !currentTol.external) {
-        wireHint.textContent = 'Select an external tolerance class above to measure over wires.';
+      if (currentBasicPD == null) {
+        wireHint.textContent = 'Enter a valid major diameter and TPI above.';
         wireOut.innerHTML = '';
         return;
       }
       if (isNaN(w) || w <= 0) { wireHint.textContent = ''; wireOut.innerHTML = ''; return; }
       var t = parseFloat(tpi.value);
-      var m = calc.unifiedMeasurementOverWires(currentTol.pdMax, currentTol.pdMin, t, w);
-      wireHint.textContent = '';
-      wireOut.innerHTML = '<table><tr><th>Measurement Over Wires</th><td class="num">' +
-        m.min.toFixed(4) + ' – ' + m.max.toFixed(4) + ' in</td></tr></table>';
+      if (currentTol && currentTol.external) {
+        var m = calc.unifiedMeasurementOverWires(currentTol.pdMax, currentTol.pdMin, t, w);
+        wireHint.textContent = '';
+        wireOut.innerHTML = '<table><tr><th>Measurement Over Wires</th><td class="num">' +
+          m.min.toFixed(4) + ' – ' + m.max.toFixed(4) + ' in</td></tr></table>';
+      } else {
+        var basic = calc.unifiedMeasurementOverWires(currentBasicPD, currentBasicPD, t, w);
+        wireHint.textContent = 'No external tolerance class selected (or none available for this size) — showing the theoretical value at the basic pitch diameter, not a toleranced range.';
+        wireOut.innerHTML = '<table><tr><th>Measurement Over Wires (basic PD)</th><td class="num">' +
+          basic.max.toFixed(4) + ' in</td></tr></table>';
+      }
     }
 
     function recalc() {
       var m = parseFloat(major.value), t = parseFloat(tpi.value);
       if (isNaN(m) || isNaN(t) || t <= 0) {
-        out.innerHTML = ''; tolHint.textContent = ''; refreshToleranceClasses(null); currentTol = null; recalcWire();
+        out.innerHTML = ''; tolHint.textContent = ''; refreshToleranceClasses(null); currentTol = null; currentBasicPD = null; recalcWire();
         return;
       }
       var g = calc.unifiedThreadGeometry({ majorDia: m, tpi: t });
+      currentBasicPD = g.external.pitchDia;
       var rows =
         '<tr><th>Pitch</th><td class="num">' + g.pitch.toFixed(5) + ' in</td></tr>' +
         '<tr><th>Thread Height (H)</th><td class="num">' + g.threadHeight.toFixed(5) + ' in</td></tr>' +
@@ -256,26 +264,34 @@
       recalc();
     });
 
-    var currentTol = null;
+    var currentTol = null, currentBasicPD = null;
     function recalcWire() {
       var w = parseFloat(wireIn.value);
-      if (!currentTol || !currentTol.external) {
-        wireHint.textContent = 'Select an external tolerance class above (6g or 4g6g) to measure over wires.';
+      if (currentBasicPD == null) {
+        wireHint.textContent = 'Enter a valid major diameter and pitch above.';
         wireOut.innerHTML = '';
         return;
       }
       if (isNaN(w) || w <= 0) { wireHint.textContent = ''; wireOut.innerHTML = ''; return; }
       var p = parseFloat(pitch.value);
-      var m = calc.metricMeasurementOverWires(currentTol.pdMax, currentTol.pdMin, p, w);
-      wireHint.textContent = '';
-      wireOut.innerHTML = '<table><tr><th>Measurement Over Wires</th><td class="num">' +
-        m.min.toFixed(3) + ' – ' + m.max.toFixed(3) + ' mm</td></tr></table>';
+      if (currentTol && currentTol.external) {
+        var m = calc.metricMeasurementOverWires(currentTol.pdMax, currentTol.pdMin, p, w);
+        wireHint.textContent = '';
+        wireOut.innerHTML = '<table><tr><th>Measurement Over Wires</th><td class="num">' +
+          m.min.toFixed(3) + ' – ' + m.max.toFixed(3) + ' mm</td></tr></table>';
+      } else {
+        var basic = calc.metricMeasurementOverWires(currentBasicPD, currentBasicPD, p, w);
+        wireHint.textContent = 'No external tolerance class selected (or none available for this size) — showing the theoretical value at the basic pitch diameter, not a toleranced range.';
+        wireOut.innerHTML = '<table><tr><th>Measurement Over Wires (basic PD)</th><td class="num">' +
+          basic.max.toFixed(3) + ' mm</td></tr></table>';
+      }
     }
 
     function recalc() {
       var m = parseFloat(major.value), p = parseFloat(pitch.value);
-      if (isNaN(m) || isNaN(p) || p <= 0) { out.innerHTML = ''; tolHint.textContent = ''; currentTol = null; recalcWire(); return; }
+      if (isNaN(m) || isNaN(p) || p <= 0) { out.innerHTML = ''; tolHint.textContent = ''; currentTol = null; currentBasicPD = null; recalcWire(); return; }
       var g = calc.metricThreadGeometry({ majorDia: m, pitch: p });
+      currentBasicPD = g.external.pitchDia;
       var rows =
         '<tr><th>Pitch</th><td class="num">' + g.pitch.toFixed(4) + ' mm</td></tr>' +
         '<tr><th>Thread Height (H)</th><td class="num">' + g.threadHeight.toFixed(4) + ' mm</td></tr>' +
@@ -337,29 +353,41 @@
       recalc();
     });
 
-    var currentTol = null;
+    // Wire measurement only needs *a* pitch diameter (max/min if toleranced, otherwise the
+    // basic/theoretical one) plus a wire diameter -- it doesn't itself depend on tolerance-class
+    // data, so it shouldn't be blocked just because a size falls outside the tolerance tables'
+    // range (e.g. ACME above 5in) or no class is selected.
+    var currentTol = null, currentBasicPD = null;
     function recalcWire() {
       var w = parseFloat(wireIn.value);
-      if (!currentTol || !currentTol.external) {
-        wireHint.textContent = 'Select an external tolerance class above to measure over wires.';
+      if (currentBasicPD == null) {
+        wireHint.textContent = 'Enter a valid major diameter and TPI above.';
         wireOut.innerHTML = '';
         return;
       }
       if (isNaN(w) || w <= 0) { wireHint.textContent = ''; wireOut.innerHTML = ''; return; }
       var t = parseFloat(tpi.value);
-      var m = calc.acmeMeasurementOverWires(currentTol.pdMax, currentTol.pdMin, 1 / t, w);
-      wireHint.textContent = '';
-      wireOut.innerHTML = '<table><tr><th>Measurement Over Wires</th><td class="num">' +
-        m.min.toFixed(4) + ' – ' + m.max.toFixed(4) + ' in</td></tr></table>';
+      if (currentTol && currentTol.external) {
+        var m = calc.acmeMeasurementOverWires(currentTol.pdMax, currentTol.pdMin, 1 / t, w);
+        wireHint.textContent = '';
+        wireOut.innerHTML = '<table><tr><th>Measurement Over Wires</th><td class="num">' +
+          m.min.toFixed(4) + ' – ' + m.max.toFixed(4) + ' in</td></tr></table>';
+      } else {
+        var basic = calc.acmeMeasurementOverWires(currentBasicPD, currentBasicPD, 1 / t, w);
+        wireHint.textContent = 'No external tolerance class selected (or none available for this size) — showing the theoretical value at the basic pitch diameter, not a toleranced range.';
+        wireOut.innerHTML = '<table><tr><th>Measurement Over Wires (basic PD)</th><td class="num">' +
+          basic.max.toFixed(4) + ' in</td></tr></table>';
+      }
     }
 
     function recalc() {
       var m = parseFloat(major.value), t = parseFloat(tpi.value);
       if (isNaN(m) || isNaN(t) || t <= 0 || m <= 0) {
-        out.innerHTML = ''; tolHint.textContent = ''; currentTol = null; recalcWire();
+        out.innerHTML = ''; tolHint.textContent = ''; currentTol = null; currentBasicPD = null; recalcWire();
         return;
       }
       var g = calc.acmeThreadGeometry({ majorDia: m, tpi: t });
+      currentBasicPD = g.pitchDia;
       var rows =
         '<tr><th>Pitch</th><td class="num">' + g.pitch.toFixed(4) + ' in</td></tr>' +
         '<tr><th>Thread Height</th><td class="num">' + g.threadHeight.toFixed(4) + ' in</td></tr>' +
