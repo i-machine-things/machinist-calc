@@ -339,7 +339,7 @@
           rows += acmeToleranceRows(tol);
           currentTol = tol;
         } else {
-          tolHint.textContent = 'No tolerance data for this diameter/pitch combination (outside the tabulated 0-5.5in diameter / 1-16 TPI range).';
+          tolHint.textContent = 'No tolerance data for this diameter/pitch combination (outside the tabulated 0-5in diameter / 1-16 TPI range).';
         }
       }
       out.innerHTML = '<table>' + rows + '</table>';

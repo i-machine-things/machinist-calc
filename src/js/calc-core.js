@@ -1252,10 +1252,15 @@
   /**
    * Tolerance-class limiting dimensions for a General Purpose Acme thread.
    * Standard: ASME/ANSI B1.5-1988, Table 2a formulas with Tables 4/5 data.
-   * Works for any major diameter in (0, 5.5in] and any TPI in [1, 16] --
-   * the range Tables 4/5 cover -- not just calc.acmeThreadSizes' 23
-   * standard sizes. Returns null outside that range or for an unsupported
-   * class (only '2G'/'3G'/'4G'; see file-header comment on Class 5G).
+   * Works for any major diameter in (0, 5.0in] and any TPI in [1, 16] --
+   * not just calc.acmeThreadSizes' 23 standard sizes. Note this is Table
+   * 5's limit (its diameter checkpoints stop at 5.0in), narrower than
+   * Table 4's allowance data alone (which reaches 5.5in) -- without a
+   * matching Table 5 checkpoint, a diameter in (5.0, 5.5] can't produce a
+   * verified pitch-diameter tolerance, so it's treated as out of range
+   * here too rather than silently using an under-specified value. Returns
+   * null outside that range or for an unsupported class (only
+   * '2G'/'3G'/'4G'; see file-header comment on Class 5G).
    * `external` selects which mating half's limits to return; the
    * stressArea field (external only) is the standard's tensile stress
    * area, computed from the mean of pdMin and minorMax.

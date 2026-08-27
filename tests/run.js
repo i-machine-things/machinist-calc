@@ -311,6 +311,16 @@ test('acmeThreadTolerance: out-of-range diameter/pitch returns null rather than 
   assert.strictEqual(calc.acmeThreadTolerance(0.5, 20, '2G', true), null);
 });
 
+test('acmeThreadTolerance: 5.0in is the largest diameter with verified tolerance data, not 5.5in', () => {
+  // Table 4 (allowance) alone reaches 5.5in, but Table 5's diameter checkpoints (needed for the
+  // pitch-diameter tolerance) stop at 5.0in, as does every worked example in Table 2b/2c -- so a
+  // diameter in (5.0, 5.5] has no verified tolerance and must not silently combine Table 4's
+  // reach with an under-specified Table 5 value. Caught by CodeRabbit.
+  assert.ok(calc.acmeThreadTolerance(5.0, 2, '2G', true));
+  assert.strictEqual(calc.acmeThreadTolerance(5.25, 2, '2G', true), null);
+  assert.strictEqual(calc.acmeThreadTolerance(5.5, 2, '2G', true), null);
+});
+
 test('acmeThreadTolerance: unsupported class (e.g. legacy 5G) returns null', () => {
   assert.strictEqual(calc.acmeThreadTolerance(0.5, 10, '5G', true), null);
 });
