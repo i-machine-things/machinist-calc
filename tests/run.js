@@ -202,6 +202,31 @@ test('metricThreadTolerance: out-of-range diameter/pitch returns null rather tha
   assert.strictEqual(calc.metricThreadTolerance(500, 8, '6H'), null);
 });
 
+test('metricThreadTolerance: the documented 1.5mm lower diameter bound is actually reachable', () => {
+  // Regression test -- findByDiaRange used an exclusive lower bound (diaOver < majorDia), so a
+  // diameter of exactly 1.5mm (the table's own stated minimum, and the app's documented lower
+  // bound) fell through every bracket and returned null. Caught by CodeRabbit.
+  const internal = calc.metricThreadTolerance(1.5, 0.35, '6H');
+  const external = calc.metricThreadTolerance(1.5, 0.35, '6g');
+  assert.ok(internal, 'expected 1.5mm internal to resolve, not fall through to null');
+  assert.ok(external, 'expected 1.5mm external to resolve, not fall through to null');
+  approx(internal.majorMin, 1.5, 1e-9);
+});
+
+test('metricThreadTolerance: a diameter exactly on a shared bracket boundary still resolves to the lower bracket', () => {
+  // 2.8mm is the boundary between the (1.5,2.8] and (2.8,5.6] Table 8/11 brackets, which have
+  // different tolerance values at the same pitch -- confirms the fix for the test above (using
+  // <= for the lower bound too) didn't also make the *upper* bracket match early.
+  const atBoundary = calc.metricThreadTolerance(2.8, 0.35, '6H');
+  const justBelow = calc.metricThreadTolerance(2.79, 0.35, '6H');
+  const justAbove = calc.metricThreadTolerance(2.81, 0.35, '6H');
+  approx(atBoundary.pdMax - justBelow.pdMax, 0.01, 0.002, 'boundary value should track the lower bracket');
+  assert.ok(
+    Math.abs(atBoundary.pdMax - justBelow.pdMax) < Math.abs(atBoundary.pdMax - justAbove.pdMax),
+    'boundary value should be closer to the lower-bracket neighbor than the upper-bracket one'
+  );
+});
+
 test('metricThreadTolerance: unknown class returns null', () => {
   assert.strictEqual(calc.metricThreadTolerance(10, 1.5, '6X'), null);
 });

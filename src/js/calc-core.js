@@ -965,14 +965,20 @@
   }
 
   /**
-   * Diameter-range lookup: row applies when diaOver < majorDia <= diaUpTo
-   * (matches the book's "Over ... Up to and including ..." column headers).
+   * Diameter-range lookup: row applies when diaOver <= majorDia <= diaUpTo
+   * (matches the book's "Over ... Up to and including ..." column headers,
+   * i.e. exclusive-lower/inclusive-upper for every *interior* boundary --
+   * rows are checked in ascending order and the first match wins, so a
+   * value exactly on a shared boundary, e.g. 2.8, still resolves to the
+   * lower bracket as the standard intends. The lower bound is written
+   * inclusive here only so the table's own stated minimum, 1.5mm, is
+   * actually reachable -- it would otherwise never match anything.)
    * Returns null if majorDia/pitch fall outside the tabulated ranges.
    */
   function findByDiaRange(table, majorDia, pitch) {
     for (var i = 0; i < table.length; i++) {
       var row = table[i];
-      if (row.diaOver < majorDia && majorDia <= row.diaUpTo && Math.abs(row.pitch - pitch) < 1e-9) {
+      if (row.diaOver <= majorDia && majorDia <= row.diaUpTo && Math.abs(row.pitch - pitch) < 1e-9) {
         return row;
       }
     }
