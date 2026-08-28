@@ -68,6 +68,8 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 - **Validate transcribed table data for completeness (every expected key present), not just consistency.** A regex parser dropped most external classes for ~30/39 sizes; a consistency-only check reported "0 issues" since it never checked for missing keys.
 - **Prefer bbox/row-reconstructed PDF extraction over a flattened text blob + regex** for multi-column tables — designations split across lines by stacked-fraction glyphs (e.g. "1/4-20") break blob-based row matching.
 - **Cross-validate a formula against the standard's own precomputed table, not just internal consistency.** `metricThreadTolerance` was confirmed by recomputing the book's Table 12/13 (100 rows) — 0 discrepancies.
+- **A table matching `k*sqrt(x)` at every checkpoint isn't necessarily a continuous formula.** ACME Table 4/5 read that way, but the standard says "between two entries, use the larger/coarser" — discrete lookup. The formula alone got 458/460 right, silently missing 2; worked examples caught it.
+- **Re-verify a reference spreadsheet's constants against the primary standard, not just its formulas' internal logic.** A shop ACME chart used `TPI < 10` for a clearance threshold (handbook proves `TPI <= 10`) and mislabeled 1-1/4in Acme as 4 TPI (handbook + the chart's own text label both say 5).
 
 ## Metric Thread Tolerance Class Notation (ISO 965-1)
 
