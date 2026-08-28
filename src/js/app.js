@@ -150,6 +150,7 @@
   function setupThreadUnified() {
     var preset = $('th-uni-preset'), major = $('th-uni-major'), tpi = $('th-uni-tpi'), out = $('th-uni-result');
     var classSelect = $('th-uni-class'), tolHint = $('th-uni-tol-hint');
+    var wireIn = $('th-uni-wire'), wireHint = $('th-uni-wire-hint'), wireOut = $('th-uni-wire-result');
     fillSelect(preset, calc.unifiedThreadSizes);
     preset.addEventListener('change', function () {
       if (preset.value === '') return;
@@ -172,13 +173,37 @@
       classSelect.value = classes.indexOf(prevValue) !== -1 ? prevValue : '';
     }
 
+    var currentTol = null, currentBasicPD = null;
+    function recalcWire() {
+      var w = parseFloat(wireIn.value);
+      if (currentBasicPD == null) {
+        wireHint.textContent = 'Enter a valid major diameter and TPI above.';
+        wireOut.innerHTML = '';
+        return;
+      }
+      if (isNaN(w) || w <= 0) { wireHint.textContent = ''; wireOut.innerHTML = ''; return; }
+      var t = parseFloat(tpi.value);
+      if (currentTol && currentTol.external) {
+        var m = calc.unifiedMeasurementOverWires(currentTol.pdMax, currentTol.pdMin, t, w);
+        wireHint.textContent = '';
+        wireOut.innerHTML = '<table><tr><th>Measurement Over Wires</th><td class="num">' +
+          m.min.toFixed(4) + ' – ' + m.max.toFixed(4) + ' in</td></tr></table>';
+      } else {
+        var basic = calc.unifiedMeasurementOverWires(currentBasicPD, currentBasicPD, t, w);
+        wireHint.textContent = 'No external tolerance class selected (or none available for this size) — showing the theoretical value at the basic pitch diameter, not a toleranced range.';
+        wireOut.innerHTML = '<table><tr><th>Measurement Over Wires (basic PD)</th><td class="num">' +
+          basic.max.toFixed(4) + ' in</td></tr></table>';
+      }
+    }
+
     function recalc() {
       var m = parseFloat(major.value), t = parseFloat(tpi.value);
-      if (isNaN(m) || isNaN(t) || t <= 0) {
-        out.innerHTML = ''; tolHint.textContent = ''; refreshToleranceClasses(null);
+      if (isNaN(m) || isNaN(t) || t <= 0 || m <= 0) {
+        out.innerHTML = ''; tolHint.textContent = ''; refreshToleranceClasses(null); currentTol = null; currentBasicPD = null; recalcWire();
         return;
       }
       var g = calc.unifiedThreadGeometry({ majorDia: m, tpi: t });
+      currentBasicPD = g.external.pitchDia;
       var rows =
         '<tr><th>Pitch</th><td class="num">' + g.pitch.toFixed(5) + ' in</td></tr>' +
         '<tr><th>Thread Height (H)</th><td class="num">' + g.threadHeight.toFixed(5) + ' in</td></tr>' +
@@ -192,6 +217,7 @@
 
       var sizeName = findUnifiedSizeName(m, t);
       refreshToleranceClasses(sizeName);
+      currentTol = null;
       if (!sizeName) {
         tolHint.textContent = 'Tolerance classes are only available for the standard/selected sizes above — pick one from "Common size", or enter a major diameter and TPI that match one exactly.';
       } else {
@@ -199,13 +225,15 @@
         var cls = classSelect.value;
         if (cls) {
           var tol = calc.unifiedThreadTolerance(sizeName, cls);
-          if (tol) rows += unifiedToleranceRows(tol);
+          if (tol) { rows += unifiedToleranceRows(tol); currentTol = tol; }
         }
       }
       out.innerHTML = '<table>' + rows + '</table>';
+      recalcWire();
     }
     [major, tpi].forEach(function (el) { el.addEventListener('input', recalc); });
     classSelect.addEventListener('change', recalc);
+    wireIn.addEventListener('input', recalcWire);
     recalc();
   }
 
@@ -227,6 +255,7 @@
   function setupThreadMetric() {
     var preset = $('th-met-preset'), major = $('th-met-major'), pitch = $('th-met-pitch'), out = $('th-met-result');
     var classSelect = $('th-met-class'), tolHint = $('th-met-tol-hint');
+    var wireIn = $('th-met-wire'), wireHint = $('th-met-wire-hint'), wireOut = $('th-met-wire-result');
     fillSelect(preset, calc.metricThreadSizes);
     preset.addEventListener('change', function () {
       if (preset.value === '') return;
@@ -235,10 +264,34 @@
       recalc();
     });
 
+    var currentTol = null, currentBasicPD = null;
+    function recalcWire() {
+      var w = parseFloat(wireIn.value);
+      if (currentBasicPD == null) {
+        wireHint.textContent = 'Enter a valid major diameter and pitch above.';
+        wireOut.innerHTML = '';
+        return;
+      }
+      if (isNaN(w) || w <= 0) { wireHint.textContent = ''; wireOut.innerHTML = ''; return; }
+      var p = parseFloat(pitch.value);
+      if (currentTol && currentTol.external) {
+        var m = calc.metricMeasurementOverWires(currentTol.pdMax, currentTol.pdMin, p, w);
+        wireHint.textContent = '';
+        wireOut.innerHTML = '<table><tr><th>Measurement Over Wires</th><td class="num">' +
+          m.min.toFixed(3) + ' – ' + m.max.toFixed(3) + ' mm</td></tr></table>';
+      } else {
+        var basic = calc.metricMeasurementOverWires(currentBasicPD, currentBasicPD, p, w);
+        wireHint.textContent = 'No external tolerance class selected (or none available for this size) — showing the theoretical value at the basic pitch diameter, not a toleranced range.';
+        wireOut.innerHTML = '<table><tr><th>Measurement Over Wires (basic PD)</th><td class="num">' +
+          basic.max.toFixed(3) + ' mm</td></tr></table>';
+      }
+    }
+
     function recalc() {
       var m = parseFloat(major.value), p = parseFloat(pitch.value);
-      if (isNaN(m) || isNaN(p) || p <= 0) { out.innerHTML = ''; tolHint.textContent = ''; return; }
+      if (isNaN(m) || isNaN(p) || p <= 0 || m <= 0) { out.innerHTML = ''; tolHint.textContent = ''; currentTol = null; currentBasicPD = null; recalcWire(); return; }
       var g = calc.metricThreadGeometry({ majorDia: m, pitch: p });
+      currentBasicPD = g.external.pitchDia;
       var rows =
         '<tr><th>Pitch</th><td class="num">' + g.pitch.toFixed(4) + ' mm</td></tr>' +
         '<tr><th>Thread Height (H)</th><td class="num">' + g.threadHeight.toFixed(4) + ' mm</td></tr>' +
@@ -251,6 +304,7 @@
         '<tr><th>Tensile Stress Area</th><td class="num">' + g.tensileStressArea.toFixed(3) + ' mm²</td></tr>';
 
       var cls = classSelect.value;
+      currentTol = null;
       if (!cls) {
         tolHint.textContent = '';
       } else {
@@ -258,14 +312,111 @@
         if (tol) {
           tolHint.textContent = '';
           rows += metricToleranceRows(tol);
+          currentTol = tol;
         } else {
           tolHint.textContent = 'No tolerance data for this diameter/pitch combination (outside the tabulated 1.5-355mm diameter / 0.2-6mm pitch range).';
         }
       }
       out.innerHTML = '<table>' + rows + '</table>';
+      recalcWire();
     }
     [major, pitch].forEach(function (el) { el.addEventListener('input', recalc); });
     classSelect.addEventListener('change', recalc);
+    wireIn.addEventListener('input', recalcWire);
+    recalc();
+  }
+
+  function acmeToleranceRows(t) {
+    var head = '<tr class="subhead"><th colspan="2">Class ' + t.class + ' (' + (t.external ? 'external' : 'internal') + ')</th></tr>';
+    if (t.external) {
+      return head +
+        '<tr><th>Major Dia</th><td class="num">' + t.majorMin.toFixed(4) + ' – ' + t.majorMax.toFixed(4) + ' in</td></tr>' +
+        '<tr><th>Pitch Dia</th><td class="num">' + t.pdMin.toFixed(4) + ' – ' + t.pdMax.toFixed(4) + ' in</td></tr>' +
+        '<tr><th>Minor Dia</th><td class="num">' + t.minorMin.toFixed(4) + ' – ' + t.minorMax.toFixed(4) + ' in</td></tr>' +
+        '<tr><th>Tensile Stress Area</th><td class="num">' + t.stressArea.toFixed(5) + ' in²</td></tr>';
+    }
+    return head +
+      '<tr><th>Major Dia</th><td class="num">' + t.majorMin.toFixed(4) + ' – ' + t.majorMax.toFixed(4) + ' in</td></tr>' +
+      '<tr><th>Pitch Dia</th><td class="num">' + t.pdMin.toFixed(4) + ' – ' + t.pdMax.toFixed(4) + ' in</td></tr>' +
+      '<tr><th>Minor Dia</th><td class="num">' + t.minorMin.toFixed(4) + ' – ' + t.minorMax.toFixed(4) + ' in</td></tr>';
+  }
+
+  function setupThreadAcme() {
+    var preset = $('th-acme-preset'), major = $('th-acme-major'), tpi = $('th-acme-tpi'), out = $('th-acme-result');
+    var classSelect = $('th-acme-class'), tolHint = $('th-acme-tol-hint');
+    var wireIn = $('th-acme-wire'), wireHint = $('th-acme-wire-hint'), wireOut = $('th-acme-wire-result');
+    fillSelect(preset, calc.acmeThreadSizes);
+    preset.addEventListener('change', function () {
+      if (preset.value === '') return;
+      var t = calc.acmeThreadSizes[+preset.value];
+      major.value = t.majorDia; tpi.value = t.tpi;
+      recalc();
+    });
+
+    // Wire measurement only needs *a* pitch diameter (max/min if toleranced, otherwise the
+    // basic/theoretical one) plus a wire diameter -- it doesn't itself depend on tolerance-class
+    // data, so it shouldn't be blocked just because a size falls outside the tolerance tables'
+    // range (e.g. ACME above 5in) or no class is selected.
+    var currentTol = null, currentBasicPD = null;
+    function recalcWire() {
+      var w = parseFloat(wireIn.value);
+      if (currentBasicPD == null) {
+        wireHint.textContent = 'Enter a valid major diameter and TPI above.';
+        wireOut.innerHTML = '';
+        return;
+      }
+      if (isNaN(w) || w <= 0) { wireHint.textContent = ''; wireOut.innerHTML = ''; return; }
+      var t = parseFloat(tpi.value);
+      if (currentTol && currentTol.external) {
+        var m = calc.acmeMeasurementOverWires(currentTol.pdMax, currentTol.pdMin, 1 / t, w);
+        wireHint.textContent = '';
+        wireOut.innerHTML = '<table><tr><th>Measurement Over Wires</th><td class="num">' +
+          m.min.toFixed(4) + ' – ' + m.max.toFixed(4) + ' in</td></tr></table>';
+      } else {
+        var basic = calc.acmeMeasurementOverWires(currentBasicPD, currentBasicPD, 1 / t, w);
+        wireHint.textContent = 'No external tolerance class selected (or none available for this size) — showing the theoretical value at the basic pitch diameter, not a toleranced range.';
+        wireOut.innerHTML = '<table><tr><th>Measurement Over Wires (basic PD)</th><td class="num">' +
+          basic.max.toFixed(4) + ' in</td></tr></table>';
+      }
+    }
+
+    function recalc() {
+      var m = parseFloat(major.value), t = parseFloat(tpi.value);
+      if (isNaN(m) || isNaN(t) || t <= 0 || m <= 0) {
+        out.innerHTML = ''; tolHint.textContent = ''; currentTol = null; currentBasicPD = null; recalcWire();
+        return;
+      }
+      var g = calc.acmeThreadGeometry({ majorDia: m, tpi: t });
+      currentBasicPD = g.pitchDia;
+      var rows =
+        '<tr><th>Pitch</th><td class="num">' + g.pitch.toFixed(4) + ' in</td></tr>' +
+        '<tr><th>Thread Height</th><td class="num">' + g.threadHeight.toFixed(4) + ' in</td></tr>' +
+        '<tr><th>Basic Major Dia</th><td class="num">' + g.majorDia.toFixed(4) + ' in</td></tr>' +
+        '<tr><th>Basic Pitch Dia</th><td class="num">' + g.pitchDia.toFixed(4) + ' in</td></tr>' +
+        '<tr><th>Basic Minor Dia</th><td class="num">' + g.minorDia.toFixed(4) + ' in</td></tr>';
+
+      var cls = classSelect.value;
+      currentTol = null;
+      if (!cls) {
+        tolHint.textContent = '';
+      } else {
+        var external = cls.indexOf('-ext') !== -1;
+        var clsName = cls.replace('-ext', '').replace('-int', '');
+        var tol = calc.acmeThreadTolerance(m, t, clsName, external);
+        if (tol) {
+          tolHint.textContent = '';
+          rows += acmeToleranceRows(tol);
+          currentTol = tol;
+        } else {
+          tolHint.textContent = 'No tolerance data for this diameter/pitch combination (outside the tabulated 0-5in diameter / 1-16 TPI range).';
+        }
+      }
+      out.innerHTML = '<table>' + rows + '</table>';
+      recalcWire();
+    }
+    [major, tpi].forEach(function (el) { el.addEventListener('input', recalc); });
+    classSelect.addEventListener('change', recalc);
+    wireIn.addEventListener('input', recalcWire);
     recalc();
   }
 
@@ -692,6 +843,7 @@
     setupTapDrillMetric();
     setupThreadUnified();
     setupThreadMetric();
+    setupThreadAcme();
     setupRecommendedSfm();
     setupSpeedsFeedsImperial();
     setupSpeedsFeedsMetric();

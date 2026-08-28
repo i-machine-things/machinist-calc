@@ -148,6 +148,14 @@ test('unifiedThreadToleranceClasses: reflects the 1A/1B tabulation cutoff', () =
   );
 });
 
+test('unifiedMeasurementOverWires: 1/2-13 UNC Class 2A matches the ASME B1.2 / Machinery\'s Handbook 60-degree formula', () => {
+  // M = E - 0.86603P + 3W, applied to Class 2A's own pdMax/pdMin (verified elsewhere).
+  const t = calc.unifiedThreadTolerance('1/2-13', '2A');
+  const m = calc.unifiedMeasurementOverWires(t.pdMax, t.pdMin, 13, 0.0505);
+  approx(m.max, 0.5334, 1e-4);
+  approx(m.min, 0.5284, 1e-4);
+});
+
 test('metricThreadTolerance: M10x1.5 Class 6H (internal) matches Machinery\'s Handbook Table 12', () => {
   const t = calc.metricThreadTolerance(10, 1.5, '6H');
   assert.strictEqual(t.external, false);
@@ -229,6 +237,116 @@ test('metricThreadTolerance: a diameter exactly on a shared bracket boundary sti
 
 test('metricThreadTolerance: unknown class returns null', () => {
   assert.strictEqual(calc.metricThreadTolerance(10, 1.5, '6X'), null);
+});
+
+test('metricMeasurementOverWires: M10x1.5 Class 6g matches the same 60-degree formula as unifiedMeasurementOverWires', () => {
+  // Machinery's Handbook: "International Standard: use the formula given above for the American
+  // National Standard Unified Thread" -- metric M-profile shares the same 60-degree formula.
+  const t = calc.metricThreadTolerance(10, 1.5, '6g');
+  const m = calc.metricMeasurementOverWires(t.pdMax, t.pdMin, 1.5, 0.866);
+  approx(m.max, 10.293, 1e-3);
+  approx(m.min, 10.161, 1e-3);
+});
+
+// -------------------------------------------------------------------------
+// ACME threads (General Purpose, single-start)
+// Spot-checked against Machinery's Handbook 26th ed. Tables 2b/2c (worked
+// limiting dimensions for all 23 standard sizes, ASME/ANSI B1.5-1988) and
+// Table 3 (basic geometry). Includes regression tests for two errors found
+// and corrected relative to a local reference spreadsheet used as a
+// starting point (see calc-core.js's ACME section header comment).
+// -------------------------------------------------------------------------
+
+test('acmeThreadGeometry: 1/4-16 Acme basic diameters match Table 3', () => {
+  const g = calc.acmeThreadGeometry({ majorDia: 0.25, tpi: 16 });
+  approx(g.pitch, 0.0625, 1e-4);
+  approx(g.pitchDia, 0.2188, 1e-4);
+  approx(g.minorDia, 0.1875, 1e-4);
+});
+
+test('acmeThreadTolerance: 1/4-16 Acme Class 2G external matches Table 2b', () => {
+  const t = calc.acmeThreadTolerance(0.25, 16, '2G', true);
+  assert.strictEqual(t.external, true);
+  approx(t.majorMax, 0.2500, 1e-4);
+  approx(t.majorMin, 0.2450, 1e-4);
+  approx(t.pdMax, 0.2148, 1e-4);
+  approx(t.pdMin, 0.2043, 1e-4);
+  approx(t.minorMax, 0.1775, 1e-4);
+  approx(t.minorMin, 0.1618, 1e-4);
+});
+
+test('acmeThreadTolerance: 1/4-16 Acme Class 2G internal matches Table 2b', () => {
+  const t = calc.acmeThreadTolerance(0.25, 16, '2G', false);
+  assert.strictEqual(t.external, false);
+  approx(t.majorMin, 0.2600, 1e-4);
+  approx(t.majorMax, 0.2700, 1e-4);
+  approx(t.pdMin, 0.2188, 1e-4);
+  approx(t.pdMax, 0.2293, 1e-4);
+  approx(t.minorMin, 0.1875, 1e-4);
+  approx(t.minorMax, 0.1925, 1e-4);
+});
+
+test('acmeThreadTolerance: 1/2-10 Acme external minor max is 0.3800, not 0.39 (TPI<=10 boundary regression)', () => {
+  // Regression test -- a local reference spreadsheet used "TPI < 10" for the minor/major
+  // diameter clearance threshold (0.020 vs 0.010), so an exact TPI of 10 fell through to the
+  // wrong (finer-pitch) value. The standard's own worked example proves TPI<=10 is correct.
+  const t = calc.acmeThreadTolerance(0.5, 10, '2G', true);
+  approx(t.minorMax, 0.3800, 1e-4);
+});
+
+test('acmeThreadTolerance: 1-1/4in Acme is 5 TPI, not 4 (matches calc.acmeThreadSizes and Table 2b/3)', () => {
+  // Regression test -- the same reference spreadsheet's "1 1/4-5 Acme" row used TPI=4 in its
+  // formulas despite its own label saying "-5"; both Table 2b and Table 3 confirm 5 TPI.
+  const size = calc.acmeThreadSizes.find((s) => s.name === '1 1/4-5');
+  assert.strictEqual(size.tpi, 5);
+  const t = calc.acmeThreadTolerance(1.25, 5, '2G', true);
+  approx(t.majorMin, 1.2400, 1e-4);
+  approx(t.minorMax, 1.0300, 1e-4);
+});
+
+test('acmeThreadTolerance: 5-2 Acme (largest standard size) matches Table 2c', () => {
+  const ext = calc.acmeThreadTolerance(5.0, 2, '2G', true);
+  const int = calc.acmeThreadTolerance(5.0, 2, '2G', false);
+  approx(ext.majorMin, 4.9750, 1e-4);
+  approx(ext.minorMax, 4.4800, 1e-4);
+  approx(int.majorMin, 5.0200, 1e-4);
+  approx(int.majorMax, 5.0400, 1e-4);
+});
+
+test('acmeThreadTolerance: Class 3G and 4G external pitch diameters match Table 2b (5/16-14 Acme)', () => {
+  const g3 = calc.acmeThreadTolerance(0.3125, 14, '3G', true);
+  const g4 = calc.acmeThreadTolerance(0.3125, 14, '4G', true);
+  approx(g3.pdMax, 0.2738, 1e-4);
+  approx(g3.pdMin, 0.2685, 1e-4);
+  approx(g4.pdMax, 0.2748, 1e-4);
+  approx(g4.pdMin, 0.2710, 1e-4);
+});
+
+test('acmeThreadTolerance: out-of-range diameter/pitch returns null rather than extrapolating', () => {
+  assert.strictEqual(calc.acmeThreadTolerance(0, 16, '2G', true), null);
+  assert.strictEqual(calc.acmeThreadTolerance(10, 16, '2G', true), null);
+  assert.strictEqual(calc.acmeThreadTolerance(0.5, 20, '2G', true), null);
+});
+
+test('acmeThreadTolerance: 5.0in is the largest diameter with verified tolerance data, not 5.5in', () => {
+  // Table 4 (allowance) alone reaches 5.5in, but Table 5's diameter checkpoints (needed for the
+  // pitch-diameter tolerance) stop at 5.0in, as does every worked example in Table 2b/2c -- so a
+  // diameter in (5.0, 5.5] has no verified tolerance and must not silently combine Table 4's
+  // reach with an under-specified Table 5 value. Caught by CodeRabbit.
+  assert.ok(calc.acmeThreadTolerance(5.0, 2, '2G', true));
+  assert.strictEqual(calc.acmeThreadTolerance(5.25, 2, '2G', true), null);
+  assert.strictEqual(calc.acmeThreadTolerance(5.5, 2, '2G', true), null);
+});
+
+test('acmeThreadTolerance: unsupported class (e.g. legacy 5G) returns null', () => {
+  assert.strictEqual(calc.acmeThreadTolerance(0.5, 10, '5G', true), null);
+});
+
+test('acmeMeasurementOverWires: 1/4-16 Acme 2G external with a 0.04in wire matches the reference spreadsheet', () => {
+  const t = calc.acmeThreadTolerance(0.25, 16, '2G', true);
+  const m = calc.acmeMeasurementOverWires(t.pdMax, t.pdMin, 1 / 16, 0.04);
+  approx(m.max, 0.2937, 1e-4);
+  approx(m.min, 0.2832, 1e-4);
 });
 
 // -------------------------------------------------------------------------
