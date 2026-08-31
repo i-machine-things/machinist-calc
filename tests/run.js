@@ -391,6 +391,8 @@ test('recommendedSfm: Inconel HSS range matches Machinery\'s Handbook Table 9 an
   assert.ok(inconel, 'expected an Inconel/nickel-superalloy row');
   approx(inconel.hss[0], 15, 1e-9);
   approx(inconel.hss[1], 35, 1e-9);
+  approx(inconel.carbide[0], 60, 1e-9);
+  approx(inconel.carbide[1], 120, 1e-9);
   const titanium = calc.recommendedSfm.find((r) => r.material.indexOf('Titanium') !== -1);
   assert.ok(inconel.carbide[1] <= titanium.carbide[1], 'Inconel should not out-cut titanium on carbide');
 });

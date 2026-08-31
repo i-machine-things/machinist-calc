@@ -71,6 +71,10 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 - **A table matching `k*sqrt(x)` at every checkpoint isn't necessarily a continuous formula.** ACME Table 4/5 read that way, but the standard says "between two entries, use the larger/coarser" — discrete lookup. The formula alone got 458/460 right, silently missing 2; worked examples caught it.
 - **Re-verify a reference spreadsheet's constants against the primary standard, not just its formulas' internal logic.** A shop ACME chart used `TPI < 10` for a clearance threshold (handbook proves `TPI <= 10`) and mislabeled 1-1/4in Acme as 4 TPI (handbook + the chart's own text label both say 5).
 
+## Test Assertions (JS)
+
+- **Asserting only one bound of a known range lets the other bound drift silently.** The Inconel carbide test checked `carbide[1] <= titanium.carbide[1]` but never pinned `carbide[0]`/`carbide[1]` to the actual `[60, 120]` values — a future edit could shrink or shift the range undetected. When the exact expected values are known, assert them directly (`approx`) in addition to any cross-row comparison. Caught by CodeRabbit in machinist-calc PR #11.
+
 ## Metric Thread Tolerance Class Notation (ISO 965-1)
 
 - **A compound class like `4g6g` means pitch-diameter grade 4, major/minor-diameter grade 6 — not "grade 4 for everything."** First grade+letter = pitch diameter; second (if shown) = crest diameter. `6g` alone means `6g6g`.
