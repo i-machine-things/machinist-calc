@@ -73,7 +73,7 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 
 ## Test Assertions (JS)
 
-- **Asserting only one bound of a known range lets the other bound drift silently.** The Inconel carbide test checked `carbide[1] <= titanium.carbide[1]` but never pinned `carbide[0]`/`carbide[1]` to the actual `[60, 120]` values — a future edit could shrink or shift the range undetected. When the exact expected values are known, assert them directly (`approx`) in addition to any cross-row comparison. Caught by CodeRabbit in machinist-calc PR #11.
+- **Asserting only one bound of a known range lets the other drift silently.** The Inconel carbide test checked `carbide[1] <= titanium.carbide[1]` but never pinned `[60, 120]` directly. Assert exact values when known, alongside any cross-row comparison. Caught by CodeRabbit, machinist-calc PR #11.
 
 ## Metric Thread Tolerance Class Notation (ISO 965-1)
 
