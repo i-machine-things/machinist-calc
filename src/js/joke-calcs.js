@@ -4,7 +4,7 @@
  * the steel thermal expansion, is called out where it appears) and none of it is a standard.
  *
  * Note from the author: after I did an independent blindfolded review of my own work, I found that I am
- * perfect and this all worked on the first try. Except for line 366. It seems a little half baked.
+ * perfect and this all worked on the first try. Except for line 378. It seems a little half baked.
  */
 (function (root, factory) {
   var joke = factory();
@@ -41,34 +41,46 @@
   ];
 
   var DAILY_CAP_MG = 400;     // up to ~400 mg/day for healthy adults (quoted by both the FDA and EFSA)
-  var SERVING_CAP_MG = 200;   // EFSA only: single doses up to 200 mg (~3 mg/kg for a 70 kg adult)
-  var REFERENCE_KG = 70;      // the "typical adult" those two figures are quoted for
-  // Adults only. EFSA's guidance for children and adolescents is a stricter ~3 mg/kg/day, and scaling the adult
-  // figure down linearly (~5.7 mg/kg/day) would overshoot that, so below this weight we refuse to answer.
-  var MIN_WEIGHT_KG = 40;
-  var MAX_WEIGHT_KG = 300;
+  var SERVING_CAP_MG = 200;   // EFSA only: single doses up to 200 mg...
+  var SERVING_MG_PER_KG = 3;  // ...which is "about 3 mg/kg" (EFSA), so a per-kg figure works at any weight
+  var REFERENCE_KG = 70;      // the "typical adult" the 400 mg/day figure is quoted for
+  // EFSA's stricter level for children and adolescents is 3 mg/kg/day, which is what a very light person gets
+  // here. From RAMP_START_KG the per-kg rate then rises in a straight line to the adult rate (400 mg over 70 kg,
+  // ~5.7 mg/kg) by 70 kg, so the daily ceiling has no jumps. The ramp is this app's own arithmetic.
+  var RAMP_START_KG = 40;
+  var LIGHT_DAILY_MG_PER_KG = 3;
+
+  /** Daily ceiling (mg) at a given weight: 3 mg/kg, ramping up to the adult 400 mg at 70 kg, then flat. */
+  function dailyCeilingMg(weightKg) {
+    if (weightKg >= REFERENCE_KG) return DAILY_CAP_MG;
+    if (weightKg <= RAMP_START_KG) return LIGHT_DAILY_MG_PER_KG * weightKg;
+    var adultRate = DAILY_CAP_MG / REFERENCE_KG;
+    var rate = LIGHT_DAILY_MG_PER_KG +
+      (adultRate - LIGHT_DAILY_MG_PER_KG) * (weightKg - RAMP_START_KG) / (REFERENCE_KG - RAMP_START_KG);
+    return rate * weightKg;
+  }
 
   /**
-   * Novelty caffeine budget by body weight, for adults. NOT medical advice. Takes the commonly quoted adult
-   * ceilings -- 400 mg/day (FDA and EFSA) and 200 mg per single dose (~3 mg/kg for a 70 kg adult, EFSA 2015
-   * opinion; the FDA quotes only the daily figure) -- and scales them down proportionally for anyone lighter
-   * than the 70 kg adult they're quoted for (never up past the cap). That scaling is this app's own arithmetic,
-   * not something either agency publishes.
-   * `weightKg` 40-300, `drinkMg` > 0, `shiftHours` > 0; throws RangeError otherwise.
+   * Novelty caffeine budget by body weight. NOT medical advice. Works at any positive weight.
+   * - One serving: 3 mg per kg (EFSA 2015: single doses up to 200 mg, "about 3 mg/kg" for a 70 kg adult),
+   *   never above 200 mg. The FDA quotes no single-dose figure.
+   * - Per day: 400 mg (FDA and EFSA) for a 70 kg adult. Lighter people get EFSA's stricter 3 mg/kg/day for
+   *   children and adolescents, with the per-kg rate rising in a straight line from 40 kg to the adult rate at
+   *   70 kg (see dailyCeilingMg; that ramp is this app's own arithmetic). Heavier does not earn a bigger number:
+   *   neither agency publishes a per-kg adult ceiling above 400 mg, so there is nothing to scale up to.
+   * `weightKg` and `drinkMg` and `shiftHours` must be positive and finite; throws RangeError otherwise.
    * Returns daily and single-serving ceilings (mg), how many of the chosen drink that is, the spacing across
    * a shift, and a whole-drink verdict. `splitAdvice` is true when at least one whole drink fits the daily
-   * ceiling but one serving exceeds the single-dose ceiling (a 160 mg can for anyone from 40 up to 56 kg);
+   * ceiling but one serving exceeds the single-dose ceiling (a 160 mg can for anyone from ~45 up to ~53 kg);
    * when not even one whole drink fits, the advice is water, not "split it".
    */
   joke.caffeineBudget = function (weightKg, drinkMg, shiftHours) {
-    if (!Number.isFinite(weightKg) || weightKg < MIN_WEIGHT_KG || weightKg > MAX_WEIGHT_KG) {
-      throw new RangeError('weightKg must be between ' + MIN_WEIGHT_KG + ' and ' + MAX_WEIGHT_KG);
-    }
+    if (!Number.isFinite(weightKg) || weightKg <= 0) throw new RangeError('weightKg must be positive');
     if (!Number.isFinite(drinkMg) || drinkMg <= 0) throw new RangeError('drinkMg must be positive');
     if (!Number.isFinite(shiftHours) || shiftHours <= 0) throw new RangeError('shiftHours must be positive');
 
-    var dailyMg = Math.min(DAILY_CAP_MG, DAILY_CAP_MG * weightKg / REFERENCE_KG);
-    var servingMg = Math.min(SERVING_CAP_MG, SERVING_CAP_MG * weightKg / REFERENCE_KG);
+    var dailyMg = dailyCeilingMg(weightKg);
+    var servingMg = Math.min(SERVING_CAP_MG, SERVING_MG_PER_KG * weightKg);
     var drinks = dailyMg / drinkMg;
     var whole = Math.floor(drinks);
     return {

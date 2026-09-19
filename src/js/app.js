@@ -845,7 +845,7 @@
       outs.drinks.textContent = r ? r.drinksPerDay : '—';
       outs.whole.textContent = r ? r.wholeDrinks : '—';
       outs.spacing.textContent = r && r.hoursBetween !== null ? r.hoursBetween : '—';
-      verdict.textContent = r ? r.verdict : 'Needs a weight of 40 to 300 kg (88 to 661 lb) and a shift length.';
+      verdict.textContent = r ? r.verdict : 'Needs a weight, a drink, and a shift length.';
       split.hidden = !(r && r.splitAdvice);
     }
     [weight, unit, drink, shift].forEach(function (el) { el.addEventListener('input', recalc); });

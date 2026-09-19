@@ -615,10 +615,10 @@ test('caffeineBudget: a 70 kg adult gets the quoted 400 mg/day and 200 mg per se
 
 test('caffeineBudget: lighter people scale down proportionally, heavier people stay at the cap', () => {
   const light = joke.caffeineBudget(50, 160, 8);
-  assert.strictEqual(light.dailyMg, 286);   // 400 * 50 / 70
-  assert.strictEqual(light.servingMg, 143); // 200 * 50 / 70
+  assert.strictEqual(light.dailyMg, 195);   // 50 kg: rate 3.905 mg/kg on the ramp from 3 (40 kg) to 5.714 (70 kg)
+  assert.strictEqual(light.servingMg, 150); // 3 mg/kg (EFSA)
   assert.strictEqual(light.wholeDrinks, 1);
-  assert.strictEqual(light.splitAdvice, true); // a 160 mg can is over the 143 mg single-dose ceiling
+  assert.strictEqual(light.splitAdvice, true); // a 160 mg can is over the 150 mg single-dose ceiling
   const heavy = joke.caffeineBudget(100, 95, 8);
   assert.strictEqual(heavy.dailyMg, 400);
   assert.strictEqual(heavy.servingMg, 200);
@@ -626,11 +626,11 @@ test('caffeineBudget: lighter people scale down proportionally, heavier people s
 
 test('caffeineBudget: no whole drink means water; many small drinks are spaced across the shift', () => {
   const tiny = joke.caffeineBudget(40, 300, 8); // a made-up 300 mg drink: bigger than the whole daily ceiling
-  assert.strictEqual(tiny.dailyMg, 229);
+  assert.strictEqual(tiny.dailyMg, 120);
   assert.strictEqual(tiny.wholeDrinks, 0);
   assert.strictEqual(tiny.hoursBetween, null);
   assert.strictEqual(tiny.verdict, 'Water. Just water.');
-  assert.strictEqual(tiny.splitAdvice, false); // 300 mg > the 114 mg single-dose ceiling, but no whole drink fits
+  assert.strictEqual(tiny.splitAdvice, false); // 300 mg > the 120 mg single-dose ceiling, but no whole drink fits
   const cola = joke.caffeineBudget(70, 34, 8);
   assert.strictEqual(cola.drinksPerDay, 11.7);
   assert.strictEqual(cola.wholeDrinks, 11);
@@ -638,16 +638,22 @@ test('caffeineBudget: no whole drink means water; many small drinks are spaced a
   assert.strictEqual(cola.verdict, 'That is a lot of small drinks. Consider a bigger mug.');
 });
 
-test('caffeineBudget: split advice runs from 40 kg up to (not including) 56 kg for a 160 mg can', () => {
-  // serving ceiling = 200 * kg / 70, so a 160 mg can is over it below exactly 56 kg
-  assert.strictEqual(joke.caffeineBudget(40, 160, 8).splitAdvice, true);
-  assert.strictEqual(joke.caffeineBudget(55, 160, 8).splitAdvice, true);
-  assert.strictEqual(joke.caffeineBudget(56, 160, 8).splitAdvice, false);
+test('caffeineBudget: one serving is 3 mg per kg capped at 200 mg, so split advice runs from ~45 to ~53 kg', () => {
+  assert.strictEqual(joke.caffeineBudget(40, 160, 8).servingMg, 120);
+  assert.strictEqual(joke.caffeineBudget(60, 160, 8).servingMg, 180);
+  assert.strictEqual(joke.caffeineBudget(70, 160, 8).servingMg, 200);
+  assert.strictEqual(joke.caffeineBudget(500, 160, 8).servingMg, 200);
+  // needs one whole 160 mg can inside the daily ceiling (46 kg: 163 mg; 45 kg: 155 mg) AND a serving ceiling
+  // below 160 mg (3 mg/kg, so under 53.3 kg)
+  assert.strictEqual(joke.caffeineBudget(45, 160, 8).splitAdvice, false); // no whole can fits the day: water
+  assert.strictEqual(joke.caffeineBudget(46, 160, 8).splitAdvice, true);
+  assert.strictEqual(joke.caffeineBudget(53, 160, 8).splitAdvice, true);
+  assert.strictEqual(joke.caffeineBudget(54, 160, 8).splitAdvice, false);
   assert.strictEqual(joke.caffeineBudget(70, 160, 8).splitAdvice, false);
 });
 
 test('caffeineBudget: drinks per day is floored so it never disagrees with the whole-drink count', () => {
-  const r = joke.caffeineBudget(66.4, 95, 8); // 3.994 drinks: "4 (3 whole)" would read as a mistake
+  const r = joke.caffeineBudget(70, 100.3, 8); // 400 / 100.3 = 3.988 drinks: "4.0 (3 whole)" would read as a mistake
   assert.strictEqual(r.wholeDrinks, 3);
   assert.strictEqual(r.drinksPerDay, 3.9);
   assert.ok(r.drinksPerDay < r.wholeDrinks + 1 && r.drinksPerDay >= r.wholeDrinks);
@@ -660,13 +666,39 @@ test('caffeineVerdict: every band', () => {
     'That is a lot of small drinks. Consider a bigger mug.', 'That is a lot of small drinks. Consider a bigger mug.']);
 });
 
-test('caffeineBudget: adults only. Accepts 40 to 300 kg, rejects outside that and bad drink or shift', () => {
-  assert.strictEqual(joke.caffeineBudget(40, 160, 8).dailyMg, 229);
-  assert.strictEqual(joke.caffeineBudget(300, 160, 8).dailyMg, 400);
-  assert.throws(() => joke.caffeineBudget(39.9, 160, 8), RangeError);
-  assert.throws(() => joke.caffeineBudget(20, 160, 8), RangeError); // a child: EFSA's own guidance is stricter
-  assert.throws(() => joke.caffeineBudget(300.1, 160, 8), RangeError);
+test('caffeineBudget: any weight works; 3 mg/kg when light, ramps to 400 at 70 kg, then holds', () => {
+  const oneLb = joke.caffeineBudget(joke.lbToKg(1), 95, 8); // 1 lb: absurd, but it must answer
+  assert.strictEqual(oneLb.dailyMg, 1);
+  assert.strictEqual(oneLb.wholeDrinks, 0);
+  assert.strictEqual(oneLb.verdict, 'Water. Just water.');
+  const daily = (kg) => joke.caffeineBudget(kg, 160, 8).dailyMg;
+  assert.strictEqual(daily(20), 60);    // 3 mg/kg
+  assert.strictEqual(daily(40), 120);   // the ramp starts here at 3 mg/kg
+  assert.strictEqual(daily(55), 240);   // 55 kg: rate 4.357 mg/kg
+  assert.strictEqual(daily(70), 400);   // the adult figure, reached exactly
+  // heavier never earns a bigger number: there is nothing published to scale up to
+  assert.strictEqual(daily(300), 400);
+  assert.strictEqual(daily(5000), 400);
+  assert.strictEqual(joke.caffeineBudget(5000, 160, 8).servingMg, 200);
+});
+
+test('caffeineBudget: the daily ceiling has no jumps and never goes down as weight goes up', () => {
+  const daily = (kg) => joke.caffeineBudget(kg, 160, 8).dailyMg;
+  let prev = daily(0.5);
+  for (let kg = 1; kg <= 400; kg += 0.5) {
+    const now = daily(kg);
+    assert.ok(now >= prev, `dropped at ${kg} kg: ${prev} -> ${now}`);
+    assert.ok(now - prev <= 8, `jumped at ${kg} kg: ${prev} -> ${now}`); // <= ~5.7 mg/kg * 0.5 kg, plus rounding
+    prev = now;
+  }
+  assert.ok(Math.abs(daily(39.99) - daily(40.01)) <= 1); // the old formula switch used to jump 120 -> 229 here
+});
+
+test('caffeineBudget: rejects zero, negative and non-finite weight, drink or shift', () => {
+  assert.throws(() => joke.caffeineBudget(0, 160, 8), RangeError);
+  assert.throws(() => joke.caffeineBudget(-70, 160, 8), RangeError);
   assert.throws(() => joke.caffeineBudget(NaN, 160, 8), RangeError);
+  assert.throws(() => joke.caffeineBudget(Infinity, 160, 8), RangeError);
   assert.throws(() => joke.caffeineBudget('70', 160, 8), RangeError);
   assert.throws(() => joke.caffeineBudget(70, 0, 8), RangeError);
   assert.throws(() => joke.caffeineBudget(70, 160, 0), RangeError);

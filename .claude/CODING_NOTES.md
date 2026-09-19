@@ -83,7 +83,8 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 - **Rounding for display can contradict a floored count shown beside it** (3.994 shows "4" next to "3 whole"). Floor the displayed value when a whole count sits next to it. Independent review, PR #17.
 - **A theme rule that lists input types by name doesn't cover a new one.** `input[type=time]` rendered white on the dark theme. Check every new control type on the theme, and set `color-scheme` on it. Independent review, PR #17.
 - **Register global listeners before setup code that can throw, and schedule the next timer tick before doing the work.** Otherwise one failure silently disables the feature or ends the refresh chain. Independent review, PR #17.
-- **Derive a threshold quoted in a comment from the formula, and pin it with a boundary test.** A comment said 53 kg; the formula gives 56 kg (160 x 70 / 200) and no test noticed. Independent review, PR #17.
+- **Derive a threshold quoted in a comment from the formula, and pin it with a boundary test.** A comment said 53 kg while the formula then gave 56 kg (160 x 70 / 200) and no test noticed. Independent review, PR #17.
+- **A formula that switches branches at a threshold can jump (120 mg to 229 mg at 40 kg).** Blend the branches so the result is continuous, and test it with a sweep: never decreasing, bounded step size, and equal just either side of the threshold. Self-caught in machinist-calc, PR #17.
 
 ## Metric Thread Tolerance Class Notation (ISO 965-1)
 
