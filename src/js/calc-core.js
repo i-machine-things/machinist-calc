@@ -1614,9 +1614,9 @@
   calc.cuspHeightImperial = function (feedIpr, noseRadiusIn) {
     return round(cuspHeight(feedIpr, noseRadiusIn), 6); // inches, to the millionth
   };
-  /** Theoretical cusp height (micrometers) from feed (mm/rev) and tool nose radius (mm). See cuspHeight. */
+  /** Theoretical cusp height (decimal mm) from feed (mm/rev) and tool nose radius (mm). See cuspHeight. */
   calc.cuspHeightMetric = function (feedMmpr, noseRadiusMm) {
-    return round(cuspHeight(feedMmpr, noseRadiusMm) * 1000, 3); // micrometers
+    return round(cuspHeight(feedMmpr, noseRadiusMm), 6); // mm, to 0.000001
   };
 
   // ---------------------------------------------------------------------

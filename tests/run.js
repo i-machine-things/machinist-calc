@@ -545,12 +545,14 @@ test('cuspHeightImperial', () => {
 });
 
 test('cuspHeightMetric', () => {
-  approx(calc.cuspHeightMetric(0.2, 0.8), 6.275, 0.001);
+  approx(calc.cuspHeightMetric(0.2, 0.8), 0.006275, 0.000001);
 });
 
 test('cuspHeight: f = 2R is the limit and equals R; small f/R approaches 4 * Ra', () => {
-  approx(calc.cuspHeightMetric(1.6, 0.8), 800, 0.001);
-  approx(calc.cuspHeightMetric(0.05, 0.8) / calc.surfaceFinishRaMetric(0.05, 0.8), 4, 0.01);
+  approx(calc.cuspHeightMetric(1.6, 0.8), 0.8, 0.000001);
+  // cuspHeightMetric is mm, surfaceFinishRaMetric is um -- convert before comparing. Large radius
+  // keeps f/R tiny and the outputs big enough that 6-/3-decimal rounding can't skew the ratio.
+  approx(calc.cuspHeightMetric(2, 200) * 1000 / calc.surfaceFinishRaMetric(2, 200), 4, 0.001);
 });
 
 test('cuspHeight: rejects non-positive, non-finite, and f > 2R', () => {
