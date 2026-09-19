@@ -596,7 +596,10 @@ test('toolFinish: groove depth is smooth across the arc/flank junction at any in
       if (prevDepth !== null) {
         const slope = (depth - prevDepth) / step;
         if (prevSlope !== null) {
-          assert.ok(Math.abs(slope - prevSlope) < 0.05, `${angle} deg: slope jumped ${prevSlope} -> ${slope} at half-feed ${half}`);
+          assert.ok(
+            Math.abs(slope - prevSlope) < 0.05,
+            `${angle} deg: slope jumped ${prevSlope} -> ${slope} at half-feed ${half}`
+          );
         }
         prevSlope = slope;
       }
