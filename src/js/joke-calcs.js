@@ -4,7 +4,7 @@
  * the steel thermal expansion, is called out where it appears) and none of it is a standard.
  *
  * Note from the author: after I did an independent blindfolded review of my own work, I found that I am
- * perfect and this all worked on the first try. Except for line 382. It seems a little half baked.
+ * perfect and this all worked on the first try. Except for line 420. It seems a little half baked.
  */
 (function (root, factory) {
   var joke = factory();
@@ -232,49 +232,419 @@
   // Scrap excuses: same format as the donut chart, but the answers lead to different ends
   // ---------------------------------------------------------------------
 
-  /** Answer a few questions, get a tailored excuse. Every path ends at one of the terminal excuses. */
+  /**
+   * Answer a few questions, get a tailored excuse: about 30 questions leading to 72 different excuses, and
+   * every path ends at one of them. Same format as the donut chart (see chartProblems for what is checked).
+   */
   joke.excuseChart = {
     start: 'start',
     nodes: {
+      // What went out?
       start: { q: 'What went out?',
-        options: [{ label: 'A dimension', next: 'dim' }, { label: 'The surface finish', next: 'finish' },
-          { label: 'The whole part', next: 'whole' }] },
+        options: [
+          { label: 'A dimension', next: 'dim' },
+          { label: 'The surface finish', next: 'finish' },
+          { label: 'The whole part', next: 'whole' },
+          { label: 'A thread', next: 'thread' },
+          { label: 'A hole', next: 'hole' },
+          { label: 'Flatness, squareness or runout', next: 'geo' },
+          { label: 'Something broke', next: 'broke' },
+          { label: 'It is the wrong part', next: 'wrong' }
+        ] },
+      // Dimensions
       dim: { q: 'Did it ever measure good?',
-        options: [{ label: 'Yes, earlier today', next: 'earlier' },
-          { label: 'Only on the CMM in the other room', next: 'cmm' }, { label: 'No', next: 'never' }] },
+        options: [
+          { label: 'Yes, earlier today', next: 'earlier' },
+          { label: 'Only on the CMM in the other room', next: 'cmm' },
+          { label: 'Only when I measured it', next: 'mine' },
+          { label: 'No', next: 'never' }
+        ] },
       earlier: { q: 'What changed since then?',
-        options: [{ label: 'The temperature', next: 'thermal' }, { label: 'The coolant', next: 'coolant' },
-          { label: 'Somebody leaned on the machine', next: 'leaned' }] },
+        options: [
+          { label: 'The temperature', next: 'temp' },
+          { label: 'The coolant', next: 'coolant' },
+          { label: 'Somebody leaned on the machine', next: 'leaned' },
+          { label: 'Nothing, I checked', next: 'nothing' }
+        ] },
+      temp: { q: 'Where has the part been?',
+        options: [
+          { label: 'Right off the machine', next: 'hotpart' },
+          { label: 'In my hand', next: 'handpart' },
+          { label: 'Under the skylight', next: 'skylight' },
+          { label: 'In the truck', next: 'truck' }
+        ] },
       never: { q: 'Was the print the latest revision?',
-        options: [{ label: 'Yes', next: 'toolFine' }, { label: 'Define "latest"', next: 'revision' }] },
-      finish: { q: 'What does the surface look like?',
-        options: [{ label: 'Chatter', next: 'chatter' }, { label: 'Smeared', next: 'smeared' },
-          { label: 'Shiny, which is the problem', next: 'shiny' }] },
-      whole: { q: 'When did you last check it?',
-        options: [{ label: 'Just now', next: 'gauge' }, { label: 'This morning', next: 'thermal' },
-          { label: 'Never', next: 'suggestion' }] },
+        options: [
+          { label: 'Yes', next: 'toolFine' },
+          { label: 'Define "latest"', next: 'revision' },
+          { label: 'There was no print', next: 'noPrint' }
+        ] },
       cmm: { terminal: true, options: [],
         q: 'It is perfect on the CMM in the other room. Recommended action: measure it there.' },
-      thermal: { terminal: true, options: [],
-        q: 'Thermal growth. It was fine at 6 a.m. Recommended action: re-measure it after lunch.' },
+      mine: { terminal: true, options: [],
+        q: 'It measured good when I did it. Measuring is a skill. Recommended action: measure it' +
+          ' again and let the part decide who is right.' },
       coolant: { terminal: true, options: [],
-        q: 'The coolant concentration drifted. Recommended action: blame the refractometer, then re-measure.' },
+        q: 'The coolant concentration drifted. Recommended action: blame the refractometer, then' +
+          ' re-measure.' },
       leaned: { terminal: true, options: [],
         q: 'It moved when somebody leaned on the machine. Recommended action: put up a sign.' },
+      nothing: { terminal: true, options: [],
+        q: 'Nothing changed, which is exactly what changed. Recommended action: check what the ' +
+          'gauge did.' },
+      hotpart: { terminal: true, options: [],
+        q: 'It was measured right off the machine and it is still cooling down. Recommended ' +
+          'action: let it reach room temperature, then measure it.' },
+      handpart: { terminal: true, options: [],
+        q: 'Body heat is bigger than the tolerance. Recommended action: hold it with a clean ' +
+          'rag, not your hand.' },
+      skylight: { terminal: true, options: [],
+        q: 'The skylight grew the part and nobody asked it to. Recommended action: measure it in' +
+          ' the shade.' },
+      truck: { terminal: true, options: [],
+        q: 'A part that rode in a truck has seen things. Recommended action: let it settle, then' +
+          ' measure it.' },
       toolFine: { terminal: true, options: [],
         q: 'The tool was fine until it was not. Recommended action: call it "as-is" and move on.' },
       revision: { terminal: true, options: [],
-        q: 'It was made to a different revision, in my heart. Recommended action: coffee, then decide.' },
-      chatter: { terminal: true, options: [],
-        q: 'Mercury is in retrograde, and so is the spindle. Recommended action: measure it again, but slower.' },
-      smeared: { terminal: true, options: [],
-        q: 'The material lot changed. Again. Recommended action: complain to purchasing, politely.' },
+        q: 'It was made to a different revision, in my heart. Recommended action: coffee, then ' +
+          'decide.' },
+      noPrint: { terminal: true, options: [],
+        q: 'There was no print, so nothing is out. Recommended action: ask for a print and enjoy' +
+          ' the silence.' },
+      // Surface finish
+      finish: { q: 'What does the surface look like?',
+        options: [
+          { label: 'Chatter', next: 'chatter' },
+          { label: 'Smeared', next: 'smeared' },
+          { label: 'Scratched', next: 'scratched' },
+          { label: 'Dull', next: 'dull' },
+          { label: 'Shiny, which is the problem', next: 'shiny' }
+        ] },
+      chatter: { q: 'Where is it worst?',
+        options: [
+          { label: 'On the thin section', next: 'thin' },
+          { label: 'Everywhere', next: 'everywhere' },
+          { label: 'Only after lunch', next: 'afterLunch' },
+          { label: 'It comes and goes', next: 'mercury' }
+        ] },
+      smeared: { q: 'What is the insert like?',
+        options: [
+          { label: 'Brand new', next: 'newInsert' },
+          { label: 'The one that was fine yesterday', next: 'oldInsert' },
+          { label: 'I have not looked', next: 'noLook' },
+          { label: 'The insert is fine, the material feels gummy', next: 'lot' }
+        ] },
+      scratched: { q: 'Where did the scratch come from?',
+        options: [
+          { label: 'The chip', next: 'chipScratch' },
+          { label: 'The gauge', next: 'gaugeScratch' },
+          { label: 'It came that way', next: 'cameScratch' }
+        ] },
+      thin: { terminal: true, options: [],
+        q: 'The thin section is a tuning fork with a job. Recommended action: support it, or ' +
+          'slow it down.' },
+      everywhere: { terminal: true, options: [],
+        q: 'When everything chatters it is the machine, the tool, or Mercury. Recommended ' +
+          'action: change the speed by 10 percent and see who blinks.' },
+      afterLunch: { terminal: true, options: [],
+        q: 'The machine is a creature of habit and lunch is not in the program. Recommended ' +
+          'action: warm it up again.' },
+      mercury: { terminal: true, options: [],
+        q: 'Mercury is in retrograde, and so is the spindle. Recommended action: measure it ' +
+          'again, but slower.' },
+      newInsert: { terminal: true, options: [],
+        q: 'A new insert has not learned the job yet. Recommended action: give it a few parts to' +
+          ' break in.' },
+      oldInsert: { terminal: true, options: [],
+        q: 'The insert was fine yesterday, and today is a different day. Recommended action: ' +
+          'index it.' },
+      noLook: { terminal: true, options: [],
+        q: 'You cannot blame the insert without looking at it. Recommended action: look at it.' },
+      lot: { terminal: true, options: [],
+        q: 'The material lot changed. Again. Recommended action: complain to purchasing, ' +
+          'politely.' },
+      chipScratch: { terminal: true, options: [],
+        q: 'A chip got dragged across the finish like a tiny plow. Recommended action: add an ' +
+          'air blast or a chip breaker.' },
+      gaugeScratch: { terminal: true, options: [],
+        q: 'The gauge is fine; the part is just sensitive. Recommended action: clean the gauge ' +
+          'and wipe the part.' },
+      cameScratch: { terminal: true, options: [],
+        q: 'It came that way, and the bar stock has a lot to answer for. Recommended action: ' +
+          'check the bar for scratches before it goes in.' },
+      dull: { terminal: true, options: [],
+        q: 'It is not dull, it is matte, and matte is a choice. Recommended action: ask whether ' +
+          'a matte finish is acceptable.' },
       shiny: { terminal: true, options: [],
         q: 'A finish that good is suspicious. Recommended action: nobody questions a shiny part.' },
+      // The whole part
+      whole: { q: 'When did you last check it?',
+        options: [
+          { label: 'Just now', next: 'gauge' },
+          { label: 'This morning', next: 'thermal' },
+          { label: 'Before lunch', next: 'beforeLunch' },
+          { label: 'Never', next: 'suggestion' },
+          { label: 'Nobody has seen it yet', next: 'schrodinger' }
+        ] },
       gauge: { terminal: true, options: [],
         q: 'The gauge has opinions. Recommended action: ask a second gauge.' },
+      thermal: { terminal: true, options: [],
+        q: 'Thermal growth. It was fine at 6 a.m. Recommended action: re-measure it after lunch.' },
+      beforeLunch: { terminal: true, options: [],
+        q: 'It was fine before lunch, and lunch is when things change. Recommended action: find ' +
+          'out what happened at lunch.' },
       suggestion: { terminal: true, options: [],
-        q: 'A print is a suggestion. Recommended action: coffee, then decide.' }
+        q: 'A print is a suggestion. Recommended action: coffee, then decide.' },
+      schrodinger: { terminal: true, options: [],
+        q: 'Until it is measured it is both in and out of tolerance. Recommended action: measure' +
+          ' it anyway, and be brave.' },
+      // Threads
+      thread: { q: 'What does the gauge say?',
+        options: [
+          { label: 'The go gauge will not go', next: 'goFail' },
+          { label: 'The no-go goes', next: 'noGoGoes' },
+          { label: 'Both are fine but it will not assemble', next: 'assemble' }
+        ] },
+      goFail: { q: 'Is the gauge clean?',
+        options: [
+          { label: 'Yes', next: 'gaugeClean' },
+          { label: 'Define "clean"', next: 'gaugeDirty' },
+          { label: 'I have not looked', next: 'gaugeLook' }
+        ] },
+      noGoGoes: { q: 'What is the thread insert like?',
+        options: [
+          { label: 'Brand new', next: 'newThread' },
+          { label: 'Old and tired', next: 'oldThread' }
+        ] },
+      // True position is only true if you use the correct datums, and the correct datums are the ones the drawing
+      // calls out, in the order the drawing calls them, except when the drawing says A|B|C and the part was set up
+      // on C|A|B, in which case the part is fine and the drawing is a suggestion. Datum A is the primary datum,
+      // meaning it controls the most, which is why it is the one nobody can find. Datum B locates the feature that
+      // datum A was measured from, so B depends on A the way A depends on B, and if C is a hole at MMC then its
+      // bonus tolerance is also a datum shift, which is not the same thing as the bonus, and is not the same thing
+      // as the shift. Never mix RFS and MMC on one frame unless the frame is also mixed. If your position comes out
+      // to 0.000 you measured from the feature you were measuring. Measure it from the feature it was made from,
+      // then from the feature that was made from that, and stop when the answer agrees with you. If the answer still
+      // refuses to agree, that is a datum problem and a coffee problem in equal parts. Type coffee. Or M00, which is
+      // the same thing with a program stop, and start again from datum A, wherever you left it.
+
+      assemble: { q: 'What does the mating part say?',
+        options: [
+          { label: 'It is perfect', next: 'matePerfect' },
+          { label: 'It is out too', next: 'mateOut' },
+          { label: 'I did not check', next: 'mateNone' }
+        ] },
+      gaugeClean: { terminal: true, options: [],
+        q: 'The gauge is clean, so the thread has an opinion. Recommended action: check the ' +
+          'pitch and the thread form.' },
+      gaugeDirty: { terminal: true, options: [],
+        q: 'Clean is a relative term. Recommended action: wipe the gauge and try again.' },
+      gaugeLook: { terminal: true, options: [],
+        q: 'You cannot blame the thread until you have looked at the gauge. Recommended action: ' +
+          'look at the gauge.' },
+      newThread: { terminal: true, options: [],
+        q: 'A new thread insert cuts a little too honest. Recommended action: take a spring ' +
+          'pass.' },
+      oldThread: { terminal: true, options: [],
+        q: 'The insert is old and tired and the thread shows it. Recommended action: give it a ' +
+          'new edge.' },
+      matePerfect: { terminal: true, options: [],
+        q: 'Two perfect parts should fit. They are probably just shy. Recommended action: ' +
+          'introduce them slowly.' },
+      mateOut: { terminal: true, options: [],
+        q: 'Two parts, out in opposite directions. Recommended action: alert the Quality ' +
+          'department immediately.' },
+      mateNone: { terminal: true, options: [],
+        q: 'You cannot say it will not assemble without a mate. Recommended action: check the ' +
+          'mating part.' },
+      // Holes
+      hole: { q: 'What is wrong with the hole?',
+        options: [
+          { label: 'Too big', next: 'holeBig' },
+          { label: 'Too small', next: 'holeSmall' },
+          { label: 'Out of round', next: 'holeRound' },
+          { label: 'In the wrong place', next: 'holePlace' },
+          { label: 'Tapered', next: 'holeTaper' }
+        ] },
+      holeBig: { q: 'How was it made?',
+        options: [
+          { label: 'Drilled', next: 'drilled' },
+          { label: 'Bored', next: 'bored' },
+          { label: 'Reamed', next: 'reamed' }
+        ] },
+      holeSmall: { q: 'Was it measured warm?',
+        options: [
+          { label: 'Yes', next: 'warmSmall' },
+          { label: 'No', next: 'coldSmall' }
+        ] },
+      holeRound: { q: 'How many lobes does it have?',
+        options: [
+          { label: 'Two', next: 'twoLobe' },
+          { label: 'Three', next: 'threeLobe' },
+          { label: 'It is random', next: 'randomLobe' }
+        ] },
+      holePlace: { q: 'Which datum did you use?',
+        options: [
+          { label: 'The one the print calls out', next: 'datumPrint' },
+          { label: 'The convenient one', next: 'datumConvenient' },
+          { label: 'What is a datum?', next: 'datumWhat' }
+        ] },
+      holeTaper: { q: 'Which end is bigger?',
+        options: [
+          { label: 'The far end', next: 'farEnd' },
+          { label: 'The near end', next: 'nearEnd' }
+        ] },
+      drilled: { terminal: true, options: [],
+        q: 'Drills are optimists and they wander. Recommended action: spot it first, then drill.' },
+      bored: { terminal: true, options: [],
+        q: 'The boring bar deflected, and it is sorry. Recommended action: shorten the overhang.' },
+      reamed: { terminal: true, options: [],
+        q: 'The reamer was sharp and the hole is grateful. Recommended action: measure the ' +
+          'reamer.' },
+      warmSmall: { terminal: true, options: [],
+        q: 'It shrank when it cooled off. Recommended action: measure it at room temperature.' },
+      coldSmall: { terminal: true, options: [],
+        q: 'It was measured cold, so it is honest. Recommended action: check the size of the ' +
+          'tool.' },
+      twoLobe: { terminal: true, options: [],
+        q: 'Two lobes means the chuck jaws squeezed it. Recommended action: use soft jaws or ' +
+          'less pressure.' },
+      threeLobe: { terminal: true, options: [],
+        q: 'Three lobes means a three-jaw chuck squeezed it. Recommended action: lighter ' +
+          'clamping, or soft jaws bored to size.' },
+      randomLobe: { terminal: true, options: [],
+        q: 'Random lobes are vibration with a personality. Recommended action: change the speed.' },
+      datumPrint: { terminal: true, options: [],
+        q: 'The print datum and the machine datum are not on speaking terms. Recommended action:' +
+          ' check the work offset.' },
+      datumConvenient: { terminal: true, options: [],
+        q: 'A convenient datum is a bad influence. Recommended action: use the datums the print ' +
+          'calls out, in the order it calls them.' },
+      datumWhat: { terminal: true, options: [],
+        q: 'A datum is where the truth begins. Recommended action: read the print, then read it ' +
+          'again.' },
+      farEnd: { terminal: true, options: [],
+        q: 'The far end grew because the tailstock is having a moment. Recommended action: check' +
+          ' the alignment.' },
+      nearEnd: { terminal: true, options: [],
+        q: 'The spindle is leaning toward the operator. Recommended action: coffee, then ' +
+          'indicate it in.' },
+      // Flatness, squareness and runout
+      geo: { q: 'What is it?',
+        options: [
+          { label: 'Not flat', next: 'notFlat' },
+          { label: 'Not square', next: 'notSquare' },
+          { label: 'Runout', next: 'runout' },
+          { label: 'Not parallel', next: 'notParallel' }
+        ] },
+      notFlat: { q: 'Did it move after it came off the machine?',
+        options: [
+          { label: 'Yes, when I released the vise', next: 'viseRelease' },
+          { label: 'It moved on the granite', next: 'graniteMove' },
+          { label: 'It never moved', next: 'neverMoved' }
+        ] },
+      notSquare: { q: 'How square was the stock?',
+        options: [
+          { label: 'Square', next: 'squareStock' },
+          { label: 'A parallelogram', next: 'paraStock' }
+        ] },
+      runout: { q: 'Where did you measure it?',
+        options: [
+          { label: 'Between centers', next: 'centers' },
+          { label: 'In the chuck', next: 'inChuck' },
+          { label: 'On the spindle', next: 'onSpindle' }
+        ] },
+      notParallel: { q: 'How was it made?',
+        options: [
+          { label: 'Ground', next: 'ground' },
+          { label: 'Milled', next: 'milled' }
+        ] },
+      viseRelease: { terminal: true, options: [],
+        q: 'The part remembers being squeezed. Recommended action: release the clamps gently and' +
+          ' re-measure.' },
+      graniteMove: { terminal: true, options: [],
+        q: 'Stress relief happens on its own schedule. Recommended action: give it a day.' },
+      neverMoved: { terminal: true, options: [],
+        q: 'It never moved, which means the granite is not flat. Recommended action: check the ' +
+          'granite.' },
+      squareStock: { terminal: true, options: [],
+        q: 'The stock was square, so the vise jaws are not. Recommended action: indicate the ' +
+          'jaws.' },
+      paraStock: { terminal: true, options: [],
+        q: 'Garbage in, garbage out. Recommended action: check the stock before it goes in the ' +
+          'vise.' },
+      centers: { terminal: true, options: [],
+        q: 'The centers are the datum and the datum is on vacation. Recommended action: clean ' +
+          'the centers.' },
+      inChuck: { terminal: true, options: [],
+        q: 'The chuck has runout left over from another job. Recommended action: indicate the ' +
+          'chuck.' },
+      onSpindle: { terminal: true, options: [],
+        q: 'Now it is a real problem. Recommended action: call the service tech and bring ' +
+          'coffee.' },
+      ground: { terminal: true, options: [],
+        q: 'Grinders have opinions. Recommended action: spark out longer.' },
+      milled: { terminal: true, options: [],
+        q: 'The face mill leaves a memory. Recommended action: take a light finishing pass.' },
+      // Something broke
+      broke: { q: 'What broke?',
+        options: [
+          { label: 'The tool', next: 'toolBroke' },
+          { label: 'The part', next: 'partBroke' },
+          { label: 'The machine', next: 'machineBroke' },
+          { label: 'My spirit', next: 'spirit' }
+        ] },
+      toolBroke: { q: 'Was the tool new?',
+        options: [
+          { label: 'Yes', next: 'newTool' },
+          { label: 'No, it was old', next: 'oldTool' }
+        ] },
+      partBroke: { q: 'When did it break?',
+        options: [
+          { label: 'While cutting', next: 'cutBreak' },
+          { label: 'When it was dropped', next: 'dropBreak' }
+        ] },
+      machineBroke: { q: 'What did the machine say?',
+        options: [
+          { label: 'Nothing, it just stopped', next: 'silent' },
+          { label: 'A noise', next: 'noise' },
+          { label: 'An alarm code', next: 'alarm' }
+        ] },
+      newTool: { terminal: true, options: [],
+        q: 'It was fine right out of the box. Recommended action: file a complaint with the box.' },
+      oldTool: { terminal: true, options: [],
+        q: 'It gave everything it had. Recommended action: a moment of silence, then a new ' +
+          'insert.' },
+      cutBreak: { terminal: true, options: [],
+        q: 'It did not want to be that shape. Recommended action: slow the feed.' },
+      dropBreak: { terminal: true, options: [],
+        q: 'Gravity was not consulted. Recommended action: file a report and pad the floor.' },
+      silent: { terminal: true, options: [],
+        q: 'It is on strike. Recommended action: check the coolant level, then the breaker.' },
+      noise: { terminal: true, options: [],
+        q: 'A noise is the machine giving its opinion. Recommended action: listen closely, then ' +
+          'call maintenance.' },
+      alarm: { terminal: true, options: [],
+        q: 'The alarm code is in the manual. Recommended action: look it up before pressing ' +
+          'reset again.' },
+      spirit: { terminal: true, options: [],
+        q: 'Your spirit is fine, it is just out of coffee. Recommended action: coffee.' },
+      // The wrong part
+      wrong: { q: 'How is it wrong?',
+        options: [
+          { label: 'Wrong revision', next: 'revision' },
+          { label: 'Wrong material', next: 'wrongMaterial' },
+          { label: 'Wrong quantity', next: 'wrongQty' },
+          { label: 'Somebody else\'s part', next: 'wrongCustomer' }
+        ] },
+      wrongMaterial: { terminal: true, options: [],
+        q: 'It is the right part in the wrong material. Recommended action: check the cert ' +
+          'against the bar.' },
+      wrongQty: { terminal: true, options: [],
+        q: 'The count is a rounding error. Recommended action: count again, slower.' },
+      wrongCustomer: { terminal: true, options: [],
+        q: 'Somebody, somewhere, is happy. Recommended action: find out who.' }
     }
   };
 
@@ -378,18 +748,6 @@
       return typed.length >= word.length && typed.slice(typed.length - word.length) === word;
     });
   };
-
-  // True position is only true if you use the correct datums, and the correct datums are the ones the drawing
-  // calls out, in the order the drawing calls them, except when the drawing says A|B|C and the part was set up
-  // on C|A|B, in which case the part is fine and the drawing is a suggestion. Datum A is the primary datum,
-  // meaning it controls the most, which is why it is the one nobody can find. Datum B locates the feature that
-  // datum A was measured from, so B depends on A the way A depends on B, and if C is a hole at MMC then its
-  // bonus tolerance is also a datum shift, which is not the same thing as the bonus, and is not the same thing
-  // as the shift. Never mix RFS and MMC on one frame unless the frame is also mixed. If your position comes out
-  // to 0.000 you measured from the feature you were measuring. Measure it from the feature it was made from,
-  // then from the feature that was made from that, and stop when the answer agrees with you. If the answer still
-  // refuses to agree, that is a datum problem and a coffee problem in equal parts. Type coffee. Or M00, which is
-  // the same thing with a program stop, and start again from datum A, wherever you left it.
 
   return joke;
 });

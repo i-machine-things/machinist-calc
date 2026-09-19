@@ -794,23 +794,44 @@ test('toleranceTalk: rejects zero, negative and non-finite tolerances', () => {
   assert.throws(() => joke.toleranceTalk('5'), RangeError);
 });
 
-test('excuseChart: every path ends at a full excuse, and the answers really lead to different ends', () => {
+test('excuseChart: a big tree, and every path ends at a full, distinct excuse', () => {
   assert.deepStrictEqual(joke.chartProblems(joke.excuseChart), []);
-  // Independently walk every path from the start (a DAG, so it terminates).
+  const nodes = joke.excuseChart.nodes;
+  // Independently walk every path from the start (a DAG, so it terminates): each ends at a terminal excuse.
   const ends = new Set();
   let paths = 0;
-  (function walk(id) {
-    const node = joke.excuseChart.nodes[id];
-    if (node.terminal) { ends.add(id); paths++; return; }
-    node.options.forEach((opt) => walk(opt.next));
-  })(joke.excuseChart.start);
-  assert.ok(paths >= 10, `expected many distinct paths, got ${paths}`);
-  assert.ok(ends.size >= 10, `expected many different excuses, got ${ends.size}`);
-  ends.forEach((id) => {
-    const text = joke.excuseChart.nodes[id].q;
-    assert.ok(typeof text === 'string' && text.length > 20 && text.indexOf('Recommended action') !== -1, id);
+  let deepest = 0;
+  (function walk(id, depth) {
+    const node = nodes[id];
+    if (node.terminal) { ends.add(id); paths++; deepest = Math.max(deepest, depth); return; }
+    node.options.forEach((opt) => walk(opt.next, depth + 1));
+  })(joke.excuseChart.start, 0);
+  const questions = Object.keys(nodes).filter((id) => !nodes[id].terminal);
+  assert.ok(questions.length >= 25, `expected a real tree of questions, got ${questions.length}`);
+  assert.ok(ends.size >= 60, `expected dozens of different excuses, got ${ends.size}`);
+  assert.ok(paths >= 60, `expected many distinct paths, got ${paths}`);
+  assert.ok(deepest >= 4, `expected paths of at least four answers, got ${deepest}`);
+  assert.strictEqual(ends.size, Object.keys(nodes).length - questions.length); // every excuse is reachable
+  assert.ok(nodes.start.options.length >= 6, 'expected the first question to offer plenty of directions');
+});
+
+test('excuseChart: distinct full-sentence excuses with an action; every question is a question', () => {
+  const nodes = joke.excuseChart.nodes;
+  const seen = new Set();
+  Object.keys(nodes).forEach((id) => {
+    const node = nodes[id];
+    if (node.terminal) {
+      assert.ok(node.q.endsWith('.'), `${id} should end with a full stop`);
+      assert.ok(node.q.indexOf('Recommended action: ') !== -1, `${id} needs a recommended action`);
+      assert.ok(node.q.indexOf('undefined') === -1, id);
+      assert.ok(!seen.has(node.q), `${id} repeats another excuse`);
+      seen.add(node.q);
+    } else {
+      assert.ok(node.q.endsWith('?'), `${id} should be a question`);
+      const labels = node.options.map((o) => o.label);
+      assert.strictEqual(new Set(labels).size, labels.length, `${id} has two answers with the same label`);
+    }
   });
-  assert.strictEqual(joke.excuseChart.nodes.start.options.length, 3);
 });
 
 test('chartProblems: accepts any terminals, rejects loops, dead ends, orphans, and bad terminals', () => {
