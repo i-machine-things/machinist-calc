@@ -833,11 +833,10 @@
 
     function recalc() {
       var w = parseFloat(weight.value);
-      var kg = unit.value === 'lb' ? w * 0.45359237 : w;
       var d = joke.caffeineDrinks[+drink.value];
       var r = null;
       try {
-        r = joke.caffeineBudget(kg, d.mg, parseFloat(shift.value));
+        r = joke.caffeineBudget(unit.value === 'lb' ? joke.lbToKg(w) : w, d.mg, parseFloat(shift.value));
       } catch (err) {
         if (!(err instanceof RangeError)) throw err;
       }
@@ -846,7 +845,7 @@
       outs.drinks.textContent = r ? r.drinksPerDay : '—';
       outs.whole.textContent = r ? r.wholeDrinks : '—';
       outs.spacing.textContent = r && r.hoursBetween !== null ? r.hoursBetween : '—';
-      verdict.textContent = r ? r.verdict : '—';
+      verdict.textContent = r ? r.verdict : 'Needs a weight of 40 to 300 kg (88 to 661 lb) and a shift length.';
       split.hidden = !(r && r.splitAdvice);
     }
     [weight, unit, drink, shift].forEach(function (el) { el.addEventListener('input', recalc); });
@@ -892,12 +891,11 @@
   function setupToleranceTalk(joke) {
     var value = $('br-tol-value'), unit = $('br-tol-unit'), verdict = $('br-tol-verdict'),
       instrument = $('br-tol-instrument'), temp = $('br-tol-temp');
-    // The engine works in thou (0.001 in); the field is in whatever unit the print uses.
-    var TO_THOU = { 'in': 1000, mm: 1 / 0.0254 };
     function recalc() {
       var r = null;
       try {
-        r = joke.toleranceTalk(parseFloat(value.value) * TO_THOU[unit.value]);
+        // the engine works in thou (0.001 in); the field is in whatever unit the print uses
+        r = joke.toleranceTalk(joke.lengthToThou(parseFloat(value.value), unit.value));
       } catch (err) {
         if (!(err instanceof RangeError)) throw err;
       }
@@ -927,6 +925,7 @@
       return Math.floor(totalMinutes / 60) + ' h ' + (totalMinutes % 60) + ' m';
     }
     function recalc() {
+      // Wall-clock minutes: on the two daylight-saving changeover nights a shift spanning the change is an hour off.
       var now = new Date();
       var r = null;
       try {
@@ -938,7 +937,7 @@
       pct.textContent = r && r.onShift ? r.percentDone + '%' : '—';
       coffee.textContent = r && r.onShift ? r.coffeeRefills : '—';
       if (!r) {
-        verdict.textContent = '—';
+        verdict.textContent = 'Needs a start and an end time that are not the same.';
       } else if (r.onShift) {
         verdict.textContent = r.verdict;
       } else {
@@ -946,12 +945,38 @@
       }
     }
     [start, end].forEach(function (el) { el.addEventListener('input', recalc); });
-    // Refresh twice a minute so the countdown keeps moving while the panel is open.
-    (function tick() { recalc(); setTimeout(tick, 30000); })();
+    // Refresh twice a minute so the countdown keeps moving while the panel is open. The next tick is scheduled
+    // first so a failure in recalc can't stop the refresh.
+    (function tick() { setTimeout(tick, 30000); recalc(); })();
   }
 
   function setupBreakRoom() {
     var joke = window.MC.joke;
+    var navItem = $('nav-breakroom'), panel = $('panel-breakroom');
+    var typed = '';
+
+    // Registered before the calculators are set up, so a failure in any of them can't stop the panel unlocking.
+    document.addEventListener('keydown', function (e) {
+      if (typeof e.key !== 'string' || e.ctrlKey || e.altKey || e.metaKey || e.repeat) return;
+      var t = e.target;
+      // Never listen while someone is entering values, or "coffee"/"M00" typed into a field would toggle it.
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) {
+        typed = '';
+        return;
+      }
+      if (e.key === 'Shift' || e.key === 'CapsLock') return; // capital letters shouldn't break the word
+      if (e.key.length !== 1) { typed = ''; return; }        // Enter, Tab, arrows and the like end it
+      typed = (typed + e.key.toLowerCase()).slice(-12);
+      if (!joke.unlockMatches(typed)) return;
+      typed = '';
+      navItem.hidden = !navItem.hidden;
+      if (!navItem.hidden) return;
+      if (navItem.contains(document.activeElement)) document.activeElement.blur();
+      if (panel.classList.contains('active')) document.querySelector('.nav-btn').click();
+    });
+    // Alt-tabbing away halfway through a word shouldn't let the rest of it count later.
+    window.addEventListener('blur', function () { typed = ''; });
+
     setupCaffeine(joke);
     setupChartWizard({ chart: joke.donutChart, prefix: 'br-donut', doneStep: 'Every road leads here.',
       doneText: function (node) { return '\uD83C\uDF69 ' + node.q + ' \uD83C\uDF69'; } });
@@ -959,24 +984,6 @@
       doneText: function (node) { return node.q; } });
     setupToleranceTalk(joke);
     setupShiftCountdown(joke);
-
-    var navItem = $('nav-breakroom'), panel = $('panel-breakroom');
-    var typed = '';
-    document.addEventListener('keydown', function (e) {
-      if (typeof e.key !== 'string' || e.ctrlKey || e.altKey || e.metaKey) return;
-      var t = e.target;
-      // Never listen while someone is entering values, or "coffee"/"M00" typed into a field would toggle it.
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) {
-        typed = '';
-        return;
-      }
-      if (e.key.length !== 1) return;
-      typed = (typed + e.key.toLowerCase()).slice(-12);
-      if (!joke.unlockMatches(typed)) return;
-      typed = '';
-      navItem.hidden = !navItem.hidden;
-      if (navItem.hidden && panel.classList.contains('active')) document.querySelector('.nav-btn').click();
-    });
   }
 
   // Hidden Ctrl+Alt+Shift+M easter egg — quiet, no accidental trigger, not

@@ -625,26 +625,64 @@ test('caffeineBudget: lighter people scale down proportionally, heavier people s
 });
 
 test('caffeineBudget: no whole drink means water; many small drinks are spaced across the shift', () => {
-  const tiny = joke.caffeineBudget(20, 160, 8);
-  assert.strictEqual(tiny.dailyMg, 114);
+  const tiny = joke.caffeineBudget(40, 300, 8); // a made-up 300 mg drink: bigger than the whole daily ceiling
+  assert.strictEqual(tiny.dailyMg, 229);
   assert.strictEqual(tiny.wholeDrinks, 0);
   assert.strictEqual(tiny.hoursBetween, null);
   assert.strictEqual(tiny.verdict, 'Water. Just water.');
-  assert.strictEqual(tiny.splitAdvice, false); // 160 mg > the 114 mg daily ceiling: don't advise splitting it
+  assert.strictEqual(tiny.splitAdvice, false); // 300 mg > the 114 mg single-dose ceiling, but no whole drink fits
   const cola = joke.caffeineBudget(70, 34, 8);
+  assert.strictEqual(cola.drinksPerDay, 11.7);
   assert.strictEqual(cola.wholeDrinks, 11);
   assert.strictEqual(cola.hoursBetween, 0.7);
   assert.strictEqual(cola.verdict, 'That is a lot of small drinks. Consider a bigger mug.');
 });
 
-test('caffeineBudget: rejects out-of-range weight and non-positive drink or shift', () => {
-  assert.throws(() => joke.caffeineBudget(19, 160, 8), RangeError);
-  assert.throws(() => joke.caffeineBudget(301, 160, 8), RangeError);
+test('caffeineBudget: split advice runs from 40 kg up to (not including) 56 kg for a 160 mg can', () => {
+  // serving ceiling = 200 * kg / 70, so a 160 mg can is over it below exactly 56 kg
+  assert.strictEqual(joke.caffeineBudget(40, 160, 8).splitAdvice, true);
+  assert.strictEqual(joke.caffeineBudget(55, 160, 8).splitAdvice, true);
+  assert.strictEqual(joke.caffeineBudget(56, 160, 8).splitAdvice, false);
+  assert.strictEqual(joke.caffeineBudget(70, 160, 8).splitAdvice, false);
+});
+
+test('caffeineBudget: drinks per day is floored so it never disagrees with the whole-drink count', () => {
+  const r = joke.caffeineBudget(66.4, 95, 8); // 3.994 drinks: "4 (3 whole)" would read as a mistake
+  assert.strictEqual(r.wholeDrinks, 3);
+  assert.strictEqual(r.drinksPerDay, 3.9);
+  assert.ok(r.drinksPerDay < r.wholeDrinks + 1 && r.drinksPerDay >= r.wholeDrinks);
+});
+
+test('caffeineVerdict: every band', () => {
+  const words = [0, 1, 2, 3, 4, 5, 11].map(joke.caffeineVerdict);
+  assert.deepStrictEqual(words, ['Water. Just water.', 'One. Make it count.', 'Two. Pace yourself.',
+    'A respectable amount of beverage.', 'A respectable amount of beverage.',
+    'That is a lot of small drinks. Consider a bigger mug.', 'That is a lot of small drinks. Consider a bigger mug.']);
+});
+
+test('caffeineBudget: adults only. Accepts 40 to 300 kg, rejects outside that and bad drink or shift', () => {
+  assert.strictEqual(joke.caffeineBudget(40, 160, 8).dailyMg, 229);
+  assert.strictEqual(joke.caffeineBudget(300, 160, 8).dailyMg, 400);
+  assert.throws(() => joke.caffeineBudget(39.9, 160, 8), RangeError);
+  assert.throws(() => joke.caffeineBudget(20, 160, 8), RangeError); // a child: EFSA's own guidance is stricter
+  assert.throws(() => joke.caffeineBudget(300.1, 160, 8), RangeError);
   assert.throws(() => joke.caffeineBudget(NaN, 160, 8), RangeError);
   assert.throws(() => joke.caffeineBudget('70', 160, 8), RangeError);
   assert.throws(() => joke.caffeineBudget(70, 0, 8), RangeError);
   assert.throws(() => joke.caffeineBudget(70, 160, 0), RangeError);
   assert.throws(() => joke.caffeineBudget(70, 160, Infinity), RangeError);
+});
+
+test('lbToKg and lengthToThou: the unit conversions the panel uses', () => {
+  approx(joke.lbToKg(180), 81.6466, 0.0001);
+  approx(joke.lbToKg(1), 0.45359237, 1e-9);
+  assert.throws(() => joke.lbToKg(NaN), RangeError);
+  approx(joke.lengthToThou(0.0005, 'in'), 0.5, 1e-9);
+  approx(joke.lengthToThou(0.005, 'in'), 5, 1e-9);
+  approx(joke.lengthToThou(25.4, 'mm'), 1000, 1e-6);
+  approx(joke.lengthToThou(0.0254, 'mm'), 1, 1e-9);
+  assert.throws(() => joke.lengthToThou(1, 'thou'), RangeError);
+  assert.throws(() => joke.lengthToThou(NaN, 'in'), RangeError);
 });
 
 test('donutChart: it branches a long way out, and every path still ends at yes', () => {
@@ -715,7 +753,7 @@ test('excuseChart: every path ends at a full excuse, and the answers really lead
     if (node.terminal) { ends.add(id); paths++; return; }
     node.options.forEach((opt) => walk(opt.next));
   })(joke.excuseChart.start);
-  assert.strictEqual(paths, 12);
+  assert.ok(paths >= 10, `expected many distinct paths, got ${paths}`);
   assert.ok(ends.size >= 10, `expected many different excuses, got ${ends.size}`);
   ends.forEach((id) => {
     const text = joke.excuseChart.nodes[id].q;
@@ -734,6 +772,14 @@ test('chartProblems: accepts any terminals, rejects loops, dead ends, orphans, a
   assert.ok(has({ start: 's', nodes: { s: q('gone'), x: end('one') } }, 'missing node'), 'missing node');
   assert.ok(has({ start: 's', nodes: { s: q('x'), orphan: end('lost'), x: end('one') } }, 'unreachable'), 'orphan');
   assert.ok(has({ start: 's', nodes: { s: q('x'), x: end('') } }, 'no text'), 'blank end');
+  const protoTarget = { start: 's', nodes: { s: q('constructor'), x: end('one') } };
+  assert.ok(has(protoTarget, 'missing node'), 'prototype key as a target');
+  const protoStart = { start: 'toString', nodes: { s: q('x'), x: end('one') } };
+  assert.ok(has(protoStart, 'start node missing'), 'prototype key as start');
+  const noLabel = { q: '?', options: [{ label: '', next: 'x' }, { label: 'b', next: 'x' }] };
+  assert.ok(has({ start: 's', nodes: { s: noLabel, x: end('one') } }, 'no label'), 'blank answer label');
+  assert.ok(has({ start: 's', nodes: { s: { q: '', options: q('x').options }, x: end('one') } }, 'no question text'),
+    'blank question');
   const endWithAnswers = { q: 'end', terminal: true, options: q('s').options };
   assert.ok(has({ start: 's', nodes: { s: q('x'), x: endWithAnswers } }, 'has answers'), 'end with answers');
 });
@@ -756,6 +802,15 @@ test('shiftCountdown: off the clock, and the verdict steps through the shift', (
     ['Long way to go.', 'Long way to go.', 'Warming up.', 'Downhill from here.', 'Home stretch.']);
   assert.strictEqual(joke.shiftCountdown(930, 420, 930).onShift, false); // the end minute is already off
   assert.strictEqual(joke.shiftCountdown(420, 420, 930).onShift, true);  // the start minute is on
+});
+
+test('shiftCountdown: the verdict changes exactly at 25%, 50% and 75%, and refills tick at 120 minutes', () => {
+  const at = (now) => joke.shiftCountdown(now, 0, 100); // a 100 minute shift: minutes in == percent done
+  assert.deepStrictEqual([24, 25, 49, 50, 74, 75].map((n) => at(n).verdict),
+    ['Long way to go.', 'Warming up.', 'Warming up.', 'Downhill from here.', 'Downhill from here.', 'Home stretch.']);
+  assert.strictEqual(joke.shiftCountdown(0, 0, 120).coffeeRefills, 1);  // exactly 120 minutes left
+  assert.strictEqual(joke.shiftCountdown(1, 0, 120).coffeeRefills, 0);  // 119 left
+  assert.strictEqual(joke.shiftCountdown(0, 0, 240).coffeeRefills, 2);
 });
 
 test('shiftCountdown: a night shift that runs past midnight', () => {

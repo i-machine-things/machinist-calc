@@ -181,6 +181,7 @@ label {
 
 input[type="number"],
 input[type="text"],
+input[type="time"],
 select {
   background: var(--bg-input);
   border: 1px solid var(--border);
@@ -379,3 +380,4 @@ input:focus, select:focus {
 .warn-label { border-color: #e06666; color: #e06666; }
 .doc p { margin: 12px 0 4px; font-size: 13px; line-height: 1.5; color: var(--text-dim); }
 .result-value[tabindex="-1"]:focus { outline: none; }
+input[type="time"] { color-scheme: dark; }

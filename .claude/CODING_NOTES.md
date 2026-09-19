@@ -79,6 +79,11 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 
 - **Re-rendering a container that holds the focused button silently drops keyboard focus.** After swapping a wizard's buttons (innerHTML), focus a `tabindex="-1"` heading so keyboard and screen-reader users land on the new content; not on the first render. CodeRabbit, PR #17.
 - **A secondary advice flag must repeat the headline number's precondition.** A "split the serving" note fired when zero whole servings fit the daily ceiling (`drinkMg > servingMg` alone), advising the very overshoot the number forbids. Guard it (`whole >= 1`) and test it. CodeRabbit, PR #17.
+- **A validator that looks ids up with `obj[key]` accepts inherited names like `'constructor'`.** Use `hasOwnProperty` (and `Object.create(null)` for scratch maps), and validate labels and text, not just links. Independent review, PR #17.
+- **Rounding for display can contradict a floored count shown beside it** (3.994 shows "4" next to "3 whole"). Floor the displayed value when a whole count sits next to it. Independent review, PR #17.
+- **A theme rule that lists input types by name doesn't cover a new one.** `input[type=time]` rendered white on the dark theme. Check every new control type on the theme, and set `color-scheme` on it. Independent review, PR #17.
+- **Register global listeners before setup code that can throw, and schedule the next timer tick before doing the work.** Otherwise one failure silently disables the feature or ends the refresh chain. Independent review, PR #17.
+- **Derive a threshold quoted in a comment from the formula, and pin it with a boundary test.** A comment said 53 kg; the formula gives 56 kg (160 x 70 / 200) and no test noticed. Independent review, PR #17.
 
 ## Metric Thread Tolerance Class Notation (ISO 965-1)
 
