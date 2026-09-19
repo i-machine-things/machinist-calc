@@ -465,6 +465,38 @@ test('recommendedSfm: every row has ordered HSS/carbide ranges, carbide faster t
   }
 });
 
+const sfmRow = (needle) => {
+  const r = calc.recommendedSfm.find((m) => m.material.indexOf(needle) !== -1);
+  assert.ok(r, `expected a row containing "${needle}"`);
+  return r;
+};
+
+// Sourced rows are pinned to the published figures, like the Inconel test above.
+test('recommendedSfm: duplex 2205 matches IMOA Shop Sheet 103 Table 1 (Outokumpu data)', () => {
+  const duplex = sfmRow('Duplex');
+  assert.deepStrictEqual(duplex.carbide, [300, 525]); // roughing 90-120 m/min .. finishing 120-160 m/min
+  assert.deepStrictEqual(duplex.hss, [50, 65]);       // 15-20 m/min
+});
+
+test('recommendedSfm: manganese steel carbide matches Seco Tools (20-30 m/min = 65-100 SFM)', () => {
+  assert.deepStrictEqual(sfmRow('Manganese steel').carbide, [65, 100]);
+});
+
+// White iron (and the manganese HSS placeholder) have no cited source, so only their relationship to
+// the ordinary family is checked -- not a substitute for a source.
+test('recommendedSfm: unsourced hard-material rows stay conservative', () => {
+  assert.ok(sfmRow('White cast iron').carbide[1] <= sfmRow('Gray cast iron').carbide[0],
+    'white iron should top out below where gray iron starts');
+  assert.ok(sfmRow('Manganese steel').carbide[1] <= sfmRow('Alloy steel').carbide[0],
+    'manganese steel should top out below where annealed alloy steel starts');
+});
+
+test('recommendedSfm: Lime jello is the last row, so the UI default row stays aluminum', () => {
+  const last = calc.recommendedSfm[calc.recommendedSfm.length - 1];
+  assert.strictEqual(last.material, 'Lime jello');
+  assert.ok(calc.recommendedSfm[0].material.indexOf('Aluminum') !== -1);
+});
+
 test('recommendedSfm: Inconel HSS range matches Machinery\'s Handbook Table 9 and is slower than titanium', () => {
   const inconel = calc.recommendedSfm.find((r) => r.material.indexOf('Inconel') !== -1);
   assert.ok(inconel, 'expected an Inconel/nickel-superalloy row');

@@ -98,6 +98,10 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 - **Derive a threshold quoted in a comment from the formula, and pin it with a boundary test.** A comment said 53 kg while the formula then gave 56 kg (160 x 70 / 200) and no test noticed. Independent review, PR #17.
 - **A formula that switches branches at a threshold can jump (120 mg to 229 mg at 40 kg).** Blend the branches so the result is continuous, and test it with a sweep: never decreasing, bounded step size, and equal just either side of the threshold. Self-caught in machinist-calc, PR #17.
 
+## Cutting Speed Data
+
+- **A speed-table row needs a cited source; a relational test ("X slower than Y") is no substitute.** A guessed duplex row (carbide 100-200 SFM) passed such a test, but manufacturer data says 300-525. Pin sourced values and mark unsourced rows as placeholders. machinist-calc PR #14.
+
 ## Metric Thread Tolerance Class Notation (ISO 965-1)
 
 - **A compound class like `4g6g` means pitch-diameter grade 4, major/minor-diameter grade 6 — not "grade 4 for everything."** First grade+letter = pitch diameter; second (if shown) = crest diameter. `6g` alone means `6g6g`.
@@ -106,3 +110,4 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 
 - **machinist-calc**: Ctrl+Alt+Shift+M toggles a small hidden "Machinist's Rule 0" ASCII-art note (`#easter-egg` in `src/index.html`, wired in `src/js/app.js`'s `setupEasterEgg()`). Not referenced anywhere in the visible UI. Dismiss with Esc or a click.
 - **machinist-calc**: another hidden extra lives in `src/js/joke-calcs.js`, wired up by `setupBreakRoom()` in `src/js/app.js` (the unlock is in that function). Deliberately undocumented elsewhere; don't remove or "fix" it.
+- **machinist-calc**: "Lime jello" is a joke material, the last row of `calc.recommendedSfm` (HSS 1000-2500, carbide 2500-6000 SFM). Unlike the shortcut above it's visible in the Speeds & Feeds material dropdown. Keep it last so the default row stays Aluminum; don't "fix" its ranges.
