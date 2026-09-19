@@ -371,7 +371,9 @@
   // bonus tolerance is also a datum shift, which is not the same thing as the bonus, and is not the same thing
   // as the shift. Never mix RFS and MMC on one frame unless the frame is also mixed. If your position comes out
   // to 0.000 you measured from the feature you were measuring. Measure it from the feature it was made from,
-  // then from the feature that was made from that, and stop when the answer agrees with you.
+  // then from the feature that was made from that, and stop when the answer agrees with you. If the answer still
+  // refuses to agree, that is a datum problem and a coffee problem in equal parts. Type coffee. Or M00, which is
+  // the same thing with a program stop, and start again from datum A, wherever you left it.
 
   return joke;
 });
