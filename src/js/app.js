@@ -853,17 +853,21 @@
     recalc();
   }
 
-  function setupDonut(joke) {
-    var chart = joke.donutChart;
-    var stepEl = $('br-donut-step'), questionEl = $('br-donut-question'), choicesEl = $('br-donut-choices'),
-      back = $('br-donut-back'), restart = $('br-donut-restart');
+  /**
+   * Question-by-question walk through a decision chart (the donut and the scrap-excuse tabs share it). `cfg`:
+   * { chart, prefix: element-id prefix, doneStep: label shown at an end, doneText(node): text shown there }.
+   */
+  function setupChartWizard(cfg) {
+    var chart = cfg.chart;
+    var stepEl = $(cfg.prefix + '-step'), questionEl = $(cfg.prefix + '-question'),
+      choicesEl = $(cfg.prefix + '-choices'), back = $(cfg.prefix + '-back'), restart = $(cfg.prefix + '-restart');
     var path = [chart.start];
 
     function render() {
-      var current = path[path.length - 1], node = chart.nodes[current];
+      var node = chart.nodes[path[path.length - 1]];
       var done = !!node.terminal;
-      stepEl.textContent = done ? 'Every road leads here.' : 'Question ' + path.length;
-      questionEl.textContent = done ? '🍩 ' + node.q + ' 🍩' : node.q;
+      stepEl.textContent = done ? cfg.doneStep : 'Question ' + path.length;
+      questionEl.textContent = done ? cfg.doneText(node) : node.q;
       choicesEl.innerHTML = '';
       node.options.forEach(function (opt) {
         var btn = document.createElement('button');
@@ -898,11 +902,6 @@
     }
     [value, unit].forEach(function (el) { el.addEventListener('input', recalc); });
     recalc();
-  }
-
-  function setupExcuses(joke) {
-    var text = $('br-excuse-text');
-    $('br-excuse-btn').addEventListener('click', function () { text.textContent = joke.scrapExcuse(); });
   }
 
   function setupShiftCountdown(joke) {
@@ -942,9 +941,11 @@
   function setupBreakRoom() {
     var joke = window.MC.joke;
     setupCaffeine(joke);
-    setupDonut(joke);
+    setupChartWizard({ chart: joke.donutChart, prefix: 'br-donut', doneStep: 'Every road leads here.',
+      doneText: function (node) { return '\uD83C\uDF69 ' + node.q + ' \uD83C\uDF69'; } });
+    setupChartWizard({ chart: joke.excuseChart, prefix: 'br-excuse', doneStep: 'Your excuse:',
+      doneText: function (node) { return node.q; } });
     setupToleranceTalk(joke);
-    setupExcuses(joke);
     setupShiftCountdown(joke);
 
     var navItem = $('nav-breakroom'), panel = $('panel-breakroom');

@@ -143,18 +143,19 @@
   };
 
   /**
-   * Checks a chart is a well-formed "always ends at yes" tree: every `next` exists, no loops, every node is
-   * reachable from the start, and every non-terminal node's paths all end at the single 'yes' terminal.
-   * Returns a list of problems (empty when it's fine).
+   * Checks a decision chart is well formed: the start exists, every `next` exists, no loops, every node is
+   * reachable, every non-terminal node has at least two answers, and every terminal node has text and no
+   * answers (so every path ends somewhere). Returns a list of problems (empty when it's fine).
    */
-  joke.donutProblems = function (chart) {
+  joke.chartProblems = function (chart) {
     var problems = [];
     var nodes = chart.nodes;
     if (!nodes[chart.start]) problems.push('start node missing');
     Object.keys(nodes).forEach(function (id) {
       var node = nodes[id];
       if (node.terminal) {
-        if (id !== 'yes') problems.push('terminal node ' + id + ' is not "yes"');
+        if (!node.q) problems.push('terminal node ' + id + ' has no text');
+        if (node.options && node.options.length) problems.push('terminal node ' + id + ' has answers');
         return;
       }
       if (!node.options || node.options.length < 2) problems.push(id + ' needs at least two answers');
@@ -165,21 +166,78 @@
     if (problems.length) return problems;
 
     var state = {}; // 1 = on the current path, 2 = finished
-    var reached = {};
     function visit(id) {
       if (state[id] === 1) { problems.push('loop through ' + id); return; }
       if (state[id] === 2) return;
       state[id] = 1;
-      reached[id] = true;
-      nodes[id].options.forEach(function (opt) { visit(opt.next); });
+      (nodes[id].options || []).forEach(function (opt) { visit(opt.next); });
       state[id] = 2;
     }
     visit(chart.start);
     Object.keys(nodes).forEach(function (id) {
-      if (!reached[id]) problems.push(id + ' is unreachable from the start');
+      if (!state[id]) problems.push(id + ' is unreachable from the start');
     });
-    if (!reached.yes) problems.push('yes is never reached');
     return problems;
+  };
+
+  /** chartProblems, plus the donut promise: 'yes' exists and is the only place a path can end. */
+  joke.donutProblems = function (chart) {
+    var problems = joke.chartProblems(chart);
+    if (!chart.nodes.yes) problems.push('yes is missing');
+    Object.keys(chart.nodes).forEach(function (id) {
+      if (chart.nodes[id].terminal && id !== 'yes') problems.push('terminal node ' + id + ' is not "yes"');
+    });
+    return problems;
+  };
+
+  // ---------------------------------------------------------------------
+  // Scrap excuses: same format as the donut chart, but the answers lead to different ends
+  // ---------------------------------------------------------------------
+
+  /** Answer a few questions, get a tailored excuse. Every path ends at one of the terminal excuses. */
+  joke.excuseChart = {
+    start: 'start',
+    nodes: {
+      start: { q: 'What went out?',
+        options: [{ label: 'A dimension', next: 'dim' }, { label: 'The surface finish', next: 'finish' },
+          { label: 'The whole part', next: 'whole' }] },
+      dim: { q: 'Did it ever measure good?',
+        options: [{ label: 'Yes, earlier today', next: 'earlier' },
+          { label: 'Only on the CMM in the other room', next: 'cmm' }, { label: 'No', next: 'never' }] },
+      earlier: { q: 'What changed since then?',
+        options: [{ label: 'The temperature', next: 'thermal' }, { label: 'The coolant', next: 'coolant' },
+          { label: 'Somebody leaned on the machine', next: 'leaned' }] },
+      never: { q: 'Was the print the latest revision?',
+        options: [{ label: 'Yes', next: 'toolFine' }, { label: 'Define "latest"', next: 'revision' }] },
+      finish: { q: 'What does the surface look like?',
+        options: [{ label: 'Chatter', next: 'chatter' }, { label: 'Smeared', next: 'smeared' },
+          { label: 'Shiny, which is the problem', next: 'shiny' }] },
+      whole: { q: 'When did you last check it?',
+        options: [{ label: 'Just now', next: 'gauge' }, { label: 'This morning', next: 'thermal' },
+          { label: 'Never', next: 'suggestion' }] },
+      cmm: { terminal: true, options: [],
+        q: 'It is perfect on the CMM in the other room. Recommended action: measure it there.' },
+      thermal: { terminal: true, options: [],
+        q: 'Thermal growth. It was fine at 6 a.m. Recommended action: re-measure it after lunch.' },
+      coolant: { terminal: true, options: [],
+        q: 'The coolant concentration drifted. Recommended action: blame the refractometer, then re-measure.' },
+      leaned: { terminal: true, options: [],
+        q: 'It moved when somebody leaned on the machine. Recommended action: put up a sign.' },
+      toolFine: { terminal: true, options: [],
+        q: 'The tool was fine until it was not. Recommended action: call it "as-is" and move on.' },
+      revision: { terminal: true, options: [],
+        q: 'It was made to a different revision, in my heart. Recommended action: coffee, then decide.' },
+      chatter: { terminal: true, options: [],
+        q: 'Mercury is in retrograde, and so is the spindle. Recommended action: measure it again, but slower.' },
+      smeared: { terminal: true, options: [],
+        q: 'The material lot changed. Again. Recommended action: complain to purchasing, politely.' },
+      shiny: { terminal: true, options: [],
+        q: 'A finish that good is suspicious. Recommended action: nobody questions a shiny part.' },
+      gauge: { terminal: true, options: [],
+        q: 'The gauge has opinions. Recommended action: ask a second gauge.' },
+      suggestion: { terminal: true, options: [],
+        q: 'A print is a suggestion. Recommended action: coffee, then decide.' }
+    }
   };
 
   // ---------------------------------------------------------------------
@@ -221,40 +279,6 @@
       instrument: TOLERANCE_TIERS[tier].instrument,
       degF: round(tolThou / 1000 / STEEL_EXPANSION_PER_DEGF, 1)
     };
-  };
-
-  // ---------------------------------------------------------------------
-  // Scrap excuse generator
-  // ---------------------------------------------------------------------
-
-  var EXCUSE_PARTS = ['The bore', 'The outside diameter', 'The thread', 'The flatness', 'The surface finish',
-    'The whole part'];
-  var EXCUSE_CAUSES = [
-    'was fine at 6 a.m. Thermal growth.',
-    'is perfect on the CMM in the other room.',
-    'blames the coolant concentration.',
-    'moved when somebody leaned on the machine.',
-    'was made to a different revision, in my heart.',
-    'went out when Mercury went retrograde.',
-    'was fine until the tool was not.',
-    'changed with the material lot. Again.'
-  ];
-  var EXCUSE_ACTIONS = [
-    'Recommended action: re-measure it after lunch.',
-    'Recommended action: measure it again, but slower.',
-    'Recommended action: call it "as-is" and move on.',
-    'Recommended action: coffee, then decide.'
-  ];
-  joke.excuseCount = EXCUSE_PARTS.length * EXCUSE_CAUSES.length * EXCUSE_ACTIONS.length;
-
-  function pick(list, rng) {
-    return list[Math.min(list.length - 1, Math.floor(rng() * list.length))];
-  }
-
-  /** One clean, plausible-sounding reason the part is out. `rng` returns [0, 1) (defaults to Math.random). */
-  joke.scrapExcuse = function (rng) {
-    var r = rng || Math.random;
-    return pick(EXCUSE_PARTS, r) + ' ' + pick(EXCUSE_CAUSES, r) + ' ' + pick(EXCUSE_ACTIONS, r);
   };
 
   // ---------------------------------------------------------------------

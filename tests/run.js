@@ -701,19 +701,37 @@ test('toleranceTalk: rejects zero, negative and non-finite tolerances', () => {
   assert.throws(() => joke.toleranceTalk('5'), RangeError);
 });
 
-test('scrapExcuse: always a full sentence from the lists, whatever the random number is', () => {
-  const lo = joke.scrapExcuse(() => 0);
-  const hi = joke.scrapExcuse(() => 0.999999);
-  assert.strictEqual(lo, 'The bore was fine at 6 a.m. Thermal growth. Recommended action: re-measure it after lunch.');
-  assert.ok(hi.startsWith('The whole part') && hi.endsWith('coffee, then decide.'), hi);
-  assert.strictEqual(joke.excuseCount, 6 * 8 * 4);
-  const seen = new Set();
-  for (let i = 0; i < 200; i++) {
-    const e = joke.scrapExcuse();
-    assert.ok(typeof e === 'string' && e.indexOf('undefined') === -1, e);
-    seen.add(e);
-  }
-  assert.ok(seen.size > 20, 'expected plenty of variety');
+test('excuseChart: every path ends at a full excuse, and the answers really lead to different ends', () => {
+  assert.deepStrictEqual(joke.chartProblems(joke.excuseChart), []);
+  // Independently walk every path from the start (a DAG, so it terminates).
+  const ends = new Set();
+  let paths = 0;
+  (function walk(id) {
+    const node = joke.excuseChart.nodes[id];
+    if (node.terminal) { ends.add(id); paths++; return; }
+    node.options.forEach((opt) => walk(opt.next));
+  })(joke.excuseChart.start);
+  assert.strictEqual(paths, 12);
+  assert.ok(ends.size >= 10, `expected many different excuses, got ${ends.size}`);
+  ends.forEach((id) => {
+    const text = joke.excuseChart.nodes[id].q;
+    assert.ok(typeof text === 'string' && text.length > 20 && text.indexOf('Recommended action') !== -1, id);
+  });
+  assert.strictEqual(joke.excuseChart.nodes.start.options.length, 3);
+});
+
+test('chartProblems: accepts any terminals, rejects loops, dead ends, orphans, and bad terminals', () => {
+  const q = (next) => ({ q: '?', options: [{ label: 'a', next }, { label: 'b', next }] });
+  const end = (text) => ({ q: text, terminal: true, options: [] });
+  const fork = { q: '?', options: [{ label: 'a', next: 'x' }, { label: 'b', next: 'y' }] };
+  assert.deepStrictEqual(joke.chartProblems({ start: 's', nodes: { s: fork, x: end('one'), y: end('two') } }), []);
+  const has = (chart, word) => joke.chartProblems(chart).some((p) => p.indexOf(word) !== -1);
+  assert.ok(has({ start: 's', nodes: { s: q('t'), t: q('s'), x: end('one') } }, 'loop'), 'loop');
+  assert.ok(has({ start: 's', nodes: { s: q('gone'), x: end('one') } }, 'missing node'), 'missing node');
+  assert.ok(has({ start: 's', nodes: { s: q('x'), orphan: end('lost'), x: end('one') } }, 'unreachable'), 'orphan');
+  assert.ok(has({ start: 's', nodes: { s: q('x'), x: end('') } }, 'no text'), 'blank end');
+  const endWithAnswers = { q: 'end', terminal: true, options: q('s').options };
+  assert.ok(has({ start: 's', nodes: { s: q('x'), x: endWithAnswers } }, 'has answers'), 'end with answers');
 });
 
 test('shiftCountdown: a day shift, mid-shift', () => {

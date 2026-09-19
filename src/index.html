@@ -561,6 +561,7 @@
         <button class="tab-btn" data-tab="br-tol">Tolerance Translator</button>
         <button class="tab-btn" data-tab="br-excuse">Scrap Excuses</button>
         <button class="tab-btn" data-tab="br-shift">Shift Countdown</button>
+        <button class="tab-btn" data-tab="br-coffee">Coffee Machine</button>
       </div>
 
       <div class="tab-panel active" id="br-caffeine">
@@ -628,11 +629,14 @@
       </div>
 
       <div class="tab-panel" id="br-excuse">
-        <p class="standard-note">Why the part is out. One button, one excuse.</p>
+        <p class="standard-note">Why the part is out. Answer a few questions, get an excuse.</p>
         <div class="result-box">
-          <div class="result-value" id="br-excuse-text">Press the button.</div>
+          <div class="result-sub" id="br-excuse-step">—</div>
+          <div class="result-value" id="br-excuse-question">—</div>
+          <div class="choice-row" id="br-excuse-choices"></div>
           <div class="choice-row">
-            <button class="choice-btn" id="br-excuse-btn">Generate an excuse</button>
+            <button class="choice-btn" id="br-excuse-back">Back</button>
+            <button class="choice-btn" id="br-excuse-restart">Start over</button>
           </div>
         </div>
       </div>
@@ -653,6 +657,54 @@
           <div class="result-line">Coffee refills still ahead (one every 2 hours): <span id="br-sh-coffee">—</span></div>
           <div class="result-sub" id="br-sh-verdict">—</div>
         </div>
+      </div>
+
+      <div class="tab-panel" id="br-coffee">
+        <p class="standard-note">Novelty paperwork. This is not a real safety data sheet. The real SDS for the descaler and the cleaning tablets is in the SDS binder.</p>
+
+        <details class="doc">
+          <summary>Safety Data Sheet (SDS): Coffee, brewed</summary>
+          <dl>
+            <dt>1. Identification</dt>
+            <dd>Product: coffee, brewed, hot. Also known as: fuel, the good stuff. Recommended use: operator morale. Restrictions on use: none, but see Section 8.</dd>
+            <dt>2. Hazards</dt>
+            <dd>Signal word: WARNING. Hot: may cause burns. Contains caffeine: may cause jitters and sudden opinions about feeds and speeds. Prolonged absence causes reduced morale. The mug is not a tool holder.</dd>
+            <dt>3. Composition</dt>
+            <dd>Water, roughly 98%. Coffee, roughly 2%. Caffeine, about 95 mg per 8 oz cup (typical; real cups vary). Trace amounts of opinions.</dd>
+            <dt>4. First aid</dt>
+            <dd>Skin: cool running water. Eyes: rinse for 15 minutes and get medical help. Ingestion: intended route. Spilled on the keyboard: unplug it, do not panic, panic anyway.</dd>
+            <dt>5. Fire-fighting</dt>
+            <dd>Not flammable. A pot left on an empty hot plate is another matter: switch it off.</dd>
+            <dt>6. Accidental release</dt>
+            <dd>Wipe it up with a paper towel, not the good rags. Report anything larger than a puddle.</dd>
+            <dt>7. Handling and storage</dt>
+            <dd>Keep the beans or grounds in a sealed container, cool and dry. The coffee scoop is labelled <span class="ref-label">For reference only</span> and is not a measuring instrument.</dd>
+            <dt>8. Exposure controls</dt>
+            <dd>Daily limits by body weight are in the Caffeine Budget tab of this very room.</dd>
+            <dt>9. Physical properties</dt>
+            <dd>Appearance: black. Odor: hopeful. Temperature: hot enough to matter.</dd>
+            <dt>10. Disposal</dt>
+            <dd>Grounds go in the trash, not down the sink. Leftover coffee is a personal decision.</dd>
+            <dt>Sections 11 to 16</dt>
+            <dd>Not applicable. It is coffee.</dd>
+          </dl>
+        </details>
+
+        <details class="doc">
+          <summary>Training Guide: the coffee machine</summary>
+          <ol>
+            <li>Read this guide. If the machine is making a noise, read it again.</li>
+            <li>Check the water reservoir and fill it with fresh water.</li>
+            <li>Find the coffee scoop and confirm it is labelled <span class="ref-label">For reference only</span>. It is a reference tool, not a measuring instrument. Use judgment.</li>
+            <li>Put a filter in. Yes, really.</li>
+            <li>Add coffee: one reference scoop per cup, plus one for the pot, plus the one you were going to add anyway.</li>
+            <li>Press the button once. Pressing it more does not make it faster.</li>
+            <li>Wait. Do not lean on the machine mid-cycle.</li>
+            <li>Pour your cup, then refill the water for the next person.</li>
+            <li>If you take the last cup, make a new pot. This is the only rule that matters.</li>
+            <li>Rinse the carafe when you are done. Descale it on schedule using the real SDS for the descaler.</li>
+          </ol>
+        </details>
       </div>
     </section>
   </main>

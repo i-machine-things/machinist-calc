@@ -368,3 +368,11 @@ input:focus, select:focus {
 }
 .choice-btn:hover { border-color: var(--accent); }
 .choice-btn:disabled { opacity: 0.4; cursor: default; }
+#panel-breakroom .tabs { flex-wrap: wrap; }
+.doc { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; margin-bottom: 10px; }
+.doc summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+.doc dl, .doc ol { margin: 12px 0 4px; font-size: 13px; line-height: 1.5; }
+.doc dt { color: var(--text); font-weight: 600; margin-top: 10px; }
+.doc dd { margin: 2px 0 0; color: var(--text-dim); }
+.doc li { color: var(--text-dim); margin-bottom: 6px; }
+.ref-label { display: inline-block; padding: 0 6px; border: 1px dashed var(--accent); border-radius: 3px; color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
