@@ -615,6 +615,103 @@ test('surfaceFinishRaMetric', () => {
   approx(calc.surfaceFinishRaMetric(0.2, 0.8), 1.563, 0.001);
 });
 
+// toolFinish: tip radius R (0 = sharp) + included angle. Expected values come from an independent
+// high-resolution numeric integration of the same tip-arc-plus-tangent-flanks profile; depth also matches
+// the closed forms (round-nose cusp inside the arc, tip arc + flank past it).
+test('toolFinishImperial: default-size round nose stays inside the arc (classic cusp)', () => {
+  const r = calc.toolFinishImperial(0.008, 90, 0.032);
+  approx(r.depth, 0.000251, 0.000001);
+  approx(r.ra, 64.4, 0.1);
+  approx(r.rms, 74.8, 0.1);
+  // handbook f^2/(32R) is a small-feed approximation of the same Ra: close, but a few percent low
+  approx(r.ra, calc.surfaceFinishRaImperial(0.008, 0.032), 3);
+});
+
+test('toolFinishImperial: feed > 2R is past the tip arc and rides the flanks', () => {
+  const r = calc.toolFinishImperial(0.025, 90, 0.008);
+  approx(r.depth, 0.009186, 0.000001);
+  approx(r.ra, 2599.8, 0.1);
+  approx(r.rms, 2937.4, 0.1);
+  approx(calc.toolFinishImperial(0.025, 90, 0.015).depth, 0.006287, 0.000001); // .015R at .025/rev
+});
+
+test('toolFinishMetric', () => {
+  const r = calc.toolFinishMetric(0.2, 90, 0.8);
+  approx(r.depth, 0.006275, 0.000001);
+  approx(r.ra, 1.609, 0.001);
+  approx(r.rms, 1.87, 0.001);
+  const t = calc.toolFinishMetric(0.5, 90, 0.2);
+  approx(t.depth, 0.167157, 0.000001);
+  approx(t.ra, 46.511, 0.005);
+  approx(t.rms, 52.828, 0.005);
+});
+
+// Regression (CodeRabbit, PR #12): the tip arc meets the flanks at x = R*cos(theta/2), depth R*(1 - sin(theta/2)).
+// An earlier version had sin/cos swapped, which is only correct at 90 degrees -- every other angle came out
+// 15-20% too deep. Expected values are from an independent construction of the tool shape (the union of
+// radius-R disks that fit inside a sharp wedge, brute-forced), not from the tangent-point formula.
+test('toolFinishImperial: non-90 degree included angles use the flank-tangent arc endpoint', () => {
+  const a60 = calc.toolFinishImperial(0.025, 60, 0.008);
+  approx(a60.depth, 0.013651, 0.000001);
+  approx(a60.ra, 3801.4, 1.5);
+  approx(a60.rms, 4319.9, 1.5);
+  const a120 = calc.toolFinishImperial(0.025, 120, 0.008);
+  approx(a120.depth, 0.005979, 0.000001);
+  approx(a120.ra, 1669.2, 1.5);
+  approx(a120.rms, 1896.0, 1.5);
+});
+
+// A rounded V must have no slope jump anywhere along the feed: the arc and the flanks are tangent. Scan the
+// depth vs half-feed on a fine grid (the arc's own curvature stays well under the threshold at this step);
+// the old swapped-sin/cos junction jumped the slope by 1-2 at a single point. Angles below ~40 degrees are
+// left out because the arc curves too sharply there for this step size to be a fair smoothness test.
+test('toolFinish: groove depth is smooth across the arc/flank junction at any included angle', () => {
+  const step = 0.1;
+  for (const angle of [45, 60, 90, 120, 150]) {
+    let prevSlope = null;
+    let prevDepth = null;
+    for (let half = 1; half <= 150; half += step) {
+      const depth = calc.toolFinishMetric(half * 2, angle, 100).depth;
+      if (prevDepth !== null) {
+        const slope = (depth - prevDepth) / step;
+        if (prevSlope !== null) {
+          assert.ok(
+            Math.abs(slope - prevSlope) < 0.05,
+            `${angle} deg: slope jumped ${prevSlope} -> ${slope} at half-feed ${half}`
+          );
+        }
+        prevSlope = slope;
+      }
+      prevDepth = depth;
+    }
+  }
+});
+
+test('toolFinish: radius 0 is a sharp V (depth = (f/2)/tan(theta/2), Ra = h/4, Rq = h/(2*sqrt(3)))', () => {
+  const r = calc.toolFinishImperial(0.02, 90, 0);
+  approx(r.depth, 0.01, 0.000001);
+  approx(r.ra, 2500, 0.05);
+  approx(r.rms, 2886.8, 0.05);
+  approx(calc.toolFinishImperial(0.02, 60, 0).depth, 0.017321, 0.000001);
+  const m = calc.toolFinishMetric(0.5, 90, 0);
+  approx(m.depth, 0.25, 0.000001);
+  approx(m.ra, 62.5, 0.001);
+  approx(m.rms, 72.169, 0.001);
+  approx(calc.toolFinishMetric(0.5, 120, 0).depth, 0.144338, 0.000001);
+});
+
+test('toolFinish: rejects bad feed, angle, or radius', () => {
+  assert.throws(() => calc.toolFinishMetric(0, 90, 0.8), RangeError);
+  assert.throws(() => calc.toolFinishMetric(0.5, 0, 0.8), RangeError);
+  assert.throws(() => calc.toolFinishMetric(0.5, 180, 0.8), RangeError);
+  assert.throws(() => calc.toolFinishMetric(0.5, NaN, 0.8), RangeError);
+  assert.throws(() => calc.toolFinishMetric(0.5, 90, -0.1), RangeError);
+  assert.throws(() => calc.toolFinishMetric(0.5, 90, Infinity), RangeError);
+  assert.throws(() => calc.toolFinishMetric(0.5, 90, '0.1'), RangeError);
+  assert.throws(() => calc.toolFinishMetric(0.5, 90), RangeError);
+  assert.throws(() => calc.toolFinishImperial(Infinity, 90, 0.032), RangeError);
+});
+
 // -------------------------------------------------------------------------
 // ISO tolerance (ISO 286-1)
 // -------------------------------------------------------------------------

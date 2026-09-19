@@ -783,24 +783,35 @@
   // ------------------------------------------------------------------
   // Surface Finish
   // ------------------------------------------------------------------
-  function setupSurfaceFinish() {
-    var impFeed = $('sfin-imp-feed'), impR = $('sfin-imp-radius'), impOut = $('sfin-imp-result');
-    function recalcImp() {
-      var f = parseFloat(impFeed.value), r = parseFloat(impR.value);
-      if (isNaN(f) || isNaN(r) || r <= 0) { impOut.textContent = '—'; return; }
-      impOut.textContent = calc.surfaceFinishRaImperial(f, r);
-    }
-    [impFeed, impR].forEach(function (el) { el.addEventListener('input', recalcImp); });
-    recalcImp();
+  /**
+   * One Surface Finish tab. A single tip-arc-plus-flanks model covers round-nose turning (angle only
+   * matters once feed / 2 runs past the arc) and V-tool serrating (radius 0 = sharp point).
+   */
+  function setupSurfaceFinishTab(prefix, toolFinish) {
+    var feed = $(prefix + '-feed'), radius = $(prefix + '-radius'), angle = $(prefix + '-angle'),
+      raOut = $(prefix + '-result'), rmsOut = $(prefix + '-rms'), cuspOut = $(prefix + '-cusp');
 
-    var metFeed = $('sfin-met-feed'), metR = $('sfin-met-radius'), metOut = $('sfin-met-result');
-    function recalcMet() {
-      var f = parseFloat(metFeed.value), r = parseFloat(metR.value);
-      if (isNaN(f) || isNaN(r) || r <= 0) { metOut.textContent = '—'; return; }
-      metOut.textContent = calc.surfaceFinishRaMetric(f, r);
+    function recalc() {
+      var f = parseFloat(feed.value), r = parseFloat(radius.value), a = parseFloat(angle.value);
+      if (![f, r, a].every(Number.isFinite) || f <= 0 || r < 0 || a <= 0 || a >= 180) {
+        raOut.textContent = '—';
+        rmsOut.textContent = '—';
+        cuspOut.textContent = '—';
+        return;
+      }
+      var v = toolFinish(f, a, r);
+      raOut.textContent = v.ra;
+      rmsOut.textContent = v.rms;
+      cuspOut.textContent = v.depth;
     }
-    [metFeed, metR].forEach(function (el) { el.addEventListener('input', recalcMet); });
-    recalcMet();
+
+    [feed, radius, angle].forEach(function (el) { el.addEventListener('input', recalc); });
+    recalc();
+  }
+
+  function setupSurfaceFinish() {
+    setupSurfaceFinishTab('sfin-imp', calc.toolFinishImperial);
+    setupSurfaceFinishTab('sfin-met', calc.toolFinishMetric);
   }
 
   // ------------------------------------------------------------------

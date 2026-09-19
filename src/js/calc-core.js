@@ -1658,6 +1658,9 @@
   // handbooks (e.g. Machinery's Handbook), relating feed rate and tool
   // nose radius for a single-point turning operation. Actual Ra also
   // depends on tool wear, material, and vibration, which this ignores.
+  // This small-feed formula reads low as feed approaches the nose radius; the
+  // app itself uses toolFinish below (true tip-and-flank profile) and keeps
+  // these as a reference value for tests to cross-check against.
   // ---------------------------------------------------------------------
 
   /** Theoretical turning surface roughness Ra (microinches) from feed (in/rev) and tool nose radius (in). Ra = f^2 / (32*R). */
@@ -1667,6 +1670,71 @@
   /** Theoretical turning surface roughness Ra (micrometers) from feed (mm/rev) and tool nose radius (mm). Ra = f^2 / (32*R). */
   calc.surfaceFinishRaMetric = function (feedMmpr, noseRadiusMm) {
     return round((feedMmpr * feedMmpr) / (32 * noseRadiusMm) * 1000, 3); // micrometers
+  };
+
+  /**
+   * Theoretical turned-surface profile for a tool with a tip radius R (0 = sharp) and an included angle
+   * theta, cutting one feed f per revolution (round-nose turning, or serrating a flange face with a V-tool).
+   * Not an ISO/ANSI formula, pure geometry. One groove is an arc of radius R at the tip, tangent to two
+   * straight flanks that meet at theta. The flanks have slope dz/dx = 1/tan(theta/2), and the arc
+   * (slope x/sqrt(R^2 - x^2)) matches it at x = R*cos(theta/2), so the arc runs out to that point either
+   * side of the centreline, at depth R*(1 - sin(theta/2)), and the flanks continue from there. (Not
+   * R*sin(theta/2): that is only equal at 90 degrees and leaves a kink at any other angle.) Cusp height /
+   * groove depth is the profile height at the half-feed x = f/2, in closed form:
+   *   f/2 inside the arc: h = R - sqrt(R^2 - (f/2)^2)   (the classic round-nose cusp)
+   *   f/2 past the arc:   h = R*(1 - sin(theta/2)) + (f/2 - R*cos(theta/2)) / tan(theta/2)
+   * R = 0 gives h = (f/2)/tan(theta/2); a large R stays in the arc branch. A small theta approaches a
+   * full-radius (button/ball) tool whose arc spans nearly the whole half-feed; theta -> 180 flattens out.
+   * Ra and Rq have no closed form here, so they come from numerically integrating that profile about its
+   * mean line (midpoint rule, exact for the sharp case: Ra = h/4, Rq = h/(2*sqrt(3))). They run about 3%
+   * above the handbook Ra = f^2/(32R) for small f/R, and stay right as f/R grows where that formula reads
+   * low. Units in = units out. Ignores tool wear and the finite length of the flanks.
+   */
+  function toolFinish(feed, includedAngleDeg, noseRadius) {
+    var R = noseRadius;
+    if (!Number.isFinite(feed) || !Number.isFinite(includedAngleDeg) || !Number.isFinite(R) ||
+        feed <= 0 || includedAngleDeg <= 0 || includedAngleDeg >= 180 || R < 0) {
+      throw new RangeError('feed must be positive, includedAngleDeg in (0, 180), noseRadius >= 0; all finite');
+    }
+    var halfAngle = includedAngleDeg * Math.PI / 360;
+    var slope = Math.tan(halfAngle);
+    var arcEnd = R * Math.cos(halfAngle);
+    var arcEndDepth = 2 * R * Math.pow(Math.sin(Math.PI / 4 - halfAngle / 2), 2); // R*(1 - sin), stable near 90
+    function depthAt(x) {
+      if (x <= arcEnd) return (x * x) / (R + Math.sqrt(R * R - x * x));
+      return arcEndDepth + (x - arcEnd) / slope;
+    }
+    var half = feed / 2;
+    // The profile is mirror-symmetric, so its statistics over one half-feed are those of a full feed.
+    var n = 2000, sum = 0, samples = new Array(n);
+    for (var i = 0; i < n; i++) {
+      samples[i] = depthAt(half * (i + 0.5) / n);
+      sum += samples[i];
+    }
+    var mean = sum / n, absDev = 0, sqDev = 0;
+    for (var j = 0; j < n; j++) {
+      var dev = samples[j] - mean;
+      absDev += Math.abs(dev);
+      sqDev += dev * dev;
+    }
+    return { depth: depthAt(half), ra: absDev / n, rq: Math.sqrt(sqDev / n) };
+  }
+
+  /**
+   * Cusp height / groove depth (in), Ra and RMS (microinches) from feed (in/rev), included angle (deg)
+   * and tip/nose radius (in, 0 = sharp). See toolFinish.
+   */
+  calc.toolFinishImperial = function (feedIpr, includedAngleDeg, noseRadiusIn) {
+    var v = toolFinish(feedIpr, includedAngleDeg, noseRadiusIn);
+    return { depth: round(v.depth, 6), ra: round(v.ra * 1e6, 1), rms: round(v.rq * 1e6, 1) };
+  };
+  /**
+   * Cusp height / groove depth (mm), Ra and RMS (micrometers) from feed (mm/rev), included angle (deg)
+   * and tip/nose radius (mm, 0 = sharp). See toolFinish.
+   */
+  calc.toolFinishMetric = function (feedMmpr, includedAngleDeg, noseRadiusMm) {
+    var v = toolFinish(feedMmpr, includedAngleDeg, noseRadiusMm);
+    return { depth: round(v.depth, 6), ra: round(v.ra * 1e3, 3), rms: round(v.rq * 1e3, 3) };
   };
 
   // ---------------------------------------------------------------------

@@ -39,9 +39,19 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 
 - **A value validated as positive *before* rounding can still round to exactly 0 for display, and downstream code that only ever sees the rounded value won't know the difference.** `rtGeometry` divided by a solved leg's *rounded* value to compute a diagram scale factor; a raw leg of e.g. `4e-7` rounds to `0.00000`, so `maxW / 0` produced `Infinity`, cascading into `NaN` coordinates everywhere. Floor any value used as a divisor to a nominal positive fallback if it could legitimately round to 0. Caught by CodeRabbit in machinist-calc (`rtGeometry`).
 
+- **`isNaN` alone doesn't reject `Infinity` from `parseFloat`.** A `type=number` field may hold `1e309` per the HTML spec, giving `Infinity`, which makes calc-core throw inside an input handler. Guard UI inputs with `Number.isFinite`. CodeRabbit, PR #12 (this Chromium clears such input).
+
 ## Multi-Way Solver UI Pattern (JS)
 
 - **When the same fields serve as both input and auto-filled output (e.g. "enter any 2 of N, the rest solve"), don't decide "which N are known" from which fields are currently non-empty — once a solve fills every field, editing any one of them makes all N look filled.** Track the (at most 2) field keys the user most recently *typed into* and solve from only those, treating every other field as pure output to overwrite. Also skip overwriting whichever field currently has focus, or a live recalc mid-keystroke clobbers what's being typed. See `setupRightTriangle` in `src/js/app.js`. Self-caught in machinist-calc before this shipped.
+
+## Geometry Formulas (JS)
+
+- **A sin/cos swap is invisible at 45°/90°.** `toolFinish` joined arc to flanks at R·sin(θ/2), not R·cos(θ/2); all tests used 90°, so other angles shipped 15-20% off. Test 2+ asymmetric angles against an independently built shape, plus a slope-continuity scan. CodeRabbit, PR #12.
+
+## HTML / CSS
+
+- **An author rule like `label { display: flex }` beats the browser's `[hidden] { display: none }`, so `el.hidden = true` silently does nothing.** Add an explicit `label[hidden] { display: none; }` (as `.easter-egg[hidden]` does). Hit while prototyping a show/hide field in machinist-calc.
 
 ## ESLint Config Globals
 
@@ -74,6 +84,8 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 ## Test Assertions (JS)
 
 - **Asserting only one bound of a known range lets the other drift silently.** The Inconel carbide test checked `carbide[1] <= titanium.carbide[1]` but never pinned `[60, 120]` directly. Assert exact values when known, alongside any cross-row comparison. Caught by CodeRabbit, machinist-calc PR #11.
+
+- **Ratio/relationship assertions must be checked against the *rounded* outputs.** A "cusp ≈ 4×Ra" test passed on raw values (4.001) but the rounded outputs gave 3.9898, outside its ±0.01 tolerance. Use inputs large enough that rounding is negligible. Self-caught in machinist-calc, cusp height.
 
 ## UI Behavior (JS)
 
