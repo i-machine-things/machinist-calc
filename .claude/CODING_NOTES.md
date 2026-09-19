@@ -75,6 +75,11 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 
 - **Asserting only one bound of a known range lets the other drift silently.** The Inconel carbide test checked `carbide[1] <= titanium.carbide[1]` but never pinned `[60, 120]` directly. Assert exact values when known, alongside any cross-row comparison. Caught by CodeRabbit, machinist-calc PR #11.
 
+## UI Behavior (JS)
+
+- **Re-rendering a container that holds the focused button silently drops keyboard focus.** After swapping a wizard's buttons (innerHTML), focus a `tabindex="-1"` heading so keyboard and screen-reader users land on the new content; not on the first render. CodeRabbit, PR #17.
+- **A secondary advice flag must repeat the headline number's precondition.** A "split the serving" note fired when zero whole servings fit the daily ceiling (`drinkMg > servingMg` alone), advising the very overshoot the number forbids. Guard it (`whole >= 1`) and test it. CodeRabbit, PR #17.
+
 ## Metric Thread Tolerance Class Notation (ISO 965-1)
 
 - **A compound class like `4g6g` means pitch-diameter grade 4, major/minor-diameter grade 6 — not "grade 4 for everything."** First grade+letter = pitch diameter; second (if shown) = crest diameter. `6g` alone means `6g6g`.

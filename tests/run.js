@@ -630,6 +630,7 @@ test('caffeineBudget: no whole drink means water; many small drinks are spaced a
   assert.strictEqual(tiny.wholeDrinks, 0);
   assert.strictEqual(tiny.hoursBetween, null);
   assert.strictEqual(tiny.verdict, 'Water. Just water.');
+  assert.strictEqual(tiny.splitAdvice, false); // 160 mg > the 114 mg daily ceiling: don't advise splitting it
   const cola = joke.caffeineBudget(70, 34, 8);
   assert.strictEqual(cola.wholeDrinks, 11);
   assert.strictEqual(cola.hoursBetween, 0.7);

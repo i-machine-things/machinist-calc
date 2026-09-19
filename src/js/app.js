@@ -862,6 +862,9 @@
     var stepEl = $(cfg.prefix + '-step'), questionEl = $(cfg.prefix + '-question'),
       choicesEl = $(cfg.prefix + '-choices'), back = $(cfg.prefix + '-back'), restart = $(cfg.prefix + '-restart');
     var path = [chart.start];
+    // Re-rendering removes the focused button, so keyboard focus would fall to the page; the question takes it
+    // (programmatic focus only, not a tab stop) so keyboard and screen-reader users land on the new content.
+    questionEl.setAttribute('tabindex', '-1');
 
     function render() {
       var node = chart.nodes[path[path.length - 1]];
@@ -873,14 +876,16 @@
         var btn = document.createElement('button');
         btn.className = 'choice-btn';
         btn.textContent = opt.label;
-        btn.addEventListener('click', function () { path.push(opt.next); render(); });
+        btn.addEventListener('click', function () { path.push(opt.next); render(); questionEl.focus(); });
         choicesEl.appendChild(btn);
       });
       back.disabled = path.length === 1;
     }
 
-    back.addEventListener('click', function () { if (path.length > 1) { path.pop(); render(); } });
-    restart.addEventListener('click', function () { path = [chart.start]; render(); });
+    back.addEventListener('click', function () {
+      if (path.length > 1) { path.pop(); render(); questionEl.focus(); }
+    });
+    restart.addEventListener('click', function () { path = [chart.start]; render(); questionEl.focus(); });
     render();
   }
 

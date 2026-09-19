@@ -378,3 +378,4 @@ input:focus, select:focus {
 .ref-label { display: inline-block; padding: 0 6px; border: 1px dashed var(--accent); border-radius: 3px; color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
 .warn-label { border-color: #e06666; color: #e06666; }
 .doc p { margin: 12px 0 4px; font-size: 13px; line-height: 1.5; color: var(--text-dim); }
+.result-value[tabindex="-1"]:focus { outline: none; }

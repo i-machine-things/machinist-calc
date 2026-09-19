@@ -47,8 +47,9 @@
    * proportionally for anyone lighter than the 70 kg adult they're quoted for (never up past the cap).
    * `weightKg` 20-300, `drinkMg` > 0, `shiftHours` > 0; throws RangeError otherwise.
    * Returns daily and single-serving ceilings (mg), how many of the chosen drink that is, the spacing across
-   * a shift, and a whole-drink verdict. `splitAdvice` is true when one serving already exceeds the
-   * single-dose ceiling (e.g. a 16 oz Monster for someone under ~53 kg).
+   * a shift, and a whole-drink verdict. `splitAdvice` is true when at least one whole drink fits the daily
+   * ceiling but one serving exceeds the single-dose ceiling (e.g. a 16 oz Monster for someone of ~40-53 kg);
+   * when not even one whole drink fits, the advice is water, not "split it".
    */
   joke.caffeineBudget = function (weightKg, drinkMg, shiftHours) {
     if (!Number.isFinite(weightKg) || weightKg < 20 || weightKg > 300) {
@@ -67,7 +68,7 @@
       drinksPerDay: round(drinks, 1),
       wholeDrinks: whole,
       hoursBetween: whole >= 1 ? round(shiftHours / whole, 1) : null,
-      splitAdvice: drinkMg > servingMg,
+      splitAdvice: whole >= 1 && drinkMg > servingMg,
       verdict: joke.caffeineVerdict(whole)
     };
   };
