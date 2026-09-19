@@ -1581,6 +1581,9 @@
   // handbooks (e.g. Machinery's Handbook), relating feed rate and tool
   // nose radius for a single-point turning operation. Actual Ra also
   // depends on tool wear, material, and vibration, which this ignores.
+  // This small-feed formula reads low as feed approaches the nose radius; the
+  // app itself uses toolFinish below (true tip-and-flank profile) and keeps
+  // these as a reference value for tests to cross-check against.
   // ---------------------------------------------------------------------
 
   /** Theoretical turning surface roughness Ra (microinches) from feed (in/rev) and tool nose radius (in). Ra = f^2 / (32*R). */
@@ -1592,79 +1595,23 @@
     return round((feedMmpr * feedMmpr) / (32 * noseRadiusMm) * 1000, 3); // micrometers
   };
 
-  /** True for a number > 0 including Infinity (a flat edge is the R -> infinity limit); false for NaN/strings. */
-  function isPositiveRadius(r) {
-    return typeof r === 'number' && r > 0;
-  }
-
   /**
-   * Theoretical RMS roughness Rq for turning, same small-angle regime as the Ra formula above. Not an
-   * ISO/ANSI formula. Models one cusp as a parabola of height h = f^2 / (8R) over the feed f, whose
-   * RMS deviation from its mean line is 2h / (3*sqrt(5)), so Rq = f^2 / (12*sqrt(5)*R) ~= 0.03727 f^2/R
-   * (~1.19x the Ra above). Checked against numerically integrating the true arc profile: within 0.3% at
-   * f/R = 0.25, and increasingly low as f/R grows (~18% low at f/R = 1.67) -- as is Ra.
-   * Returns the input length unit. noseRadius may be Infinity (flat/wiper edge: no scallop, result 0);
-   * throws on non-positive/NaN/non-number noseRadius or non-positive/non-finite feed.
-   */
-  function rmsRoughness(feed, noseRadius) {
-    if (!Number.isFinite(feed) || !isPositiveRadius(noseRadius) || feed <= 0) {
-      throw new RangeError('feed must be positive and finite; noseRadius positive (Infinity allowed)');
-    }
-    return (feed * feed) / (12 * Math.sqrt(5) * noseRadius);
-  }
-
-  /** Theoretical turning RMS roughness Rq (microinches) from feed (in/rev) and nose radius (in). See rmsRoughness. */
-  calc.surfaceFinishRmsImperial = function (feedIpr, noseRadiusIn) {
-    return round(rmsRoughness(feedIpr, noseRadiusIn) * 1e6, 1); // microinches
-  };
-  /** Theoretical turning RMS roughness Rq (micrometers) from feed (mm/rev) and nose radius (mm). See rmsRoughness. */
-  calc.surfaceFinishRmsMetric = function (feedMmpr, noseRadiusMm) {
-    return round(rmsRoughness(feedMmpr, noseRadiusMm) * 1000, 3); // micrometers
-  };
-
-  /**
-   * Theoretical cusp (scallop) height h left between adjacent passes of a round-nosed tool — the
-   * peak-to-valley roughness Rt. Pure geometry, no ISO/ANSI standard: h = R - sqrt(R^2 - (f/2)^2).
-   * Rewritten as (f/2)^2 / (R + sqrt(R^2 - (f/2)^2)) to avoid catastrophic cancellation at small
-   * f/R. For small f/R this reduces to f^2 / (8R), i.e. the Ra formula above times 4. Units in = units
-   * out; noseRadius may be Infinity (flat/wiper edge: h = 0). Throws when f > 2R, where the nose arc
-   * no longer spans the feed and the cusp isn't a simple arc.
-   */
-  function cuspHeight(feed, noseRadius) {
-    if (!Number.isFinite(feed) || !isPositiveRadius(noseRadius) || feed <= 0) {
-      throw new RangeError('feed must be positive and finite; noseRadius positive (Infinity allowed)');
-    }
-    var halfFeed = feed / 2;
-    if (halfFeed > noseRadius) {
-      throw new RangeError('feed must not exceed twice the nose radius');
-    }
-    return (halfFeed * halfFeed) / (noseRadius + noseRadius * Math.sqrt(1 - Math.pow(halfFeed / noseRadius, 2)));
-  }
-
-  /** Theoretical cusp height (decimal inches) from feed (in/rev) and tool nose radius (in). See cuspHeight. */
-  calc.cuspHeightImperial = function (feedIpr, noseRadiusIn) {
-    return round(cuspHeight(feedIpr, noseRadiusIn), 6); // inches, to the millionth
-  };
-  /** Theoretical cusp height (decimal mm) from feed (mm/rev) and tool nose radius (mm). See cuspHeight. */
-  calc.cuspHeightMetric = function (feedMmpr, noseRadiusMm) {
-    return round(cuspHeight(feedMmpr, noseRadiusMm), 6); // mm, to 0.000001
-  };
-
-  /**
-   * V-form tool with an optional tip radius (0 = sharp) cutting grooves one feed apart, e.g. serrating a
-   * flange face. Not an ISO/ANSI formula, pure geometry. One groove is an arc of radius R at the tip,
-   * tangent to two straight flanks that meet at the included angle theta; the arc runs out to
-   * x = R*sin(theta/2) either side of the centreline, then the flanks continue at slope 1/tan(theta/2).
-   * Groove depth is the profile height at the half-feed x = f/2, in closed form:
-   *   f/2 inside the arc: h = R - sqrt(R^2 - (f/2)^2)   (the round-nose cusp)
+   * Theoretical turned-surface profile for a tool with a tip radius R (0 = sharp) and an included angle
+   * theta, cutting one feed f per revolution (round-nose turning, or serrating a flange face with a V-tool).
+   * Not an ISO/ANSI formula, pure geometry. One groove is an arc of radius R at the tip, tangent to two
+   * straight flanks that meet at theta; the arc runs out to x = R*sin(theta/2) either side of the
+   * centreline, then the flanks continue at slope 1/tan(theta/2). Cusp height / groove depth is the
+   * profile height at the half-feed x = f/2, in closed form:
+   *   f/2 inside the arc: h = R - sqrt(R^2 - (f/2)^2)   (the classic round-nose cusp)
    *   f/2 past the arc:   h = R*(1 - cos(theta/2)) + (f/2 - R*sin(theta/2)) / tan(theta/2)
-   * R = 0 gives h = (f/2)/tan(theta/2); a large R stays in the arc branch. Ra and Rq have no closed form
-   * here, so they come from numerically integrating that profile about its mean line (midpoint rule,
-   * exact for the sharp case: Ra = h/4, Rq = h/(2*sqrt(3))). Units in = units out. Ignores tool wear and
-   * the finite length of the flanks.
+   * R = 0 gives h = (f/2)/tan(theta/2); a large R stays in the arc branch.
+   * Ra and Rq have no closed form here, so they come from numerically integrating that profile about its
+   * mean line (midpoint rule, exact for the sharp case: Ra = h/4, Rq = h/(2*sqrt(3))). They run about 3%
+   * above the handbook Ra = f^2/(32R) for small f/R, and stay right as f/R grows where that formula reads
+   * low. Units in = units out. Ignores tool wear and the finite length of the flanks.
    */
-  function vToolFinish(feed, includedAngleDeg, noseRadius) {
-    var R = noseRadius == null ? 0 : noseRadius;
+  function toolFinish(feed, includedAngleDeg, noseRadius) {
+    var R = noseRadius;
     if (!Number.isFinite(feed) || !Number.isFinite(includedAngleDeg) || !Number.isFinite(R) ||
         feed <= 0 || includedAngleDeg <= 0 || includedAngleDeg >= 180 || R < 0) {
       throw new RangeError('feed must be positive, includedAngleDeg in (0, 180), noseRadius >= 0; all finite');
@@ -1694,19 +1641,19 @@
   }
 
   /**
-   * V-tool groove depth (in), Ra and RMS (microinches) from feed (in/rev), included angle (deg) and
-   * optional tip radius (in, default 0 = sharp). See vToolFinish.
+   * Cusp height / groove depth (in), Ra and RMS (microinches) from feed (in/rev), included angle (deg)
+   * and tip/nose radius (in, 0 = sharp). See toolFinish.
    */
-  calc.vToolFinishImperial = function (feedIpr, includedAngleDeg, noseRadiusIn) {
-    var v = vToolFinish(feedIpr, includedAngleDeg, noseRadiusIn);
+  calc.toolFinishImperial = function (feedIpr, includedAngleDeg, noseRadiusIn) {
+    var v = toolFinish(feedIpr, includedAngleDeg, noseRadiusIn);
     return { depth: round(v.depth, 6), ra: round(v.ra * 1e6, 1), rms: round(v.rq * 1e6, 1) };
   };
   /**
-   * V-tool groove depth (mm), Ra and RMS (micrometers) from feed (mm/rev), included angle (deg) and
-   * optional tip radius (mm, default 0 = sharp). See vToolFinish.
+   * Cusp height / groove depth (mm), Ra and RMS (micrometers) from feed (mm/rev), included angle (deg)
+   * and tip/nose radius (mm, 0 = sharp). See toolFinish.
    */
-  calc.vToolFinishMetric = function (feedMmpr, includedAngleDeg, noseRadiusMm) {
-    var v = vToolFinish(feedMmpr, includedAngleDeg, noseRadiusMm);
+  calc.toolFinishMetric = function (feedMmpr, includedAngleDeg, noseRadiusMm) {
+    var v = toolFinish(feedMmpr, includedAngleDeg, noseRadiusMm);
     return { depth: round(v.depth, 6), ra: round(v.ra * 1e3, 3), rms: round(v.rq * 1e3, 3) };
   };
 

@@ -744,60 +744,34 @@
   // Surface Finish
   // ------------------------------------------------------------------
   /**
-   * One Surface Finish tab. The tool type picks the model: round nose uses the feed/radius formulas
-   * (cusp height only while feed <= 2 x radius), V-tool a tip arc (radius 0 = sharp) tangent to flanks at
-   * the included angle, which also covers feed > 2 x radius, and flat/wiper is the radius = infinity
-   * limit (no theoretical scallop).
+   * One Surface Finish tab. A single tip-arc-plus-flanks model covers round-nose turning (angle only
+   * matters once feed / 2 runs past the arc) and V-tool serrating (radius 0 = sharp point).
    */
-  function setupSurfaceFinishTab(prefix, fns) {
-    var tool = $(prefix + '-tool'), feed = $(prefix + '-feed'), radius = $(prefix + '-radius'),
-      angle = $(prefix + '-angle'), radiusLabel = $(prefix + '-radius-label'),
-      angleLabel = $(prefix + '-angle-label'), raOut = $(prefix + '-result'),
-      rmsOut = $(prefix + '-rms'), cuspOut = $(prefix + '-cusp');
-
-    function blank() {
-      raOut.textContent = '—';
-      rmsOut.textContent = '—';
-      cuspOut.textContent = '—';
-    }
+  function setupSurfaceFinishTab(prefix, toolFinish) {
+    var feed = $(prefix + '-feed'), radius = $(prefix + '-radius'), angle = $(prefix + '-angle'),
+      raOut = $(prefix + '-result'), rmsOut = $(prefix + '-rms'), cuspOut = $(prefix + '-cusp');
 
     function recalc() {
-      var kind = tool.value;
-      radiusLabel.hidden = kind === 'flat';
-      angleLabel.hidden = kind !== 'vtool';
-      var f = parseFloat(feed.value);
-      if (isNaN(f) || f <= 0) { blank(); return; }
-
-      if (kind === 'vtool') {
-        var a = parseFloat(angle.value), tip = parseFloat(radius.value);
-        if (isNaN(a) || a <= 0 || a >= 180 || isNaN(tip) || tip < 0) { blank(); return; }
-        var v = fns.vTool(f, a, tip);
-        raOut.textContent = v.ra;
-        rmsOut.textContent = v.rms;
-        cuspOut.textContent = v.depth;
+      var f = parseFloat(feed.value), r = parseFloat(radius.value), a = parseFloat(angle.value);
+      if ([f, r, a].some(isNaN) || f <= 0 || r < 0 || a <= 0 || a >= 180) {
+        raOut.textContent = '—';
+        rmsOut.textContent = '—';
+        cuspOut.textContent = '—';
         return;
       }
-
-      var r = kind === 'flat' ? Infinity : parseFloat(radius.value);
-      if (isNaN(r) || r <= 0) { blank(); return; }
-      raOut.textContent = fns.ra(f, r);
-      rmsOut.textContent = fns.rms(f, r);
-      cuspOut.textContent = f > 2 * r ? 'n/a (feed > 2 × radius) — use V-tool' : fns.cusp(f, r);
+      var v = toolFinish(f, a, r);
+      raOut.textContent = v.ra;
+      rmsOut.textContent = v.rms;
+      cuspOut.textContent = v.depth;
     }
 
-    [tool, feed, radius, angle].forEach(function (el) { el.addEventListener('input', recalc); });
+    [feed, radius, angle].forEach(function (el) { el.addEventListener('input', recalc); });
     recalc();
   }
 
   function setupSurfaceFinish() {
-    setupSurfaceFinishTab('sfin-imp', {
-      ra: calc.surfaceFinishRaImperial, rms: calc.surfaceFinishRmsImperial,
-      cusp: calc.cuspHeightImperial, vTool: calc.vToolFinishImperial
-    });
-    setupSurfaceFinishTab('sfin-met', {
-      ra: calc.surfaceFinishRaMetric, rms: calc.surfaceFinishRmsMetric,
-      cusp: calc.cuspHeightMetric, vTool: calc.vToolFinishMetric
-    });
+    setupSurfaceFinishTab('sfin-imp', calc.toolFinishImperial);
+    setupSurfaceFinishTab('sfin-met', calc.toolFinishMetric);
   }
 
   // ------------------------------------------------------------------

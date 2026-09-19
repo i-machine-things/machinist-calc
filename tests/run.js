@@ -536,115 +536,60 @@ test('surfaceFinishRaMetric', () => {
   approx(calc.surfaceFinishRaMetric(0.2, 0.8), 1.563, 0.001);
 });
 
-// RMS: expected values hand-computed from f^2 / (12*sqrt(5)*R); the large-radius case is also
-// cross-checked against numerically integrating the true arc profile (Rq = 0.74536 um there).
-test('surfaceFinishRmsImperial', () => {
-  approx(calc.surfaceFinishRmsImperial(0.008, 0.032), 74.5, 0.05);
+// toolFinish: tip radius R (0 = sharp) + included angle. Expected values come from an independent
+// high-resolution numeric integration of the same tip-arc-plus-tangent-flanks profile; depth also matches
+// the closed forms (round-nose cusp inside the arc, tip arc + flank past it).
+test('toolFinishImperial: default-size round nose stays inside the arc (classic cusp)', () => {
+  const r = calc.toolFinishImperial(0.008, 90, 0.032);
+  approx(r.depth, 0.000251, 0.000001);
+  approx(r.ra, 64.4, 0.1);
+  approx(r.rms, 74.8, 0.1);
+  // handbook f^2/(32R) is a small-feed approximation of the same Ra: close, but a few percent low
+  approx(r.ra, calc.surfaceFinishRaImperial(0.008, 0.032), 3);
 });
 
-test('surfaceFinishRmsMetric', () => {
-  approx(calc.surfaceFinishRmsMetric(0.2, 0.8), 1.863, 0.001);
-  approx(calc.surfaceFinishRmsMetric(2, 200), 0.745, 0.001);
-});
-
-test('surfaceFinishRms: ~1.19x Ra; rejects non-positive and non-finite input', () => {
-  approx(calc.surfaceFinishRmsMetric(2, 200) / calc.surfaceFinishRaMetric(2, 200), 1.193, 0.005);
-  assert.throws(() => calc.surfaceFinishRmsMetric(0, 0.8), RangeError);
-  assert.throws(() => calc.surfaceFinishRmsImperial(0.008, -0.032), RangeError);
-  assert.throws(() => calc.surfaceFinishRmsImperial(Infinity, 0.032), RangeError);
-  assert.throws(() => calc.surfaceFinishRmsImperial('0.008', 0.032), RangeError);
-  assert.throws(() => calc.surfaceFinishRmsImperial(0.008, '0.032'), RangeError);
-  assert.throws(() => calc.surfaceFinishRmsImperial(0.008, NaN), RangeError);
-});
-
-test('flat/wiper edge (nose radius = Infinity) leaves no theoretical scallop', () => {
-  assert.strictEqual(calc.surfaceFinishRaMetric(0.2, Infinity), 0);
-  assert.strictEqual(calc.surfaceFinishRmsMetric(0.2, Infinity), 0);
-  assert.strictEqual(calc.surfaceFinishRmsImperial(0.008, Infinity), 0);
-  assert.strictEqual(calc.cuspHeightMetric(0.2, Infinity), 0);
-  assert.strictEqual(calc.cuspHeightImperial(0.008, Infinity), 0);
-});
-
-// V-tool: hand-computed from h = (f/2)/tan(theta/2), Ra = h/4, Rq = h/(2*sqrt(3)).
-test('vToolFinishImperial: 90 deg tool cuts a groove half the feed deep', () => {
-  const r = calc.vToolFinishImperial(0.02, 90);
-  approx(r.depth, 0.01, 0.000001);
-  approx(r.ra, 2500, 0.05);
-  approx(r.rms, 2886.8, 0.05);
-  approx(calc.vToolFinishImperial(0.02, 60).depth, 0.017321, 0.000001);
-});
-
-test('vToolFinishMetric', () => {
-  const r = calc.vToolFinishMetric(0.5, 90);
-  approx(r.depth, 0.25, 0.000001);
-  approx(r.ra, 62.5, 0.001);
-  approx(r.rms, 72.169, 0.001);
-  approx(calc.vToolFinishMetric(0.5, 120).depth, 0.144338, 0.000001);
-});
-
-// V-tool with a tip radius. Expected values from an independent high-resolution numeric integration
-// of the same tip-arc-plus-tangent-flanks profile (depth also matches the closed form).
-test('vToolFinishImperial: .008 tip radius, 90 deg, .025/rev is past the arc (feed > 2R)', () => {
-  const r = calc.vToolFinishImperial(0.025, 90, 0.008);
+test('toolFinishImperial: feed > 2R is past the tip arc and rides the flanks', () => {
+  const r = calc.toolFinishImperial(0.025, 90, 0.008);
   approx(r.depth, 0.009186, 0.000001);
   approx(r.ra, 2599.8, 0.1);
   approx(r.rms, 2937.4, 0.1);
+  approx(calc.toolFinishImperial(0.025, 90, 0.015).depth, 0.006287, 0.000001); // .015R at .025/rev
 });
 
-test('vToolFinishImperial: a large tip radius stays in the arc and matches the round-nose cusp', () => {
-  const r = calc.vToolFinishImperial(0.008, 90, 0.032);
-  approx(r.depth, calc.cuspHeightImperial(0.008, 0.032), 0.000001);
-  approx(r.ra, 64.4, 0.1);
-  approx(r.rms, 74.8, 0.1);
+test('toolFinishMetric', () => {
+  const r = calc.toolFinishMetric(0.2, 90, 0.8);
+  approx(r.depth, 0.006275, 0.000001);
+  approx(r.ra, 1.609, 0.001);
+  approx(r.rms, 1.87, 0.001);
+  const t = calc.toolFinishMetric(0.5, 90, 0.2);
+  approx(t.depth, 0.167157, 0.000001);
+  approx(t.ra, 46.511, 0.005);
+  approx(t.rms, 52.828, 0.005);
 });
 
-test('vToolFinishMetric: tip radius', () => {
-  const r = calc.vToolFinishMetric(0.5, 90, 0.2);
-  approx(r.depth, 0.167157, 0.000001);
-  approx(r.ra, 46.511, 0.005);
-  approx(r.rms, 52.828, 0.005);
+test('toolFinish: radius 0 is a sharp V (depth = (f/2)/tan(theta/2), Ra = h/4, Rq = h/(2*sqrt(3)))', () => {
+  const r = calc.toolFinishImperial(0.02, 90, 0);
+  approx(r.depth, 0.01, 0.000001);
+  approx(r.ra, 2500, 0.05);
+  approx(r.rms, 2886.8, 0.05);
+  approx(calc.toolFinishImperial(0.02, 60, 0).depth, 0.017321, 0.000001);
+  const m = calc.toolFinishMetric(0.5, 90, 0);
+  approx(m.depth, 0.25, 0.000001);
+  approx(m.ra, 62.5, 0.001);
+  approx(m.rms, 72.169, 0.001);
+  approx(calc.toolFinishMetric(0.5, 120, 0).depth, 0.144338, 0.000001);
 });
 
-test('vToolFinish: omitted tip radius means sharp, negative or non-finite radius is rejected', () => {
-  assert.strictEqual(calc.vToolFinishMetric(0.5, 90).depth, calc.vToolFinishMetric(0.5, 90, 0).depth);
-  assert.throws(() => calc.vToolFinishMetric(0.5, 90, -0.1), RangeError);
-  assert.throws(() => calc.vToolFinishMetric(0.5, 90, Infinity), RangeError);
-  assert.throws(() => calc.vToolFinishMetric(0.5, 90, '0.1'), RangeError);
-});
-
-test('vToolFinish: rejects bad feed or angle', () => {
-  assert.throws(() => calc.vToolFinishMetric(0, 90), RangeError);
-  assert.throws(() => calc.vToolFinishMetric(0.5, 0), RangeError);
-  assert.throws(() => calc.vToolFinishMetric(0.5, 180), RangeError);
-  assert.throws(() => calc.vToolFinishMetric(0.5, NaN), RangeError);
-  assert.throws(() => calc.vToolFinishImperial(Infinity, 90), RangeError);
-});
-
-// Expected values are the naive geometry R - sqrt(R^2 - (f/2)^2), computed independently of the
-// cancellation-safe form in calc-core.
-test('cuspHeightImperial', () => {
-  approx(calc.cuspHeightImperial(0.008, 0.032), 0.000251, 0.000001);
-  // .015 radius tool at .025/rev
-  approx(calc.cuspHeightImperial(0.025, 0.015), 0.006708, 0.000001);
-});
-
-test('cuspHeightMetric', () => {
-  approx(calc.cuspHeightMetric(0.2, 0.8), 0.006275, 0.000001);
-});
-
-test('cuspHeight: f = 2R is the limit and equals R; small f/R approaches 4 * Ra', () => {
-  approx(calc.cuspHeightMetric(1.6, 0.8), 0.8, 0.000001);
-  // cuspHeightMetric is mm, surfaceFinishRaMetric is um -- convert before comparing. Large radius
-  // keeps f/R tiny and the outputs big enough that 6-/3-decimal rounding can't skew the ratio.
-  approx(calc.cuspHeightMetric(2, 200) * 1000 / calc.surfaceFinishRaMetric(2, 200), 4, 0.001);
-});
-
-test('cuspHeight: rejects non-positive, non-finite, and f > 2R', () => {
-  assert.throws(() => calc.cuspHeightMetric(1.7, 0.8), RangeError);
-  assert.throws(() => calc.cuspHeightMetric(0, 0.8), RangeError);
-  assert.throws(() => calc.cuspHeightImperial(0.008, -0.032), RangeError);
-  assert.throws(() => calc.cuspHeightImperial(Infinity, 0.032), RangeError);
-  assert.throws(() => calc.cuspHeightImperial('0.008', 0.032), RangeError);
+test('toolFinish: rejects bad feed, angle, or radius', () => {
+  assert.throws(() => calc.toolFinishMetric(0, 90, 0.8), RangeError);
+  assert.throws(() => calc.toolFinishMetric(0.5, 0, 0.8), RangeError);
+  assert.throws(() => calc.toolFinishMetric(0.5, 180, 0.8), RangeError);
+  assert.throws(() => calc.toolFinishMetric(0.5, NaN, 0.8), RangeError);
+  assert.throws(() => calc.toolFinishMetric(0.5, 90, -0.1), RangeError);
+  assert.throws(() => calc.toolFinishMetric(0.5, 90, Infinity), RangeError);
+  assert.throws(() => calc.toolFinishMetric(0.5, 90, '0.1'), RangeError);
+  assert.throws(() => calc.toolFinishMetric(0.5, 90), RangeError);
+  assert.throws(() => calc.toolFinishImperial(Infinity, 90, 0.032), RangeError);
 });
 
 // -------------------------------------------------------------------------

@@ -462,29 +462,22 @@
     <!-- Surface Finish -->
     <section class="panel" id="panel-surfacefinish">
       <h1>Surface Finish Calculator</h1>
-      <p class="standard-note">Theoretical turning Ra approximation (Machinery's Handbook) — not an ISO/ANSI standard. Ra = feed² / (32 × nose radius). RMS (Rq) = feed² / (12√5 × nose radius), the same small-feed approximation (≈ 1.19 × Ra; it reads low as feed approaches the nose radius). Cusp height (peak-to-valley) = R − √(R² − (feed/2)²), valid up to feed = 2 × nose radius. V-tool: a tip arc (radius 0 = sharp) tangent to two flanks at the included angle. Depth is exact: the round-nose cusp while feed / 2 stays inside the arc, otherwise R(1 − cos(angle/2)) + (feed / 2 − R·sin(angle/2)) / tan(angle/2); Ra and RMS are integrated numerically from that profile. Use it when feed exceeds 2 × radius. Flat/wiper (radius = ∞) has no theoretical scallop. Actual finish also depends on tool wear, material, and vibration.</p>
+      <p class="standard-note">Theoretical turned-surface profile — not an ISO/ANSI standard. The tool tip is an arc of the entered radius (0 = sharp point) tangent to two flanks at the included angle. Cusp height / DOC is exact: R − √(R² − (feed/2)²) while feed/2 stays inside the arc, otherwise R(1 − cos(angle/2)) + (feed/2 − R·sin(angle/2)) / tan(angle/2). Ra and RMS (Rq) are integrated numerically from that profile; for small feeds Ra runs about 3% above the handbook approximation feed² / (32 × radius), which reads low as feed approaches the radius. Actual finish also depends on tool wear, material, and vibration.</p>
       <p class="verify-note"><strong>Verify the drawing's callout.</strong> Check which roughness parameter (Ra, RMS/Rq, Rz, Rt) and which standard (e.g. ASME B46.1, ISO 4287 / 21920) the drawing specifies before comparing these values to it. Definitions, sampling lengths, and especially Rz differ between standards and editions, and these are theoretical values, not a measured or certified result.</p>
       <div class="tabs">
         <button class="tab-btn active" data-tab="sfin-imperial">Imperial</button>
         <button class="tab-btn" data-tab="sfin-metric">Metric</button>
       </div>
       <div class="tab-panel active" id="sfin-imperial">
-        <div class="grid grid-2">
-          <label>Tool
-            <select id="sfin-imp-tool">
-              <option value="round">Round nose (radius)</option>
-              <option value="vtool">V-tool (included angle + tip radius)</option>
-              <option value="flat">Flat / wiper (radius = ∞)</option>
-            </select>
-          </label>
+        <div class="grid grid-3">
           <label>Feed (in/rev)
             <input type="number" id="sfin-imp-feed" step="any" value="0.008" />
           </label>
-          <label id="sfin-imp-radius-label">Tool Nose / Tip Radius (in)
-            <input type="number" id="sfin-imp-radius" step="any" value="0.032" />
+          <label>Tool Nose / Tip Radius (in)
+            <input type="number" id="sfin-imp-radius" step="any" min="0" value="0.032" />
           </label>
-          <label id="sfin-imp-angle-label" hidden>Included Angle (°)
-            <input type="number" id="sfin-imp-angle" step="any" value="90" />
+          <label>Included Angle (°)
+            <input type="number" id="sfin-imp-angle" step="any" min="0" max="180" value="90" />
           </label>
         </div>
         <div class="result-box">
@@ -494,22 +487,15 @@
         </div>
       </div>
       <div class="tab-panel" id="sfin-metric">
-        <div class="grid grid-2">
-          <label>Tool
-            <select id="sfin-met-tool">
-              <option value="round">Round nose (radius)</option>
-              <option value="vtool">V-tool (included angle + tip radius)</option>
-              <option value="flat">Flat / wiper (radius = ∞)</option>
-            </select>
-          </label>
+        <div class="grid grid-3">
           <label>Feed (mm/rev)
             <input type="number" id="sfin-met-feed" step="any" value="0.2" />
           </label>
-          <label id="sfin-met-radius-label">Tool Nose / Tip Radius (mm)
-            <input type="number" id="sfin-met-radius" step="any" value="0.8" />
+          <label>Tool Nose / Tip Radius (mm)
+            <input type="number" id="sfin-met-radius" step="any" min="0" value="0.8" />
           </label>
-          <label id="sfin-met-angle-label" hidden>Included Angle (°)
-            <input type="number" id="sfin-met-angle" step="any" value="90" />
+          <label>Included Angle (°)
+            <input type="number" id="sfin-met-angle" step="any" min="0" max="180" value="90" />
           </label>
         </div>
         <div class="result-box">

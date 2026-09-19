@@ -45,7 +45,7 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 
 ## HTML / CSS
 
-- **An author rule like `label { display: flex }` beats the browser's `[hidden] { display: none }`, so `el.hidden = true` silently does nothing.** Add an explicit `label[hidden] { display: none; }` (as `.easter-egg[hidden]` does). Caught pre-commit in machinist-calc's surface finish tool selector.
+- **An author rule like `label { display: flex }` beats the browser's `[hidden] { display: none }`, so `el.hidden = true` silently does nothing.** Add an explicit `label[hidden] { display: none; }` (as `.easter-egg[hidden]` does). Hit while prototyping a show/hide field in machinist-calc.
 
 ## ESLint Config Globals
 
