@@ -486,33 +486,73 @@
     recalc();
   }
 
-  function setupFeedPerToothImperial() {
-    var rpm = $('sf-imp-fpt-rpm'), flutes = $('sf-imp-fpt-flutes'), chip = $('sf-imp-fpt-chipload'),
-      iprOut = $('sf-imp-fpt-ipr'), feedOut = $('sf-imp-fpt-feed');
-    function recalc() {
-      var r = parseFloat(rpm.value), f = parseFloat(flutes.value), c = parseFloat(chip.value);
-      if ([r, f, c].some(isNaN) || !Number.isInteger(f) || f <= 0) {
-        iprOut.textContent = '—'; feedOut.textContent = '—'; return;
-      }
-      iprOut.textContent = calc.feedPerRev(c, f);
-      feedOut.textContent = calc.feedRate(r, c, f);
+  // ------------------------------------------------------------------
+  // Feed Per Tooth & Chip Thinning
+  // ------------------------------------------------------------------
+  /** Runs fn, returning null instead of the RangeError calc-core throws for invalid/blank input. */
+  function orNull(fn) {
+    try { return fn(); } catch (err) {
+      if (err instanceof RangeError) return null;
+      throw err;
     }
-    [rpm, flutes, chip].forEach(function (el) { el.addEventListener('input', recalc); });
-    recalc();
   }
 
-  function setupFeedPerToothMetric() {
-    var rpm = $('sf-met-fpt-rpm'), flutes = $('sf-met-fpt-flutes'), chip = $('sf-met-fpt-chipload'),
-      iprOut = $('sf-met-fpt-ipr'), feedOut = $('sf-met-fpt-feed');
-    function recalc() {
-      var r = parseFloat(rpm.value), f = parseFloat(flutes.value), c = parseFloat(chip.value);
-      if ([r, f, c].some(isNaN) || !Number.isInteger(f) || f <= 0) {
-        iprOut.textContent = '—'; feedOut.textContent = '—'; return;
-      }
-      iprOut.textContent = calc.feedPerRev(c, f);
-      feedOut.textContent = calc.feedRate(r, c, f);
+  /**
+   * Feed per tooth conversion with an optional chip thinning correction (none / radial / axial). The
+   * factor still shows when chip thickness, RPM or flutes are blank or invalid, and each later readout
+   * blanks on its own; feed per revolution only needs valid flutes, not RPM.
+   */
+  function setupFeedAndChipThinning(prefix) {
+    var rpm = $(prefix + '-rpm'), flutes = $(prefix + '-flutes'), chip = $(prefix + '-chip'),
+      mode = $(prefix + '-mode'), dia = $(prefix + '-dia'), width = $(prefix + '-ae'),
+      widthUnit = $(prefix + '-ae-unit'), angle = $(prefix + '-angle'), diaLabel = $(prefix + '-dia-label'),
+      widthLabel = $(prefix + '-ae-label'), widthUnitLabel = $(prefix + '-ae-unit-label'),
+      angleLabel = $(prefix + '-angle-label'), radialHint = $(prefix + '-radial-hint'),
+      axialHint = $(prefix + '-axial-hint'), factorOut = $(prefix + '-factor'), fptOut = $(prefix + '-fpt'),
+      iprOut = $(prefix + '-ipr'), feedOut = $(prefix + '-feed');
+
+    // Radial width as a length, whichever unit the field is in; a bad percent throws RangeError like a bad length.
+    function radialWidth() {
+      var v = parseFloat(width.value);
+      return widthUnit.value === 'pct' ? calc.radialWidthFromStepover(parseFloat(dia.value), v) : v;
     }
-    [rpm, flutes, chip].forEach(function (el) { el.addEventListener('input', recalc); });
+    function factorFor() {
+      if (mode.value === 'radial') return calc.radialChipThinningFactor(parseFloat(dia.value), radialWidth());
+      if (mode.value === 'axial') return calc.axialChipThinningFactor(parseFloat(angle.value));
+      return 1;
+    }
+    function show(el, v) { el.textContent = v === null ? '—' : v; }
+
+    function recalc() {
+      var radial = mode.value === 'radial', axial = mode.value === 'axial';
+      diaLabel.hidden = !radial;
+      widthLabel.hidden = !radial;
+      widthUnitLabel.hidden = !radial;
+      angleLabel.hidden = !axial;
+      radialHint.hidden = !radial;
+      axialHint.hidden = !axial;
+
+      var factor = orNull(factorFor);
+      var c = parseFloat(chip.value), r = parseFloat(rpm.value), n = parseFloat(flutes.value);
+      var fpt = factor === null ? null : orNull(function () { return calc.compensatedFeedPerTooth(c, factor); });
+      var ipr = fpt === null || !Number.isInteger(n) || n <= 0 ? null : calc.feedPerRev(fpt, n);
+      var feed = ipr === null || !(r > 0) ? null : calc.feedRate(r, fpt, n);
+      show(factorOut, factor);
+      show(fptOut, fpt);
+      show(iprOut, ipr);
+      show(feedOut, feed);
+    }
+
+    [rpm, flutes, chip, mode, dia, width, angle].forEach(function (el) { el.addEventListener('input', recalc); });
+    // Switching the width unit converts the entered number, so the same cut stays the same cut.
+    widthUnit.addEventListener('input', function () {
+      var d = parseFloat(dia.value), v = parseFloat(width.value);
+      var converted = orNull(function () {
+        return widthUnit.value === 'pct' ? calc.stepoverPercent(d, v) : calc.radialWidthFromStepover(d, v);
+      });
+      if (converted !== null) width.value = converted;
+      recalc();
+    });
     recalc();
   }
 
@@ -1015,8 +1055,8 @@
     setupRecommendedSfm();
     setupSpeedsFeedsImperial();
     setupSpeedsFeedsMetric();
-    setupFeedPerToothImperial();
-    setupFeedPerToothMetric();
+    setupFeedAndChipThinning('sf-imp-ct');
+    setupFeedAndChipThinning('sf-met-ct');
     setupBoltCircle();
     setupRightTriangle();
     setupTruePosition();

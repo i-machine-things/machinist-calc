@@ -377,6 +377,84 @@ test('mrr', () => {
   approx(calc.mrr(8, 0.1, 0.5), 0.4, 0.0001);
 });
 
+// Chip thinning. Expected factors are the widely published radial chip-thinning values (10% radial
+// engagement -> 1.667, 5% -> 2.294, 25% -> 1.155) and 1/sin(entry angle), not copied from the code.
+test('radialChipThinningFactor: published values at 10%, 5%, 25% radial engagement', () => {
+  approx(calc.radialChipThinningFactor(0.5, 0.05), 1.6667, 0.0001);
+  approx(calc.radialChipThinningFactor(0.5, 0.025), 2.2942, 0.0001);
+  approx(calc.radialChipThinningFactor(0.5, 0.125), 1.1547, 0.0001);
+  approx(calc.radialChipThinningFactor(12, 1.2), 1.6667, 0.0001); // unit-independent (ratio only)
+});
+
+test('radialChipThinningFactor: no thinning at half-diameter engagement or more, up to a full slot', () => {
+  assert.strictEqual(calc.radialChipThinningFactor(0.5, 0.25), 1);
+  assert.strictEqual(calc.radialChipThinningFactor(0.5, 0.4), 1);
+  assert.strictEqual(calc.radialChipThinningFactor(0.5, 0.5), 1);
+});
+
+test('radialChipThinningFactor: rejects engagement outside (0, diameter] and non-finite input', () => {
+  assert.throws(() => calc.radialChipThinningFactor(0.5, 0), RangeError);
+  assert.throws(() => calc.radialChipThinningFactor(0.5, 0.6), RangeError);
+  assert.throws(() => calc.radialChipThinningFactor(0, 0.1), RangeError);
+  assert.throws(() => calc.radialChipThinningFactor(0.5, Infinity), RangeError);
+  assert.throws(() => calc.radialChipThinningFactor('0.5', 0.05), RangeError);
+  assert.throws(() => calc.radialChipThinningFactor(1e10, 5e-324), RangeError);
+});
+
+test('stepoverPercent / radialWidthFromStepover: round-trip a width and its percent of diameter', () => {
+  approx(calc.stepoverPercent(0.5, 0.05), 10, 0.001);
+  approx(calc.stepoverPercent(12, 1.2), 10, 0.001);
+  approx(calc.stepoverPercent(0.5, 0.125), 25, 0.001);
+  approx(calc.stepoverPercent(0.5, 0.5), 100, 0.001);
+  approx(calc.radialWidthFromStepover(0.5, 10), 0.05, 0.000001);
+  approx(calc.radialWidthFromStepover(12, 25), 3, 0.000001);
+  // feeding the converted width straight into the thinning factor gives the published 10% value
+  approx(calc.radialChipThinningFactor(0.5, calc.radialWidthFromStepover(0.5, 10)), 1.6667, 0.0001);
+});
+
+test('stepoverPercent / radialWidthFromStepover: reject non-positive and non-finite input', () => {
+  assert.throws(() => calc.stepoverPercent(0, 0.05), RangeError);
+  assert.throws(() => calc.stepoverPercent(0.5, 0), RangeError);
+  assert.throws(() => calc.stepoverPercent(0.5, '0.05'), RangeError);
+  assert.throws(() => calc.stepoverPercent(0.5, Infinity), RangeError);
+  assert.throws(() => calc.radialWidthFromStepover(0.5, 0), RangeError);
+  assert.throws(() => calc.radialWidthFromStepover(0.5, -10), RangeError);
+  assert.throws(() => calc.radialWidthFromStepover(NaN, 10), RangeError);
+  assert.throws(() => calc.radialWidthFromStepover(1e305, 1e5), RangeError);
+});
+
+test('axialChipThinningFactor: 1/sin(entry angle)', () => {
+  approx(calc.axialChipThinningFactor(30), 2, 0.0001);
+  approx(calc.axialChipThinningFactor(45), 1.4142, 0.0001);
+  approx(calc.axialChipThinningFactor(10), 5.7588, 0.0001);
+  assert.strictEqual(calc.axialChipThinningFactor(90), 1);
+});
+
+test('axialChipThinningFactor: rejects angles outside (0, 90] and non-finite input', () => {
+  assert.throws(() => calc.axialChipThinningFactor(0), RangeError);
+  assert.throws(() => calc.axialChipThinningFactor(-15), RangeError);
+  assert.throws(() => calc.axialChipThinningFactor(91), RangeError);
+  assert.throws(() => calc.axialChipThinningFactor(NaN), RangeError);
+  assert.throws(() => calc.axialChipThinningFactor('30'), RangeError);
+  assert.throws(() => calc.axialChipThinningFactor(1e-320), RangeError);
+});
+
+test('compensatedFeedPerTooth: chip thickness times factor, feeding into feedRate', () => {
+  const fpt = calc.compensatedFeedPerTooth(0.002, calc.radialChipThinningFactor(0.5, 0.05));
+  approx(fpt, 0.00333, 0.000001);
+  approx(calc.feedRate(1750, fpt, 4), 23.31, 0.001);
+  approx(calc.compensatedFeedPerTooth(0.004, calc.axialChipThinningFactor(30)), 0.008, 0.000001);
+  approx(calc.compensatedFeedPerTooth(0.05, calc.radialChipThinningFactor(12, 1.2)), 0.08334, 0.000001);
+});
+
+test('compensatedFeedPerTooth: rejects bad chip thickness or a factor below 1', () => {
+  assert.throws(() => calc.compensatedFeedPerTooth(0, 2), RangeError);
+  assert.throws(() => calc.compensatedFeedPerTooth(0.002, 0.5), RangeError);
+  assert.throws(() => calc.compensatedFeedPerTooth(NaN, 2), RangeError);
+  assert.throws(() => calc.compensatedFeedPerTooth('0.002', 2), RangeError);
+  assert.throws(() => calc.compensatedFeedPerTooth(1e305, 2), RangeError);
+});
+
 test('recommendedSfm: every row has ordered HSS/carbide ranges, carbide faster than HSS', () => {
   assert.ok(calc.recommendedSfm.length > 0);
   for (const row of calc.recommendedSfm) {
