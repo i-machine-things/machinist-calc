@@ -888,7 +888,7 @@
     var value = $('br-tol-value'), unit = $('br-tol-unit'), verdict = $('br-tol-verdict'),
       instrument = $('br-tol-instrument'), temp = $('br-tol-temp');
     // The engine works in thou (0.001 in); the field is in whatever unit the print uses.
-    var TO_THOU = { 'in': 1000, thou: 1, mm: 1 / 0.0254 };
+    var TO_THOU = { 'in': 1000, mm: 1 / 0.0254 };
     function recalc() {
       var r = null;
       try {
