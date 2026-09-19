@@ -681,10 +681,13 @@ test('donutProblems: rejects a chart with a loop, a dead end, a missing node, or
 
 test('toleranceTalk: tiers change at their boundaries, tightest first', () => {
   const tier = (thou) => joke.toleranceTalk(thou).tier;
-  assert.deepStrictEqual([0.05, 0.1, 0.1001, 0.5, 0.6, 1, 2, 5, 6, 10, 20, 30, 31, 500].map(tier),
-    [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6]);
+  assert.deepStrictEqual([0.05, 0.1, 0.1001, 0.5, 0.6, 1, 2, 5, 6, 10, 20, 30, 31, 500, 1000, 1001, 50000].map(tier),
+    [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 6, 7, 7]);
   assert.ok(joke.toleranceTalk(0.05).verdict.indexOf('typo') !== -1);
   assert.strictEqual(joke.toleranceTalk(5).instrument, 'A micrometer');
+  // exactly one inch is still government work; anything over an inch is an eyecrometer, from across the shop
+  assert.strictEqual(joke.toleranceTalk(1000).verdict, 'Close enough for government work.');
+  assert.strictEqual(joke.toleranceTalk(1001).verdict, 'Eyecrometer. From across the shop.');
 });
 
 test('toleranceTalk: degrees F to use up the tolerance on a 1 inch steel part (dT = tol / 6.5e-6 per F)', () => {

@@ -259,8 +259,10 @@
     { maxThou: 10, verdict: 'Calipers will do. Do not lean on them.', instrument: 'Calipers' },
     { maxThou: 30, verdict: 'Hold it up to the light.',
       instrument: 'A steel rule, or calipers if you are feeling fancy' },
-    { maxThou: Infinity, verdict: 'Close enough for government work.',
-      instrument: 'A tape measure and good intentions' }
+    { maxThou: 1000, verdict: 'Close enough for government work.',
+      instrument: 'A tape measure and good intentions' },
+    { maxThou: Infinity, verdict: 'Eyecrometer. From across the shop.',
+      instrument: 'An eyecrometer, from across the shop' }
   ];
 
   /**
