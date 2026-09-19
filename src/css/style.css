@@ -125,6 +125,16 @@ h2 {
   line-height: 1.5;
 }
 
+.verify-note {
+  color: var(--text);
+  font-size: 12px;
+  margin: 0 0 18px;
+  padding: 8px 12px;
+  line-height: 1.5;
+  background: var(--bg-panel);
+  border-left: 3px solid var(--accent);
+}
+
 .hint {
   color: var(--text-dim);
   font-size: 12px;

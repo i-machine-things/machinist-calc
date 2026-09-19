@@ -75,6 +75,8 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 
 - **Asserting only one bound of a known range lets the other drift silently.** The Inconel carbide test checked `carbide[1] <= titanium.carbide[1]` but never pinned `[60, 120]` directly. Assert exact values when known, alongside any cross-row comparison. Caught by CodeRabbit, machinist-calc PR #11.
 
+- **Ratio/relationship assertions must be checked against the *rounded* outputs.** A "cusp ≈ 4×Ra" test passed on raw values (4.001) but the rounded outputs gave 3.9898, outside its ±0.01 tolerance. Use inputs large enough that rounding is negligible. Self-caught in machinist-calc, cusp height.
+
 ## Metric Thread Tolerance Class Notation (ISO 965-1)
 
 - **A compound class like `4g6g` means pitch-diameter grade 4, major/minor-diameter grade 6 — not "grade 4 for everything."** First grade+letter = pitch diameter; second (if shown) = crest diameter. `6g` alone means `6g6g`.

@@ -1593,6 +1593,30 @@
   };
 
   /**
+   * Theoretical RMS roughness Rq for turning, same small-angle regime as the Ra formula above. Not an
+   * ISO/ANSI formula. Models one cusp as a parabola of height h = f^2 / (8R) over the feed f, whose
+   * RMS deviation from its mean line is 2h / (3*sqrt(5)), so Rq = f^2 / (12*sqrt(5)*R) ~= 0.03727 f^2/R
+   * (~1.19x the Ra above). Checked against numerically integrating the true arc profile: within 0.3% at
+   * f/R = 0.25, and increasingly low as f/R grows (~18% low at f/R = 1.67) -- as is Ra.
+   * Returns the input length unit; throws on non-positive or non-finite input.
+   */
+  function rmsRoughness(feed, noseRadius) {
+    if (!Number.isFinite(feed) || !Number.isFinite(noseRadius) || feed <= 0 || noseRadius <= 0) {
+      throw new RangeError('feed and noseRadius must be positive finite numbers');
+    }
+    return (feed * feed) / (12 * Math.sqrt(5) * noseRadius);
+  }
+
+  /** Theoretical turning RMS roughness Rq (microinches) from feed (in/rev) and nose radius (in). See rmsRoughness. */
+  calc.surfaceFinishRmsImperial = function (feedIpr, noseRadiusIn) {
+    return round(rmsRoughness(feedIpr, noseRadiusIn) * 1e6, 1); // microinches
+  };
+  /** Theoretical turning RMS roughness Rq (micrometers) from feed (mm/rev) and nose radius (mm). See rmsRoughness. */
+  calc.surfaceFinishRmsMetric = function (feedMmpr, noseRadiusMm) {
+    return round(rmsRoughness(feedMmpr, noseRadiusMm) * 1000, 3); // micrometers
+  };
+
+  /**
    * Theoretical cusp (scallop) height h left between adjacent passes of a round-nosed tool — the
    * peak-to-valley roughness Rt. Pure geometry, no ISO/ANSI standard: h = R - sqrt(R^2 - (f/2)^2).
    * Rewritten as (f/2)^2 / (R + sqrt(R^2 - (f/2)^2)) to avoid catastrophic cancellation at small

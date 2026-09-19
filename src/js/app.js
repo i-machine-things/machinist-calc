@@ -751,23 +751,25 @@
 
   function setupSurfaceFinish() {
     var impFeed = $('sfin-imp-feed'), impR = $('sfin-imp-radius'), impOut = $('sfin-imp-result'),
-      impCusp = $('sfin-imp-cusp');
+      impRms = $('sfin-imp-rms'), impCusp = $('sfin-imp-cusp');
     function recalcImp() {
       var f = parseFloat(impFeed.value), r = parseFloat(impR.value);
       showCusp(impCusp, calc.cuspHeightImperial, f, r);
-      if (isNaN(f) || isNaN(r) || r <= 0) { impOut.textContent = '—'; return; }
+      if (isNaN(f) || isNaN(r) || f <= 0 || r <= 0) { impOut.textContent = '—'; impRms.textContent = '—'; return; }
       impOut.textContent = calc.surfaceFinishRaImperial(f, r);
+      impRms.textContent = calc.surfaceFinishRmsImperial(f, r);
     }
     [impFeed, impR].forEach(function (el) { el.addEventListener('input', recalcImp); });
     recalcImp();
 
     var metFeed = $('sfin-met-feed'), metR = $('sfin-met-radius'), metOut = $('sfin-met-result'),
-      metCusp = $('sfin-met-cusp');
+      metRms = $('sfin-met-rms'), metCusp = $('sfin-met-cusp');
     function recalcMet() {
       var f = parseFloat(metFeed.value), r = parseFloat(metR.value);
       showCusp(metCusp, calc.cuspHeightMetric, f, r);
-      if (isNaN(f) || isNaN(r) || r <= 0) { metOut.textContent = '—'; return; }
+      if (isNaN(f) || isNaN(r) || f <= 0 || r <= 0) { metOut.textContent = '—'; metRms.textContent = '—'; return; }
       metOut.textContent = calc.surfaceFinishRaMetric(f, r);
+      metRms.textContent = calc.surfaceFinishRmsMetric(f, r);
     }
     [metFeed, metR].forEach(function (el) { el.addEventListener('input', recalcMet); });
     recalcMet();

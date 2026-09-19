@@ -536,6 +536,25 @@ test('surfaceFinishRaMetric', () => {
   approx(calc.surfaceFinishRaMetric(0.2, 0.8), 1.563, 0.001);
 });
 
+// RMS: expected values hand-computed from f^2 / (12*sqrt(5)*R); the large-radius case is also
+// cross-checked against numerically integrating the true arc profile (Rq = 0.74536 um there).
+test('surfaceFinishRmsImperial', () => {
+  approx(calc.surfaceFinishRmsImperial(0.008, 0.032), 74.5, 0.05);
+});
+
+test('surfaceFinishRmsMetric', () => {
+  approx(calc.surfaceFinishRmsMetric(0.2, 0.8), 1.863, 0.001);
+  approx(calc.surfaceFinishRmsMetric(2, 200), 0.745, 0.001);
+});
+
+test('surfaceFinishRms: ~1.19x Ra; rejects non-positive and non-finite input', () => {
+  approx(calc.surfaceFinishRmsMetric(2, 200) / calc.surfaceFinishRaMetric(2, 200), 1.193, 0.005);
+  assert.throws(() => calc.surfaceFinishRmsMetric(0, 0.8), RangeError);
+  assert.throws(() => calc.surfaceFinishRmsImperial(0.008, -0.032), RangeError);
+  assert.throws(() => calc.surfaceFinishRmsImperial(0.008, Infinity), RangeError);
+  assert.throws(() => calc.surfaceFinishRmsImperial('0.008', 0.032), RangeError);
+});
+
 // Expected values are the naive geometry R - sqrt(R^2 - (f/2)^2), computed independently of the
 // cancellation-safe form in calc-core.
 test('cuspHeightImperial', () => {
