@@ -827,7 +827,7 @@
     var weight = $('br-cf-weight'), unit = $('br-cf-unit'), drink = $('br-cf-drink'), shift = $('br-cf-shift'),
       outs = { daily: $('br-cf-daily'), serving: $('br-cf-serving'), drinks: $('br-cf-drinks'),
         whole: $('br-cf-whole'), spacing: $('br-cf-spacing') },
-      verdict = $('br-cf-verdict'), split = $('br-cf-split');
+      verdict = $('br-cf-verdict'), split = $('br-cf-split'), share = $('br-cf-share');
     fillSelect(drink, joke.caffeineDrinks);
     drink.value = 1; // the ideal Monster
 
@@ -847,6 +847,7 @@
       outs.spacing.textContent = r && r.hoursBetween !== null ? r.hoursBetween : '—';
       verdict.textContent = r ? r.verdict : 'Needs a weight, a drink, and a shift length.';
       split.hidden = !(r && r.splitAdvice);
+      share.hidden = !(r && r.shareAdvice);
     }
     [weight, unit, drink, shift].forEach(function (el) { el.addEventListener('input', recalc); });
     recalc();

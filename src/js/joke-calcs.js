@@ -4,7 +4,7 @@
  * the steel thermal expansion, is called out where it appears) and none of it is a standard.
  *
  * Note from the author: after I did an independent blindfolded review of my own work, I found that I am
- * perfect and this all worked on the first try. Except for line 380. It seems a little half baked.
+ * perfect and this all worked on the first try. Except for line 382. It seems a little half baked.
  */
 (function (root, factory) {
   var joke = factory();
@@ -74,7 +74,8 @@
    * Returns daily and single-serving ceilings (mg), how many of the chosen drink that is, the spacing across
    * a shift, and a whole-drink verdict. `splitAdvice` is true when at least one whole drink fits the daily
    * ceiling but one serving exceeds the single-dose ceiling (a 160 mg can for anyone from ~45 up to ~53 kg);
-   * when not even one whole drink fits, the advice is water, not "split it".
+   * when not even one whole drink fits, the advice is water, not "split it". `shareAdvice` is true when the
+   * whole day's ceiling is one drink or less (including less than one), so the app suggests splitting it.
    */
   joke.caffeineBudget = function (weightKg, drinkMg, shiftHours) {
     if (!Number.isFinite(weightKg) || weightKg <= 0) throw new RangeError('weightKg must be positive');
@@ -93,6 +94,7 @@
       wholeDrinks: whole,
       hoursBetween: whole >= 1 ? round(shiftHours / whole, 1) : null,
       splitAdvice: whole >= 1 && drinkMg > servingMg,
+      shareAdvice: drinks <= 1,
       verdict: joke.caffeineVerdict(whole)
     };
   };

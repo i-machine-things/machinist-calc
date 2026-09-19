@@ -659,6 +659,18 @@ test('caffeineBudget: drinks per day is floored so it never disagrees with the w
   assert.ok(r.drinksPerDay < r.wholeDrinks + 1 && r.drinksPerDay >= r.wholeDrinks);
 });
 
+test('caffeineBudget: one drink or less for the whole day means split it or share it', () => {
+  const share = (kg, mg) => joke.caffeineBudget(kg, mg, 8).shareAdvice;
+  assert.strictEqual(share(70, 160), false);  // 2.5 drinks
+  assert.strictEqual(share(70, 399), false);  // 1.0025 drinks: just over one
+  assert.strictEqual(share(70, 400), true);   // exactly one drink
+  assert.strictEqual(share(70, 401), true);   // 0.997 of a drink
+  assert.strictEqual(share(joke.lbToKg(100), 160), true);  // 100 lb: 0.99 of a Monster
+  assert.strictEqual(share(joke.lbToKg(1), 95), true);     // 1 lb: a sliver of a cup
+  assert.strictEqual(share(40, 300), true);   // no whole drink fits, and sharing is still the advice
+  assert.strictEqual(share(joke.lbToKg(600), 160), false);
+});
+
 test('caffeineVerdict: every band', () => {
   const words = [0, 1, 2, 3, 4, 5, 11].map(joke.caffeineVerdict);
   assert.deepStrictEqual(words, ['Water. Just water.', 'One. Make it count.', 'Two. Pace yourself.',
