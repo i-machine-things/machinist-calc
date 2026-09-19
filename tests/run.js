@@ -679,22 +679,6 @@ test('donutProblems: rejects a chart with a loop, a dead end, a missing node, or
     .some((p) => p.indexOf('not "yes"') !== -1), 'terminal other than yes');
 });
 
-test('donutLayout: the map fans out left to right and every branch lands on yes in the last column', () => {
-  const layout = joke.donutLayout(joke.donutChart, 720, 300);
-  const byId = {};
-  layout.nodes.forEach((n) => { byId[n.id] = n; });
-  assert.strictEqual(layout.nodes.length, Object.keys(joke.donutChart.nodes).length);
-  layout.nodes.forEach((n) => {
-    assert.ok(n.x >= 0 && n.x <= 720 && n.y >= 0 && n.y <= 300, `${n.id} is outside the box`);
-  });
-  const maxX = Math.max(...layout.nodes.map((n) => n.x));
-  assert.strictEqual(byId.yes.x, maxX);
-  assert.strictEqual(byId[joke.donutChart.start].x, Math.min(...layout.nodes.map((n) => n.x)));
-  const edgeCount = Object.values(joke.donutChart.nodes).reduce((n, node) => n + node.options.length, 0);
-  assert.strictEqual(layout.edges.length, edgeCount);
-  layout.edges.forEach((e) => assert.ok(byId[e.from].x < byId[e.to].x, `${e.from} -> ${e.to} should point right`));
-});
-
 test('unlockMatches: typing coffee or M00 (the G-code program stop) unlocks; near misses do not', () => {
   assert.strictEqual(joke.unlockMatches('coffee'), true);
   assert.strictEqual(joke.unlockMatches('xxcoffee'), true);

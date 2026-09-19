@@ -182,55 +182,6 @@
     return problems;
   };
 
-  /**
-   * Positions for drawing the whole chart as a left-to-right map: a node's column is the longest path from
-   * the start, so branches fan out and every one of them lands on YES in the last column. Returns
-   * { nodes: [{ id, x, y, depth }], edges: [{ from, to, label }] } inside a width x height box.
-   */
-  joke.donutLayout = function (chart, width, height) {
-    var nodes = chart.nodes;
-    var depth = {};
-    // longest-path depth over a DAG: relax in discovery order until stable
-    var order = [];
-    var seen = {};
-    (function discover(id) {
-      if (seen[id]) return;
-      seen[id] = true;
-      order.push(id);
-      nodes[id].options.forEach(function (opt) { discover(opt.next); });
-    })(chart.start);
-    var changed = true;
-    order.forEach(function (id) { depth[id] = 0; });
-    while (changed) {
-      changed = false;
-      order.forEach(function (id) {
-        nodes[id].options.forEach(function (opt) {
-          if (depth[opt.next] < depth[id] + 1) { depth[opt.next] = depth[id] + 1; changed = true; }
-        });
-      });
-    }
-    var maxDepth = 0;
-    order.forEach(function (id) { if (depth[id] > maxDepth) maxDepth = depth[id]; });
-
-    var pad = 16;
-    var columns = {};
-    order.forEach(function (id) { (columns[depth[id]] = columns[depth[id]] || []).push(id); });
-    var outNodes = [];
-    Object.keys(columns).forEach(function (d) {
-      var ids = columns[d];
-      ids.forEach(function (id, i) {
-        var x = maxDepth === 0 ? width / 2 : pad + (width - 2 * pad) * (+d) / maxDepth;
-        var y = ids.length === 1 ? height / 2 : pad + (height - 2 * pad) * i / (ids.length - 1);
-        outNodes.push({ id: id, x: round(x, 1), y: round(y, 1), depth: +d });
-      });
-    });
-    var edges = [];
-    order.forEach(function (id) {
-      nodes[id].options.forEach(function (opt) { edges.push({ from: id, to: opt.next, label: opt.label }); });
-    });
-    return { nodes: outNodes, edges: edges };
-  };
-
   // ---------------------------------------------------------------------
   // Unlock words for the Break Room
   // ---------------------------------------------------------------------

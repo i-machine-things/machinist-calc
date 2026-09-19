@@ -853,38 +853,11 @@
     recalc();
   }
 
-  function escapeXml(text) {
-    return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
-
   function setupDonut(joke) {
-    var chart = joke.donutChart, layout = joke.donutLayout(chart, 720, 300);
-    var svg = $('br-donut-map'), stepEl = $('br-donut-step'), questionEl = $('br-donut-question'),
-      choicesEl = $('br-donut-choices'), back = $('br-donut-back'), restart = $('br-donut-restart');
-    var pos = {};
-    layout.nodes.forEach(function (n) { pos[n.id] = n; });
+    var chart = joke.donutChart;
+    var stepEl = $('br-donut-step'), questionEl = $('br-donut-question'), choicesEl = $('br-donut-choices'),
+      back = $('br-donut-back'), restart = $('br-donut-restart');
     var path = [chart.start];
-
-    function drawMap() {
-      var walked = {};
-      path.forEach(function (id, i) { if (i > 0) walked[path[i - 1] + '>' + id] = true; });
-      var onPath = {};
-      path.forEach(function (id) { onPath[id] = true; });
-      var current = path[path.length - 1];
-      var html = '';
-      layout.edges.forEach(function (e) {
-        var a = pos[e.from], b = pos[e.to], mid = (a.x + b.x) / 2;
-        html += '<path class="edge' + (walked[e.from + '>' + e.to] ? ' visited' : '') + '" d="M' + a.x + ',' + a.y +
-          ' C' + mid + ',' + a.y + ' ' + mid + ',' + b.y + ' ' + b.x + ',' + b.y + '"/>';
-      });
-      layout.nodes.forEach(function (n) {
-        var cls = 'node' + (n.id === 'yes' ? ' yes' : '') + (onPath[n.id] ? ' visited' : '') +
-          (n.id === current ? ' current' : '');
-        html += '<circle class="' + cls + '" cx="' + n.x + '" cy="' + n.y + '" r="' + (n.id === 'yes' ? 10 : 6) +
-          '"><title>' + escapeXml(chart.nodes[n.id].q) + '</title></circle>';
-      });
-      svg.innerHTML = html;
-    }
 
     function render() {
       var current = path[path.length - 1], node = chart.nodes[current];
@@ -900,7 +873,6 @@
         choicesEl.appendChild(btn);
       });
       back.disabled = path.length === 1;
-      drawMap();
     }
 
     back.addEventListener('click', function () { if (path.length > 1) { path.pop(); render(); } });

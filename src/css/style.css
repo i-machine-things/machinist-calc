@@ -368,10 +368,3 @@ input:focus, select:focus {
 }
 .choice-btn:hover { border-color: var(--accent); }
 .choice-btn:disabled { opacity: 0.4; cursor: default; }
-.donut-map { width: 100%; height: auto; margin-top: 12px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; }
-.donut-map .edge { fill: none; stroke: var(--border); stroke-width: 1; }
-.donut-map .edge.visited { stroke: var(--accent); stroke-width: 2; }
-.donut-map .node { fill: var(--bg-input); stroke: var(--text-dim); stroke-width: 1; }
-.donut-map .node.visited { fill: var(--accent-dim); stroke: var(--accent); }
-.donut-map .node.current { fill: var(--accent); stroke: var(--text); stroke-width: 2; }
-.donut-map .node.yes { fill: var(--ok); stroke: var(--ok); }
