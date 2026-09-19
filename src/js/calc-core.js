@@ -1610,9 +1610,9 @@
     return (halfFeed * halfFeed) / (noseRadius + noseRadius * Math.sqrt(1 - Math.pow(halfFeed / noseRadius, 2)));
   }
 
-  /** Theoretical cusp height (microinches) from feed (in/rev) and tool nose radius (in). See cuspHeight. */
+  /** Theoretical cusp height (decimal inches) from feed (in/rev) and tool nose radius (in). See cuspHeight. */
   calc.cuspHeightImperial = function (feedIpr, noseRadiusIn) {
-    return round(cuspHeight(feedIpr, noseRadiusIn) * 1e6, 1); // microinches
+    return round(cuspHeight(feedIpr, noseRadiusIn), 6); // inches, to the millionth
   };
   /** Theoretical cusp height (micrometers) from feed (mm/rev) and tool nose radius (mm). See cuspHeight. */
   calc.cuspHeightMetric = function (feedMmpr, noseRadiusMm) {

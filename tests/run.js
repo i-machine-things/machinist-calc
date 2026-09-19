@@ -539,7 +539,9 @@ test('surfaceFinishRaMetric', () => {
 // Expected values are the naive geometry R - sqrt(R^2 - (f/2)^2), computed independently of the
 // cancellation-safe form in calc-core.
 test('cuspHeightImperial', () => {
-  approx(calc.cuspHeightImperial(0.008, 0.032), 251.0, 0.05);
+  approx(calc.cuspHeightImperial(0.008, 0.032), 0.000251, 0.000001);
+  // .015 radius tool at .025/rev
+  approx(calc.cuspHeightImperial(0.025, 0.015), 0.006708, 0.000001);
 });
 
 test('cuspHeightMetric', () => {
