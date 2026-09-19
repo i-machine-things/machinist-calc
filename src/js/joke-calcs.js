@@ -4,7 +4,7 @@
  * the steel thermal expansion, is called out where it appears) and none of it is a standard.
  *
  * Note from the author: after I did an independent blindfolded review of my own work, I found that I am
- * perfect and this all worked on the first try. Except for line 378. It seems a little half baked.
+ * perfect and this all worked on the first try. Except for line 380. It seems a little half baked.
  */
 (function (root, factory) {
   var joke = factory();
@@ -40,21 +40,22 @@
     { name: 'Cola (12 oz)', mg: 34 }
   ];
 
-  var DAILY_CAP_MG = 400;     // up to ~400 mg/day for healthy adults (quoted by both the FDA and EFSA)
+  var ADULT_DAILY_MG = 400;   // up to ~400 mg/day for a healthy adult (quoted by both the FDA and EFSA)
   var SERVING_CAP_MG = 200;   // EFSA only: single doses up to 200 mg...
   var SERVING_MG_PER_KG = 3;  // ...which is "about 3 mg/kg" (EFSA), so a per-kg figure works at any weight
-  var REFERENCE_KG = 70;      // the "typical adult" the 400 mg/day figure is quoted for
+  var REFERENCE_KG = 70;      // the "typical adult" the 400 mg/day figure is quoted for (~5.7 mg/kg/day)
   // EFSA's stricter level for children and adolescents is 3 mg/kg/day, which is what a very light person gets
   // here. From RAMP_START_KG the per-kg rate then rises in a straight line to the adult rate (400 mg over 70 kg,
-  // ~5.7 mg/kg) by 70 kg, so the daily ceiling has no jumps. The ramp is this app's own arithmetic.
+  // ~5.7 mg/kg) by 70 kg, so the daily ceiling has no jumps. Above 70 kg it keeps scaling at that adult rate with
+  // no cap. The ramp and the scaling above 70 kg are this app's own arithmetic, not agency figures.
   var RAMP_START_KG = 40;
   var LIGHT_DAILY_MG_PER_KG = 3;
 
-  /** Daily ceiling (mg) at a given weight: 3 mg/kg, ramping up to the adult 400 mg at 70 kg, then flat. */
+  /** Daily ceiling (mg) at a given weight: 3 mg/kg, ramping up to the adult 400 mg at 70 kg, then proportional. */
   function dailyCeilingMg(weightKg) {
-    if (weightKg >= REFERENCE_KG) return DAILY_CAP_MG;
+    var adultRate = ADULT_DAILY_MG / REFERENCE_KG;
+    if (weightKg >= REFERENCE_KG) return adultRate * weightKg;
     if (weightKg <= RAMP_START_KG) return LIGHT_DAILY_MG_PER_KG * weightKg;
-    var adultRate = DAILY_CAP_MG / REFERENCE_KG;
     var rate = LIGHT_DAILY_MG_PER_KG +
       (adultRate - LIGHT_DAILY_MG_PER_KG) * (weightKg - RAMP_START_KG) / (REFERENCE_KG - RAMP_START_KG);
     return rate * weightKg;
@@ -66,8 +67,9 @@
    *   never above 200 mg. The FDA quotes no single-dose figure.
    * - Per day: 400 mg (FDA and EFSA) for a 70 kg adult. Lighter people get EFSA's stricter 3 mg/kg/day for
    *   children and adolescents, with the per-kg rate rising in a straight line from 40 kg to the adult rate at
-   *   70 kg (see dailyCeilingMg; that ramp is this app's own arithmetic). Heavier does not earn a bigger number:
-   *   neither agency publishes a per-kg adult ceiling above 400 mg, so there is nothing to scale up to.
+   *   70 kg, and heavier people keep scaling at that adult rate with NO cap (see dailyCeilingMg). Neither agency
+   *   publishes a per-kg ceiling above 400 mg, so everything above 70 kg is this app's extrapolation, and the
+   *   FDA cites seizures at around 1,200 mg taken quickly.
    * `weightKg` and `drinkMg` and `shiftHours` must be positive and finite; throws RangeError otherwise.
    * Returns daily and single-serving ceilings (mg), how many of the chosen drink that is, the spacing across
    * a shift, and a whole-drink verdict. `splitAdvice` is true when at least one whole drink fits the daily

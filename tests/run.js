@@ -613,15 +613,15 @@ test('caffeineBudget: a 70 kg adult gets the quoted 400 mg/day and 200 mg per se
   assert.strictEqual(coffee.hoursBetween, 2);
 });
 
-test('caffeineBudget: lighter people scale down proportionally, heavier people stay at the cap', () => {
+test('caffeineBudget: lighter people get less, heavier people scale on up (no cap)', () => {
   const light = joke.caffeineBudget(50, 160, 8);
   assert.strictEqual(light.dailyMg, 195);   // 50 kg: rate 3.905 mg/kg on the ramp from 3 (40 kg) to 5.714 (70 kg)
   assert.strictEqual(light.servingMg, 150); // 3 mg/kg (EFSA)
   assert.strictEqual(light.wholeDrinks, 1);
   assert.strictEqual(light.splitAdvice, true); // a 160 mg can is over the 150 mg single-dose ceiling
   const heavy = joke.caffeineBudget(100, 95, 8);
-  assert.strictEqual(heavy.dailyMg, 400);
-  assert.strictEqual(heavy.servingMg, 200);
+  assert.strictEqual(heavy.dailyMg, 571);   // 100 kg at the adult rate: 400 * 100 / 70
+  assert.strictEqual(heavy.servingMg, 200); // one serving stays at EFSA's 200 mg
 });
 
 test('caffeineBudget: no whole drink means water; many small drinks are spaced across the shift', () => {
@@ -666,7 +666,7 @@ test('caffeineVerdict: every band', () => {
     'That is a lot of small drinks. Consider a bigger mug.', 'That is a lot of small drinks. Consider a bigger mug.']);
 });
 
-test('caffeineBudget: any weight works; 3 mg/kg when light, ramps to 400 at 70 kg, then holds', () => {
+test('caffeineBudget: any weight works; 3 mg/kg when light, ramps to 400 at 70 kg, then keeps scaling', () => {
   const oneLb = joke.caffeineBudget(joke.lbToKg(1), 95, 8); // 1 lb: absurd, but it must answer
   assert.strictEqual(oneLb.dailyMg, 1);
   assert.strictEqual(oneLb.wholeDrinks, 0);
@@ -676,10 +676,17 @@ test('caffeineBudget: any weight works; 3 mg/kg when light, ramps to 400 at 70 k
   assert.strictEqual(daily(40), 120);   // the ramp starts here at 3 mg/kg
   assert.strictEqual(daily(55), 240);   // 55 kg: rate 4.357 mg/kg
   assert.strictEqual(daily(70), 400);   // the adult figure, reached exactly
-  // heavier never earns a bigger number: there is nothing published to scale up to
-  assert.strictEqual(daily(300), 400);
-  assert.strictEqual(daily(5000), 400);
-  assert.strictEqual(joke.caffeineBudget(5000, 160, 8).servingMg, 200);
+  // no cap: above 70 kg it keeps scaling at the adult rate, 400 / 70 mg per kg
+  assert.strictEqual(daily(100), 571);
+  assert.strictEqual(daily(300), 1714);
+  assert.strictEqual(daily(5000), 28571);
+  // a 600 lb person: 2.5 cans is no longer the answer
+  const big = joke.caffeineBudget(joke.lbToKg(600), 160, 8);
+  assert.strictEqual(big.dailyMg, 1555);
+  assert.strictEqual(big.wholeDrinks, 9);
+  assert.strictEqual(big.drinksPerDay, 9.7);
+  assert.strictEqual(joke.caffeineBudget(joke.lbToKg(600), 95, 8).wholeDrinks, 16);
+  assert.strictEqual(big.servingMg, 200); // one serving still tops out at EFSA's 200 mg
 });
 
 test('caffeineBudget: the daily ceiling has no jumps and never goes down as weight goes up', () => {
