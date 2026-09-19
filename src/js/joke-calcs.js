@@ -183,6 +183,111 @@
   };
 
   // ---------------------------------------------------------------------
+  // Tolerance translator
+  // ---------------------------------------------------------------------
+
+  // Typical linear expansion of carbon steel, inches per inch per degree F (6.5 millionths).
+  var STEEL_EXPANSION_PER_DEGF = 6.5e-6;
+
+  /** Ascending by the tightest tolerance (in thou, 0.001 in) each answer covers; the last covers the rest. */
+  var TOLERANCE_TIERS = [
+    { maxThou: 0.1, verdict: 'Are you sure that is not a typo? Your body heat is bigger than the tolerance.',
+      instrument: 'A CMM in a temperature-controlled room, and nobody breathing near it' },
+    { maxThou: 0.5, verdict: 'Bring the good gauge blocks and a sweater.',
+      instrument: 'Gauge blocks, a comparator, and a lot of patience' },
+    { maxThou: 1, verdict: 'Temperature matters now. Let the part cool down before you measure it.',
+      instrument: 'A micrometer you trust, on a part at room temperature' },
+    { maxThou: 5, verdict: 'Now we are talking. Micrometer time.', instrument: 'A micrometer' },
+    { maxThou: 10, verdict: 'Calipers will do. Do not lean on them.', instrument: 'Calipers' },
+    { maxThou: 30, verdict: 'Hold it up to the light.',
+      instrument: 'A steel rule, or calipers if you are feeling fancy' },
+    { maxThou: Infinity, verdict: 'Close enough for government work.',
+      instrument: 'A tape measure and good intentions' }
+  ];
+
+  /**
+   * Shop-speak for a +/- tolerance given in thou (0.001 in). Returns the tier index (0 = tightest), a verdict,
+   * what to measure it with, and the temperature swing (deg F) that would use up the whole tolerance on a
+   * 1 inch carbon-steel part (dL = alpha * L * dT, alpha = 6.5e-6 per deg F). Novelty text on top of one
+   * real formula; not a standard. Throws RangeError unless `tolThou` is positive and finite.
+   */
+  joke.toleranceTalk = function (tolThou) {
+    if (!Number.isFinite(tolThou) || tolThou <= 0) throw new RangeError('tolThou must be positive and finite');
+    var tier = 0;
+    while (tolThou > TOLERANCE_TIERS[tier].maxThou) tier++;
+    return {
+      tier: tier,
+      verdict: TOLERANCE_TIERS[tier].verdict,
+      instrument: TOLERANCE_TIERS[tier].instrument,
+      degF: round(tolThou / 1000 / STEEL_EXPANSION_PER_DEGF, 1)
+    };
+  };
+
+  // ---------------------------------------------------------------------
+  // Scrap excuse generator
+  // ---------------------------------------------------------------------
+
+  var EXCUSE_PARTS = ['The bore', 'The outside diameter', 'The thread', 'The flatness', 'The surface finish',
+    'The whole part'];
+  var EXCUSE_CAUSES = [
+    'was fine at 6 a.m. Thermal growth.',
+    'is perfect on the CMM in the other room.',
+    'blames the coolant concentration.',
+    'moved when somebody leaned on the machine.',
+    'was made to a different revision, in my heart.',
+    'went out when Mercury went retrograde.',
+    'was fine until the tool was not.',
+    'changed with the material lot. Again.'
+  ];
+  var EXCUSE_ACTIONS = [
+    'Recommended action: re-measure it after lunch.',
+    'Recommended action: measure it again, but slower.',
+    'Recommended action: call it "as-is" and move on.',
+    'Recommended action: coffee, then decide.'
+  ];
+  joke.excuseCount = EXCUSE_PARTS.length * EXCUSE_CAUSES.length * EXCUSE_ACTIONS.length;
+
+  function pick(list, rng) {
+    return list[Math.min(list.length - 1, Math.floor(rng() * list.length))];
+  }
+
+  /** One clean, plausible-sounding reason the part is out. `rng` returns [0, 1) (defaults to Math.random). */
+  joke.scrapExcuse = function (rng) {
+    var r = rng || Math.random;
+    return pick(EXCUSE_PARTS, r) + ' ' + pick(EXCUSE_CAUSES, r) + ' ' + pick(EXCUSE_ACTIONS, r);
+  };
+
+  // ---------------------------------------------------------------------
+  // Shift countdown
+  // ---------------------------------------------------------------------
+
+  /**
+   * Where you are in a shift. All times are minutes since midnight (0 to <1440); a shift whose end is earlier
+   * than its start runs past midnight. On the clock: minutes left, percent done, and how many coffee refills
+   * (one per two hours) are still ahead. Off the clock: minutes until the next shift starts. Throws
+   * RangeError for out-of-range times or a zero-length shift.
+   */
+  joke.shiftCountdown = function (nowMin, startMin, endMin) {
+    [nowMin, startMin, endMin].forEach(function (t) {
+      if (!Number.isFinite(t) || t < 0 || t >= 1440) throw new RangeError('times must be minutes since midnight');
+    });
+    var duration = (endMin - startMin + 1440) % 1440;
+    if (duration === 0) throw new RangeError('the shift must have a length');
+    var minutesIn = (nowMin - startMin + 1440) % 1440;
+    if (minutesIn >= duration) {
+      return { onShift: false, minutesUntilStart: (startMin - nowMin + 1440) % 1440, verdict: 'Off the clock.' };
+    }
+    var left = duration - minutesIn;
+    var percent = round(minutesIn / duration * 100, 0);
+    var verdict = 'Home stretch.';
+    if (percent < 25) verdict = 'Long way to go.';
+    else if (percent < 50) verdict = 'Warming up.';
+    else if (percent < 75) verdict = 'Downhill from here.';
+    return { onShift: true, minutesLeft: round(left, 0), percentDone: percent,
+      coffeeRefills: Math.floor(left / 120), verdict: verdict };
+  };
+
+  // ---------------------------------------------------------------------
   // Unlock words for the Break Room
   // ---------------------------------------------------------------------
 

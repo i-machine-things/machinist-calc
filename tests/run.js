@@ -679,6 +679,84 @@ test('donutProblems: rejects a chart with a loop, a dead end, a missing node, or
     .some((p) => p.indexOf('not "yes"') !== -1), 'terminal other than yes');
 });
 
+test('toleranceTalk: tiers change at their boundaries, tightest first', () => {
+  const tier = (thou) => joke.toleranceTalk(thou).tier;
+  assert.deepStrictEqual([0.05, 0.1, 0.1001, 0.5, 0.6, 1, 2, 5, 6, 10, 20, 30, 31, 500].map(tier),
+    [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6]);
+  assert.ok(joke.toleranceTalk(0.05).verdict.indexOf('typo') !== -1);
+  assert.strictEqual(joke.toleranceTalk(5).instrument, 'A micrometer');
+});
+
+test('toleranceTalk: degrees F to use up the tolerance on a 1 inch steel part (dT = tol / 6.5e-6 per F)', () => {
+  approx(joke.toleranceTalk(0.5).degF, 76.9, 0.05);   // 0.0005 in / 6.5e-6
+  approx(joke.toleranceTalk(0.65).degF, 100, 0.05);
+  approx(joke.toleranceTalk(5).degF, 769.2, 0.05);
+});
+
+test('toleranceTalk: rejects zero, negative and non-finite tolerances', () => {
+  assert.throws(() => joke.toleranceTalk(0), RangeError);
+  assert.throws(() => joke.toleranceTalk(-1), RangeError);
+  assert.throws(() => joke.toleranceTalk(NaN), RangeError);
+  assert.throws(() => joke.toleranceTalk(Infinity), RangeError);
+  assert.throws(() => joke.toleranceTalk('5'), RangeError);
+});
+
+test('scrapExcuse: always a full sentence from the lists, whatever the random number is', () => {
+  const lo = joke.scrapExcuse(() => 0);
+  const hi = joke.scrapExcuse(() => 0.999999);
+  assert.strictEqual(lo, 'The bore was fine at 6 a.m. Thermal growth. Recommended action: re-measure it after lunch.');
+  assert.ok(hi.startsWith('The whole part') && hi.endsWith('coffee, then decide.'), hi);
+  assert.strictEqual(joke.excuseCount, 6 * 8 * 4);
+  const seen = new Set();
+  for (let i = 0; i < 200; i++) {
+    const e = joke.scrapExcuse();
+    assert.ok(typeof e === 'string' && e.indexOf('undefined') === -1, e);
+    seen.add(e);
+  }
+  assert.ok(seen.size > 20, 'expected plenty of variety');
+});
+
+test('shiftCountdown: a day shift, mid-shift', () => {
+  const r = joke.shiftCountdown(600, 420, 930); // 10:00 in a 07:00-15:30 shift
+  assert.strictEqual(r.onShift, true);
+  assert.strictEqual(r.minutesLeft, 330);
+  assert.strictEqual(r.percentDone, 35);       // 180 of 510 minutes
+  assert.strictEqual(r.coffeeRefills, 2);
+  assert.strictEqual(r.verdict, 'Warming up.');
+});
+
+test('shiftCountdown: off the clock, and the verdict steps through the shift', () => {
+  const off = joke.shiftCountdown(1000, 420, 930); // 16:40
+  assert.strictEqual(off.onShift, false);
+  assert.strictEqual(off.minutesUntilStart, 860);
+  const at = (now) => joke.shiftCountdown(now, 0, 600).verdict; // a 10 hour shift from midnight
+  assert.deepStrictEqual([0, 100, 200, 400, 500].map(at),
+    ['Long way to go.', 'Long way to go.', 'Warming up.', 'Downhill from here.', 'Home stretch.']);
+  assert.strictEqual(joke.shiftCountdown(930, 420, 930).onShift, false); // the end minute is already off
+  assert.strictEqual(joke.shiftCountdown(420, 420, 930).onShift, true);  // the start minute is on
+});
+
+test('shiftCountdown: a night shift that runs past midnight', () => {
+  const late = joke.shiftCountdown(120, 1380, 420); // 02:00 in a 23:00-07:00 shift
+  assert.strictEqual(late.onShift, true);
+  assert.strictEqual(late.minutesLeft, 300);
+  assert.strictEqual(late.percentDone, 38);        // 180 of 480 minutes
+  const evening = joke.shiftCountdown(1440 - 30, 1380, 420); // 23:30, 30 minutes in
+  assert.strictEqual(evening.onShift, true);
+  assert.strictEqual(evening.minutesLeft, 450);
+  const day = joke.shiftCountdown(600, 1380, 420); // 10:00 is between shifts
+  assert.strictEqual(day.onShift, false);
+  assert.strictEqual(day.minutesUntilStart, 780);
+});
+
+test('shiftCountdown: rejects out-of-range times and a zero-length shift', () => {
+  assert.throws(() => joke.shiftCountdown(-1, 420, 930), RangeError);
+  assert.throws(() => joke.shiftCountdown(1440, 420, 930), RangeError);
+  assert.throws(() => joke.shiftCountdown(NaN, 420, 930), RangeError);
+  assert.throws(() => joke.shiftCountdown(600, 420, 420), RangeError);
+  assert.throws(() => joke.shiftCountdown('600', 420, 930), RangeError);
+});
+
 test('unlockMatches: typing coffee or M00 (the G-code program stop) unlocks; near misses do not', () => {
   assert.strictEqual(joke.unlockMatches('coffee'), true);
   assert.strictEqual(joke.unlockMatches('xxcoffee'), true);

@@ -558,6 +558,9 @@
       <div class="tabs">
         <button class="tab-btn active" data-tab="br-caffeine">Caffeine Budget</button>
         <button class="tab-btn" data-tab="br-donut">Should I Get a Donut?</button>
+        <button class="tab-btn" data-tab="br-tol">Tolerance Translator</button>
+        <button class="tab-btn" data-tab="br-excuse">Scrap Excuses</button>
+        <button class="tab-btn" data-tab="br-shift">Shift Countdown</button>
       </div>
 
       <div class="tab-panel active" id="br-caffeine">
@@ -601,6 +604,54 @@
             <button class="choice-btn" id="br-donut-back">Back</button>
             <button class="choice-btn" id="br-donut-restart">Start over</button>
           </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="br-tol">
+        <p class="standard-note">Type a tolerance, get shop-speak. The temperature line is real physics: carbon steel grows about 6.5 millionths of an inch per inch per °F.</p>
+        <div class="grid grid-2">
+          <label>Tolerance (±)
+            <input type="number" id="br-tol-value" step="any" value="0.5" />
+          </label>
+          <label>Unit
+            <select id="br-tol-unit">
+              <option value="thou">thou (0.001 in)</option>
+              <option value="mm">mm</option>
+            </select>
+          </label>
+        </div>
+        <div class="result-box">
+          <div class="result-value" id="br-tol-verdict">—</div>
+          <div class="result-line">Measure it with: <span id="br-tol-instrument">—</span></div>
+          <div class="result-sub">A 1 in steel part uses up the whole tolerance with a <span id="br-tol-degf">—</span> °F swing.</div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="br-excuse">
+        <p class="standard-note">Why the part is out. One button, one excuse.</p>
+        <div class="result-box">
+          <div class="result-value" id="br-excuse-text">Press the button.</div>
+          <div class="choice-row">
+            <button class="choice-btn" id="br-excuse-btn">Generate an excuse</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="br-shift">
+        <p class="standard-note">How much shift is left. Night shifts that run past midnight work too.</p>
+        <div class="grid grid-2">
+          <label>Shift Start
+            <input type="time" id="br-sh-start" value="07:00" />
+          </label>
+          <label>Shift End
+            <input type="time" id="br-sh-end" value="15:30" />
+          </label>
+        </div>
+        <div class="result-box">
+          <div class="result-line">Time left: <span id="br-sh-left">—</span></div>
+          <div class="result-line">Shift done: <span id="br-sh-pct">—</span></div>
+          <div class="result-line">Coffee refills still ahead (one every 2 hours): <span id="br-sh-coffee">—</span></div>
+          <div class="result-sub" id="br-sh-verdict">—</div>
         </div>
       </div>
     </section>

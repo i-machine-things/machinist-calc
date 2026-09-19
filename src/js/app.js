@@ -880,10 +880,72 @@
     render();
   }
 
+  function setupToleranceTalk(joke) {
+    var value = $('br-tol-value'), unit = $('br-tol-unit'), verdict = $('br-tol-verdict'),
+      instrument = $('br-tol-instrument'), degF = $('br-tol-degf');
+    function recalc() {
+      var v = parseFloat(value.value);
+      var thou = unit.value === 'mm' ? v / 0.0254 : v;
+      var r = null;
+      try {
+        r = joke.toleranceTalk(thou);
+      } catch (err) {
+        if (!(err instanceof RangeError)) throw err;
+      }
+      verdict.textContent = r ? r.verdict : '—';
+      instrument.textContent = r ? r.instrument : '—';
+      degF.textContent = r ? r.degF : '—';
+    }
+    [value, unit].forEach(function (el) { el.addEventListener('input', recalc); });
+    recalc();
+  }
+
+  function setupExcuses(joke) {
+    var text = $('br-excuse-text');
+    $('br-excuse-btn').addEventListener('click', function () { text.textContent = joke.scrapExcuse(); });
+  }
+
+  function setupShiftCountdown(joke) {
+    var start = $('br-sh-start'), end = $('br-sh-end'), left = $('br-sh-left'), pct = $('br-sh-pct'),
+      coffee = $('br-sh-coffee'), verdict = $('br-sh-verdict');
+    function minutes(el) {
+      var parts = el.value.split(':');
+      return parts.length === 2 ? parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10) : NaN;
+    }
+    function clock(totalMinutes) {
+      return Math.floor(totalMinutes / 60) + ' h ' + (totalMinutes % 60) + ' m';
+    }
+    function recalc() {
+      var now = new Date();
+      var r = null;
+      try {
+        r = joke.shiftCountdown(now.getHours() * 60 + now.getMinutes(), minutes(start), minutes(end));
+      } catch (err) {
+        if (!(err instanceof RangeError)) throw err;
+      }
+      left.textContent = r && r.onShift ? clock(r.minutesLeft) : '—';
+      pct.textContent = r && r.onShift ? r.percentDone + '%' : '—';
+      coffee.textContent = r && r.onShift ? r.coffeeRefills : '—';
+      if (!r) {
+        verdict.textContent = '—';
+      } else if (r.onShift) {
+        verdict.textContent = r.verdict;
+      } else {
+        verdict.textContent = r.verdict + ' Next shift starts in ' + clock(r.minutesUntilStart) + '.';
+      }
+    }
+    [start, end].forEach(function (el) { el.addEventListener('input', recalc); });
+    // Refresh twice a minute so the countdown keeps moving while the panel is open.
+    (function tick() { recalc(); setTimeout(tick, 30000); })();
+  }
+
   function setupBreakRoom() {
     var joke = window.MC.joke;
     setupCaffeine(joke);
     setupDonut(joke);
+    setupToleranceTalk(joke);
+    setupExcuses(joke);
+    setupShiftCountdown(joke);
 
     var navItem = $('nav-breakroom'), panel = $('panel-breakroom');
     var typed = '';
