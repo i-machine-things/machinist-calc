@@ -75,6 +75,10 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 
 - **Asserting only one bound of a known range lets the other drift silently.** The Inconel carbide test checked `carbide[1] <= titanium.carbide[1]` but never pinned `[60, 120]` directly. Assert exact values when known, alongside any cross-row comparison. Caught by CodeRabbit, machinist-calc PR #11.
 
+## Cutting Speed Data
+
+- **A speed-table row needs a cited source; a relational test ("X slower than Y") is no substitute.** A guessed duplex row (carbide 100-200 SFM) passed such a test, but manufacturer data says 300-525. Pin sourced values and mark unsourced rows as placeholders. machinist-calc PR #14.
+
 ## Metric Thread Tolerance Class Notation (ISO 965-1)
 
 - **A compound class like `4g6g` means pitch-diameter grade 4, major/minor-diameter grade 6 — not "grade 4 for everything."** First grade+letter = pitch diameter; second (if shown) = crest diameter. `6g` alone means `6g6g`.

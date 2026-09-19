@@ -386,19 +386,29 @@ test('recommendedSfm: every row has ordered HSS/carbide ranges, carbide faster t
   }
 });
 
-test('recommendedSfm: exotic materials run slower than the ordinary family they belong to', () => {
-  const row = (needle) => {
-    const r = calc.recommendedSfm.find((m) => m.material.indexOf(needle) !== -1);
-    assert.ok(r, `expected a row containing "${needle}"`);
-    return r;
-  };
-  const austenitic = row('austenitic');
-  const duplex = row('Duplex');
-  assert.ok(duplex.carbide[1] <= austenitic.carbide[1] && duplex.hss[1] <= austenitic.hss[1],
-    'duplex should not out-cut austenitic stainless');
-  assert.ok(row('White cast iron').carbide[1] <= row('Gray cast iron').carbide[0],
+const sfmRow = (needle) => {
+  const r = calc.recommendedSfm.find((m) => m.material.indexOf(needle) !== -1);
+  assert.ok(r, `expected a row containing "${needle}"`);
+  return r;
+};
+
+// Sourced rows are pinned to the published figures, like the Inconel test above.
+test('recommendedSfm: duplex 2205 matches IMOA Shop Sheet 103 Table 1 (Outokumpu data)', () => {
+  const duplex = sfmRow('Duplex');
+  assert.deepStrictEqual(duplex.carbide, [300, 525]); // roughing 90-120 m/min .. finishing 120-160 m/min
+  assert.deepStrictEqual(duplex.hss, [50, 65]);       // 15-20 m/min
+});
+
+test('recommendedSfm: manganese steel carbide matches Seco Tools (20-30 m/min = 65-100 SFM)', () => {
+  assert.deepStrictEqual(sfmRow('Manganese steel').carbide, [65, 100]);
+});
+
+// White iron (and the manganese HSS placeholder) have no cited source, so only their relationship to
+// the ordinary family is checked -- not a substitute for a source.
+test('recommendedSfm: unsourced hard-material rows stay conservative', () => {
+  assert.ok(sfmRow('White cast iron').carbide[1] <= sfmRow('Gray cast iron').carbide[0],
     'white iron should top out below where gray iron starts');
-  assert.ok(row('Manganese steel').carbide[1] <= row('Alloy steel').carbide[0],
+  assert.ok(sfmRow('Manganese steel').carbide[1] <= sfmRow('Alloy steel').carbide[0],
     'manganese steel should top out below where annealed alloy steel starts');
 });
 

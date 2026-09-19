@@ -1409,17 +1409,25 @@
     { material: 'Medium-carbon steel (10xx, 0.3-0.5% C)', hss: [70, 100], carbide: [250, 400] },
     { material: 'Alloy steel, annealed (41xx, 86xx)', hss: [50, 70], carbide: [200, 300] },
     { material: 'Tool steel, annealed', hss: [40, 60], carbide: [150, 250] },
-    // Exotic additions below (manganese steel, duplex stainless, white cast iron) are NOT taken from the
-    // Machinery's Handbook tables: they're conservative general shop-reference starting points, chosen to sit
-    // below the ordinary family each one belongs to (see the relational test in tests/run.js). Verify against
-    // the tooling manufacturer's data before relying on them.
-    // Hadfield manganese steel (11-14% Mn) work-hardens under the cut: HSS is a last resort, carbide with a
-    // rigid setup and no dwelling is the norm.
-    { material: 'Manganese steel (Hadfield, 11-14% Mn)', hss: [10, 20], carbide: [40, 100] },
+    // Hadfield manganese steel work-hardens under the cut. Carbide range: Seco Tools ("Turning of crushing
+    // cones in austenitic manganese steel", Seco Advanced Material Expert, 2014): "cutting speeds in the range
+    // of 20 to 30 m/min is normal" (= 65-100 SFM); the same source reaches 200 m/min with CBN. A machine shop's
+    // own published figure (Richconn, 50-100 SFM) is consistent. The HSS range is a placeholder -- no
+    // manufacturer publishes one and HSS is generally not used -- so treat it as "barely, if at all".
+    { material: 'Manganese steel (Hadfield, 11-14% Mn)', hss: [10, 20], carbide: [65, 100] },
     { material: 'Stainless steel, austenitic (300 series)', hss: [40, 70], carbide: [150, 300] },
-    { material: 'Duplex stainless steel (e.g. 2205)', hss: [25, 45], carbide: [100, 200] },
+    // Duplex 2205, from IMOA Shop Sheet 103 "Machining duplex stainless steels", Table 1 (data credited to
+    // Outokumpu; figure 2 is Sandvik): carbide roughing 90-120 m/min (300-400 SFM) to finishing 120-160 m/min
+    // (400-525 SFM), P20-P35 / P10-P15 grades; HSS 15-20 m/min (50-65 SFM). Outokumpu's own 2205 machining
+    // guideline gives lower carbide starting values (55-100 m/min) but at much heavier feeds (up to 0.8 mm/rev).
+    // Duplex is grade-sensitive: 2304 runs faster (carbide 400-680 SFM) and super duplex 2507 much slower
+    // (carbide 165-350 SFM, HSS 35-50 SFM) per the same table.
+    { material: 'Duplex stainless steel (2205)', hss: [50, 65], carbide: [300, 525] },
     { material: 'Gray cast iron', hss: [50, 80], carbide: [200, 400] },
-    // White cast iron is very hard (typically 400+ HB); HSS barely cuts it.
+    // White cast iron is very hard (typically 400+ HB, chilled iron 400-600 HB). UNSOURCED: no tooling
+    // manufacturer speed table was found for turning it (Sandvik lists it under ISO H, hard cast iron, and
+    // recommends grades but gives no speeds). Deliberately conservative -- a slow starting point -- and HSS
+    // barely cuts it. Replace with a cited value when one is available.
     { material: 'White cast iron', hss: [5, 15], carbide: [30, 80] },
     { material: 'Titanium alloys', hss: [20, 30], carbide: [100, 150] },
     // HSS range is Machinery's Handbook Table 9 (Cutting Feeds and Speeds for Turning
