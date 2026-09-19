@@ -567,6 +567,44 @@ test('toolFinishMetric', () => {
   approx(t.rms, 52.828, 0.005);
 });
 
+// Regression (CodeRabbit, PR #12): the tip arc meets the flanks at x = R*cos(theta/2), depth R*(1 - sin(theta/2)).
+// An earlier version had sin/cos swapped, which is only correct at 90 degrees -- every other angle came out
+// 15-20% too deep. Expected values are from an independent construction of the tool shape (the union of
+// radius-R disks that fit inside a sharp wedge, brute-forced), not from the tangent-point formula.
+test('toolFinishImperial: non-90 degree included angles use the flank-tangent arc endpoint', () => {
+  const a60 = calc.toolFinishImperial(0.025, 60, 0.008);
+  approx(a60.depth, 0.013651, 0.000001);
+  approx(a60.ra, 3801.4, 1.5);
+  approx(a60.rms, 4319.9, 1.5);
+  const a120 = calc.toolFinishImperial(0.025, 120, 0.008);
+  approx(a120.depth, 0.005979, 0.000001);
+  approx(a120.ra, 1669.2, 1.5);
+  approx(a120.rms, 1896.0, 1.5);
+});
+
+// A rounded V must have no slope jump anywhere along the feed: the arc and the flanks are tangent. Scan the
+// depth vs half-feed on a fine grid (the arc's own curvature stays well under the threshold at this step);
+// the old swapped-sin/cos junction jumped the slope by 1-2 at a single point. Angles below ~40 degrees are
+// left out because the arc curves too sharply there for this step size to be a fair smoothness test.
+test('toolFinish: groove depth is smooth across the arc/flank junction at any included angle', () => {
+  const step = 0.1;
+  for (const angle of [45, 60, 90, 120, 150]) {
+    let prevSlope = null;
+    let prevDepth = null;
+    for (let half = 1; half <= 150; half += step) {
+      const depth = calc.toolFinishMetric(half * 2, angle, 100).depth;
+      if (prevDepth !== null) {
+        const slope = (depth - prevDepth) / step;
+        if (prevSlope !== null) {
+          assert.ok(Math.abs(slope - prevSlope) < 0.05, `${angle} deg: slope jumped ${prevSlope} -> ${slope} at half-feed ${half}`);
+        }
+        prevSlope = slope;
+      }
+      prevDepth = depth;
+    }
+  }
+});
+
 test('toolFinish: radius 0 is a sharp V (depth = (f/2)/tan(theta/2), Ra = h/4, Rq = h/(2*sqrt(3)))', () => {
   const r = calc.toolFinishImperial(0.02, 90, 0);
   approx(r.depth, 0.01, 0.000001);

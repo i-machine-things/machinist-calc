@@ -753,7 +753,7 @@
 
     function recalc() {
       var f = parseFloat(feed.value), r = parseFloat(radius.value), a = parseFloat(angle.value);
-      if ([f, r, a].some(isNaN) || f <= 0 || r < 0 || a <= 0 || a >= 180) {
+      if (![f, r, a].every(Number.isFinite) || f <= 0 || r < 0 || a <= 0 || a >= 180) {
         raOut.textContent = '—';
         rmsOut.textContent = '—';
         cuspOut.textContent = '—';

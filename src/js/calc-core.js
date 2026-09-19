@@ -1599,12 +1599,15 @@
    * Theoretical turned-surface profile for a tool with a tip radius R (0 = sharp) and an included angle
    * theta, cutting one feed f per revolution (round-nose turning, or serrating a flange face with a V-tool).
    * Not an ISO/ANSI formula, pure geometry. One groove is an arc of radius R at the tip, tangent to two
-   * straight flanks that meet at theta; the arc runs out to x = R*sin(theta/2) either side of the
-   * centreline, then the flanks continue at slope 1/tan(theta/2). Cusp height / groove depth is the
-   * profile height at the half-feed x = f/2, in closed form:
+   * straight flanks that meet at theta. The flanks have slope dz/dx = 1/tan(theta/2), and the arc
+   * (slope x/sqrt(R^2 - x^2)) matches it at x = R*cos(theta/2), so the arc runs out to that point either
+   * side of the centreline, at depth R*(1 - sin(theta/2)), and the flanks continue from there. (Not
+   * R*sin(theta/2): that is only equal at 90 degrees and leaves a kink at any other angle.) Cusp height /
+   * groove depth is the profile height at the half-feed x = f/2, in closed form:
    *   f/2 inside the arc: h = R - sqrt(R^2 - (f/2)^2)   (the classic round-nose cusp)
-   *   f/2 past the arc:   h = R*(1 - cos(theta/2)) + (f/2 - R*sin(theta/2)) / tan(theta/2)
-   * R = 0 gives h = (f/2)/tan(theta/2); a large R stays in the arc branch.
+   *   f/2 past the arc:   h = R*(1 - sin(theta/2)) + (f/2 - R*cos(theta/2)) / tan(theta/2)
+   * R = 0 gives h = (f/2)/tan(theta/2); a large R stays in the arc branch. A small theta approaches a
+   * full-radius (button/ball) tool whose arc spans nearly the whole half-feed; theta -> 180 flattens out.
    * Ra and Rq have no closed form here, so they come from numerically integrating that profile about its
    * mean line (midpoint rule, exact for the sharp case: Ra = h/4, Rq = h/(2*sqrt(3))). They run about 3%
    * above the handbook Ra = f^2/(32R) for small f/R, and stay right as f/R grows where that formula reads
@@ -1618,8 +1621,8 @@
     }
     var halfAngle = includedAngleDeg * Math.PI / 360;
     var slope = Math.tan(halfAngle);
-    var arcEnd = R * Math.sin(halfAngle);
-    var arcEndDepth = 2 * R * Math.pow(Math.sin(halfAngle / 2), 2); // R*(1 - cos), stable for small angles
+    var arcEnd = R * Math.cos(halfAngle);
+    var arcEndDepth = 2 * R * Math.pow(Math.sin(Math.PI / 4 - halfAngle / 2), 2); // R*(1 - sin), stable near 90
     function depthAt(x) {
       if (x <= arcEnd) return (x * x) / (R + Math.sqrt(R * R - x * x));
       return arcEndDepth + (x - arcEnd) / slope;
