@@ -1438,9 +1438,10 @@
     // independently-corroborated general shop-reference value instead, kept below Titanium's
     // carbide ceiling since Inconel is regarded as harder on tooling at comparable speeds.
     { material: 'Inconel & nickel-based superalloys', hss: [15, 35], carbide: [60, 120] },
-    // Joke entry, not real data -- see CODING_NOTES "Easter Eggs". Keep it last so the UI's default
-    // (first) row stays aluminum.
-    { material: 'Lime jello', hss: [1, 3], carbide: [2, 5] }
+    // Joke entry, not real data -- see CODING_NOTES "Easter Eggs". Nothing resists the cut, so it's
+    // spindle- and wobble-limited rather than material-limited. Keep it last so the UI's default (first)
+    // row stays aluminum.
+    { material: 'Lime jello', hss: [1000, 2500], carbide: [2500, 6000] }
   ];
 
   // ---------------------------------------------------------------------

@@ -86,4 +86,4 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 ## Easter Eggs
 
 - **machinist-calc**: Ctrl+Alt+Shift+M toggles a small hidden "Machinist's Rule 0" ASCII-art note (`#easter-egg` in `src/index.html`, wired in `src/js/app.js`'s `setupEasterEgg()`). Not referenced anywhere in the visible UI. Dismiss with Esc or a click.
-- **machinist-calc**: "Lime jello" is a joke material, the last row of `calc.recommendedSfm` (HSS 1-3, carbide 2-5 SFM). Unlike the shortcut above it's visible in the Speeds & Feeds material dropdown. Keep it last so the default row stays Aluminum; don't "fix" its ranges.
+- **machinist-calc**: "Lime jello" is a joke material, the last row of `calc.recommendedSfm` (HSS 1000-2500, carbide 2500-6000 SFM). Unlike the shortcut above it's visible in the Speeds & Feeds material dropdown. Keep it last so the default row stays Aluminum; don't "fix" its ranges.
