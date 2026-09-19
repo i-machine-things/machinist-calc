@@ -7,6 +7,7 @@
 
 const assert = require('assert');
 const calc = require('../src/js/calc-core.js');
+const joke = require('../src/js/joke-calcs.js');
 
 let passed = 0;
 let failed = 0;
@@ -591,6 +592,119 @@ test('fractionalDrills: reduces to lowest terms (32/64 -> 1/2")', () => {
   const fracs = calc.fractionalDrills(1, 64);
   const half = fracs.find((f) => Math.abs(f[1] - 0.5) < 1e-9);
   assert.strictEqual(half[0], '1/2"');
+});
+
+// -------------------------------------------------------------------------
+// Break Room novelty calculators (hidden; see CODING_NOTES "Easter Eggs")
+// -------------------------------------------------------------------------
+
+test('caffeineBudget: a 70 kg adult gets the quoted 400 mg/day and 200 mg per serving', () => {
+  const monster = joke.caffeineBudget(70, 160, 8);
+  assert.strictEqual(monster.dailyMg, 400);
+  assert.strictEqual(monster.servingMg, 200);
+  assert.strictEqual(monster.drinksPerDay, 2.5);
+  assert.strictEqual(monster.wholeDrinks, 2);
+  assert.strictEqual(monster.hoursBetween, 4);
+  assert.strictEqual(monster.splitAdvice, false);
+  assert.strictEqual(monster.verdict, 'Two. Pace yourself.');
+  const coffee = joke.caffeineBudget(70, 95, 8);
+  assert.strictEqual(coffee.drinksPerDay, 4.2);
+  assert.strictEqual(coffee.wholeDrinks, 4);
+  assert.strictEqual(coffee.hoursBetween, 2);
+});
+
+test('caffeineBudget: lighter people scale down proportionally, heavier people stay at the cap', () => {
+  const light = joke.caffeineBudget(50, 160, 8);
+  assert.strictEqual(light.dailyMg, 286);   // 400 * 50 / 70
+  assert.strictEqual(light.servingMg, 143); // 200 * 50 / 70
+  assert.strictEqual(light.wholeDrinks, 1);
+  assert.strictEqual(light.splitAdvice, true); // a 160 mg can is over the 143 mg single-dose ceiling
+  const heavy = joke.caffeineBudget(100, 95, 8);
+  assert.strictEqual(heavy.dailyMg, 400);
+  assert.strictEqual(heavy.servingMg, 200);
+});
+
+test('caffeineBudget: no whole drink means water; many small drinks are spaced across the shift', () => {
+  const tiny = joke.caffeineBudget(20, 160, 8);
+  assert.strictEqual(tiny.dailyMg, 114);
+  assert.strictEqual(tiny.wholeDrinks, 0);
+  assert.strictEqual(tiny.hoursBetween, null);
+  assert.strictEqual(tiny.verdict, 'Water. Just water.');
+  const cola = joke.caffeineBudget(70, 34, 8);
+  assert.strictEqual(cola.wholeDrinks, 11);
+  assert.strictEqual(cola.hoursBetween, 0.7);
+  assert.strictEqual(cola.verdict, 'That is a lot of small drinks. Consider a bigger mug.');
+});
+
+test('caffeineBudget: rejects out-of-range weight and non-positive drink or shift', () => {
+  assert.throws(() => joke.caffeineBudget(19, 160, 8), RangeError);
+  assert.throws(() => joke.caffeineBudget(301, 160, 8), RangeError);
+  assert.throws(() => joke.caffeineBudget(NaN, 160, 8), RangeError);
+  assert.throws(() => joke.caffeineBudget('70', 160, 8), RangeError);
+  assert.throws(() => joke.caffeineBudget(70, 0, 8), RangeError);
+  assert.throws(() => joke.caffeineBudget(70, 160, 0), RangeError);
+  assert.throws(() => joke.caffeineBudget(70, 160, Infinity), RangeError);
+});
+
+test('donutChart: it branches a long way out, and every path still ends at yes', () => {
+  assert.deepStrictEqual(joke.donutProblems(joke.donutChart), []);
+  const ids = Object.keys(joke.donutChart.nodes);
+  assert.ok(ids.length >= 20, 'expected a chart that branches out');
+  // Independently walk every path from the start (the chart is a DAG, so this terminates): each ends at yes.
+  const ends = new Set();
+  let paths = 0;
+  (function walk(id) {
+    const node = joke.donutChart.nodes[id];
+    if (node.terminal) { ends.add(id); paths++; return; }
+    node.options.forEach((opt) => walk(opt.next));
+  })(joke.donutChart.start);
+  assert.deepStrictEqual([...ends], ['yes']);
+  assert.ok(paths >= 30, `expected many distinct paths, got ${paths}`);
+});
+
+test('donutProblems: rejects a chart with a loop, a dead end, a missing node, or an orphan', () => {
+  const q = (next) => ({ q: '?', options: [{ label: 'a', next }, { label: 'b', next }] });
+  const yes = { q: 'YES', terminal: true, options: [] };
+  assert.deepStrictEqual(joke.donutProblems({ start: 's', nodes: { s: q('yes'), yes } }), []);
+  assert.ok(joke.donutProblems({ start: 's', nodes: { s: q('t'), t: q('s'), yes } })
+    .some((p) => p.indexOf('loop') !== -1), 'loop');
+  assert.ok(joke.donutProblems({ start: 's', nodes: { s: q('gone'), yes } })
+    .some((p) => p.indexOf('missing node') !== -1), 'missing node');
+  assert.ok(joke.donutProblems({ start: 's', nodes: { s: q('yes'), orphan: q('yes'), yes } })
+    .some((p) => p.indexOf('unreachable') !== -1), 'orphan');
+  assert.ok(joke.donutProblems({ start: 's', nodes: { s: { q: '?', options: [{ label: 'a', next: 'yes' }] }, yes } })
+    .some((p) => p.indexOf('at least two') !== -1), 'single answer');
+  const badTerminal = { q: 'nope', terminal: true, options: [] };
+  assert.ok(joke.donutProblems({ start: 's', nodes: { s: q('done'), done: badTerminal } })
+    .some((p) => p.indexOf('not "yes"') !== -1), 'terminal other than yes');
+});
+
+test('donutLayout: the map fans out left to right and every branch lands on yes in the last column', () => {
+  const layout = joke.donutLayout(joke.donutChart, 720, 300);
+  const byId = {};
+  layout.nodes.forEach((n) => { byId[n.id] = n; });
+  assert.strictEqual(layout.nodes.length, Object.keys(joke.donutChart.nodes).length);
+  layout.nodes.forEach((n) => {
+    assert.ok(n.x >= 0 && n.x <= 720 && n.y >= 0 && n.y <= 300, `${n.id} is outside the box`);
+  });
+  const maxX = Math.max(...layout.nodes.map((n) => n.x));
+  assert.strictEqual(byId.yes.x, maxX);
+  assert.strictEqual(byId[joke.donutChart.start].x, Math.min(...layout.nodes.map((n) => n.x)));
+  const edgeCount = Object.values(joke.donutChart.nodes).reduce((n, node) => n + node.options.length, 0);
+  assert.strictEqual(layout.edges.length, edgeCount);
+  layout.edges.forEach((e) => assert.ok(byId[e.from].x < byId[e.to].x, `${e.from} -> ${e.to} should point right`));
+});
+
+test('unlockMatches: typing coffee or M00 (the G-code program stop) unlocks; near misses do not', () => {
+  assert.strictEqual(joke.unlockMatches('coffee'), true);
+  assert.strictEqual(joke.unlockMatches('xxcoffee'), true);
+  assert.strictEqual(joke.unlockMatches('m00'), true);
+  assert.strictEqual(joke.unlockMatches('g01 x1.5 m00'), true);
+  assert.strictEqual(joke.unlockMatches(''), false);
+  assert.strictEqual(joke.unlockMatches('coffe'), false);
+  assert.strictEqual(joke.unlockMatches('m0'), false);
+  assert.strictEqual(joke.unlockMatches('m01'), false);
+  assert.strictEqual(joke.unlockMatches('coffee '), false);
 });
 
 // -------------------------------------------------------------------------

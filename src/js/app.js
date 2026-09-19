@@ -819,6 +819,119 @@
     render();
   }
 
+  // ------------------------------------------------------------------
+  // Break Room (hidden novelty calculators). Unlocked by typing "coffee" or "M00" outside a field.
+  // See CODING_NOTES "Easter Eggs".
+  // ------------------------------------------------------------------
+  function setupCaffeine(joke) {
+    var weight = $('br-cf-weight'), unit = $('br-cf-unit'), drink = $('br-cf-drink'), shift = $('br-cf-shift'),
+      outs = { daily: $('br-cf-daily'), serving: $('br-cf-serving'), drinks: $('br-cf-drinks'),
+        whole: $('br-cf-whole'), spacing: $('br-cf-spacing') },
+      verdict = $('br-cf-verdict'), split = $('br-cf-split');
+    fillSelect(drink, joke.caffeineDrinks);
+    drink.value = 1; // the ideal Monster
+
+    function recalc() {
+      var w = parseFloat(weight.value);
+      var kg = unit.value === 'lb' ? w * 0.45359237 : w;
+      var d = joke.caffeineDrinks[+drink.value];
+      var r = null;
+      try {
+        r = joke.caffeineBudget(kg, d.mg, parseFloat(shift.value));
+      } catch (err) {
+        if (!(err instanceof RangeError)) throw err;
+      }
+      outs.daily.textContent = r ? r.dailyMg : '—';
+      outs.serving.textContent = r ? r.servingMg : '—';
+      outs.drinks.textContent = r ? r.drinksPerDay : '—';
+      outs.whole.textContent = r ? r.wholeDrinks : '—';
+      outs.spacing.textContent = r && r.hoursBetween !== null ? r.hoursBetween : '—';
+      verdict.textContent = r ? r.verdict : '—';
+      split.hidden = !(r && r.splitAdvice);
+    }
+    [weight, unit, drink, shift].forEach(function (el) { el.addEventListener('input', recalc); });
+    recalc();
+  }
+
+  function escapeXml(text) {
+    return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function setupDonut(joke) {
+    var chart = joke.donutChart, layout = joke.donutLayout(chart, 720, 300);
+    var svg = $('br-donut-map'), stepEl = $('br-donut-step'), questionEl = $('br-donut-question'),
+      choicesEl = $('br-donut-choices'), back = $('br-donut-back'), restart = $('br-donut-restart');
+    var pos = {};
+    layout.nodes.forEach(function (n) { pos[n.id] = n; });
+    var path = [chart.start];
+
+    function drawMap() {
+      var walked = {};
+      path.forEach(function (id, i) { if (i > 0) walked[path[i - 1] + '>' + id] = true; });
+      var onPath = {};
+      path.forEach(function (id) { onPath[id] = true; });
+      var current = path[path.length - 1];
+      var html = '';
+      layout.edges.forEach(function (e) {
+        var a = pos[e.from], b = pos[e.to], mid = (a.x + b.x) / 2;
+        html += '<path class="edge' + (walked[e.from + '>' + e.to] ? ' visited' : '') + '" d="M' + a.x + ',' + a.y +
+          ' C' + mid + ',' + a.y + ' ' + mid + ',' + b.y + ' ' + b.x + ',' + b.y + '"/>';
+      });
+      layout.nodes.forEach(function (n) {
+        var cls = 'node' + (n.id === 'yes' ? ' yes' : '') + (onPath[n.id] ? ' visited' : '') +
+          (n.id === current ? ' current' : '');
+        html += '<circle class="' + cls + '" cx="' + n.x + '" cy="' + n.y + '" r="' + (n.id === 'yes' ? 10 : 6) +
+          '"><title>' + escapeXml(chart.nodes[n.id].q) + '</title></circle>';
+      });
+      svg.innerHTML = html;
+    }
+
+    function render() {
+      var current = path[path.length - 1], node = chart.nodes[current];
+      var done = !!node.terminal;
+      stepEl.textContent = done ? 'Every road leads here.' : 'Question ' + path.length;
+      questionEl.textContent = done ? '🍩 ' + node.q + ' 🍩' : node.q;
+      choicesEl.innerHTML = '';
+      node.options.forEach(function (opt) {
+        var btn = document.createElement('button');
+        btn.className = 'choice-btn';
+        btn.textContent = opt.label;
+        btn.addEventListener('click', function () { path.push(opt.next); render(); });
+        choicesEl.appendChild(btn);
+      });
+      back.disabled = path.length === 1;
+      drawMap();
+    }
+
+    back.addEventListener('click', function () { if (path.length > 1) { path.pop(); render(); } });
+    restart.addEventListener('click', function () { path = [chart.start]; render(); });
+    render();
+  }
+
+  function setupBreakRoom() {
+    var joke = window.MC.joke;
+    setupCaffeine(joke);
+    setupDonut(joke);
+
+    var navItem = $('nav-breakroom'), panel = $('panel-breakroom');
+    var typed = '';
+    document.addEventListener('keydown', function (e) {
+      if (typeof e.key !== 'string' || e.ctrlKey || e.altKey || e.metaKey) return;
+      var t = e.target;
+      // Never listen while someone is entering values, or "coffee"/"M00" typed into a field would toggle it.
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) {
+        typed = '';
+        return;
+      }
+      if (e.key.length !== 1) return;
+      typed = (typed + e.key.toLowerCase()).slice(-12);
+      if (!joke.unlockMatches(typed)) return;
+      typed = '';
+      navItem.hidden = !navItem.hidden;
+      if (navItem.hidden && panel.classList.contains('active')) document.querySelector('.nav-btn').click();
+    });
+  }
+
   // Hidden Ctrl+Alt+Shift+M easter egg — quiet, no accidental trigger, not
   // referenced anywhere in the UI. See CODING_NOTES.md "Easter Eggs".
   function setupEasterEgg() {
@@ -855,5 +968,6 @@
     setupSurfaceFinish();
     setupTolerance();
     setupCharts();
+    setupBreakRoom();
   });
 })();

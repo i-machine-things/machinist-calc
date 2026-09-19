@@ -24,6 +24,7 @@
       <li><button class="nav-btn" data-panel="panel-surfacefinish">Surface Finish</button></li>
       <li><button class="nav-btn" data-panel="panel-tolerance">ISO Tolerance</button></li>
       <li><button class="nav-btn" data-panel="panel-charts">Reference Charts</button></li>
+      <li id="nav-breakroom" hidden><button class="nav-btn" data-panel="panel-breakroom">Break Room</button></li>
     </ul>
   </nav>
 
@@ -549,6 +550,61 @@
       </div>
     </section>
 
+
+    <!-- Break Room (hidden novelty calculators; unlocked from the keyboard, see CODING_NOTES "Easter Eggs") -->
+    <section class="panel" id="panel-breakroom">
+      <h1>Break Room</h1>
+      <p class="standard-note">Novelty calculators. None of this is machining, medical, or standards advice.</p>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="br-caffeine">Caffeine Budget</button>
+        <button class="tab-btn" data-tab="br-donut">Should I Get a Donut?</button>
+      </div>
+
+      <div class="tab-panel active" id="br-caffeine">
+        <p class="standard-note">The ideal Monster count, by body weight. Uses the commonly quoted adult ceilings of 400 mg a day and 200 mg in one go (about 3 mg/kg for a 70 kg adult; FDA and EFSA), scaled down for lighter people. Real drinks vary. Pregnant, sensitive, or on medication? Ask a doctor, not a lathe.</p>
+        <div class="grid grid-3">
+          <label>Body Weight
+            <input type="number" id="br-cf-weight" step="any" value="180" />
+          </label>
+          <label>Weight Unit
+            <select id="br-cf-unit">
+              <option value="lb">lb</option>
+              <option value="kg">kg</option>
+            </select>
+          </label>
+          <label>Drink
+            <select id="br-cf-drink"></select>
+          </label>
+        </div>
+        <div class="grid grid-3">
+          <label>Shift Length (hours)
+            <input type="number" id="br-cf-shift" step="any" value="8" />
+          </label>
+        </div>
+        <div class="result-box">
+          <div class="result-line">Daily ceiling: <span id="br-cf-daily">—</span> mg</div>
+          <div class="result-line">One serving, at most: <span id="br-cf-serving">—</span> mg</div>
+          <div class="result-line">That is <span id="br-cf-drinks">—</span> of your drink a day (<span id="br-cf-whole">—</span> whole)</div>
+          <div class="result-line">Roughly one every <span id="br-cf-spacing">—</span> hours of your shift</div>
+          <div class="result-sub" id="br-cf-verdict">—</div>
+          <div class="result-sub" id="br-cf-split" hidden>One serving is more than the single-dose ceiling for your weight. Half now, half later.</div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="br-donut">
+        <p class="standard-note">A decision flowchart. It branches out a long way. Every path ends in the same place.</p>
+        <div class="result-box">
+          <div class="result-sub" id="br-donut-step">—</div>
+          <div class="result-value" id="br-donut-question">—</div>
+          <div class="choice-row" id="br-donut-choices"></div>
+          <div class="choice-row">
+            <button class="choice-btn" id="br-donut-back">Back</button>
+            <button class="choice-btn" id="br-donut-restart">Start over</button>
+          </div>
+        </div>
+        <svg id="br-donut-map" class="donut-map" viewBox="0 0 720 300" role="img" aria-label="Flowchart of every path to yes"></svg>
+      </div>
+    </section>
   </main>
 </div>
 
@@ -564,6 +620,7 @@
    corner — Esc to close)</pre></div>
 
 <script src="js/calc-core.js"></script>
+<script src="js/joke-calcs.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
