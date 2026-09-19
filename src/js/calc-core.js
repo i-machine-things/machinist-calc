@@ -1592,6 +1592,33 @@
     return round((feedMmpr * feedMmpr) / (32 * noseRadiusMm) * 1000, 3); // micrometers
   };
 
+  /**
+   * Theoretical cusp (scallop) height h left between adjacent passes of a round-nosed tool — the
+   * peak-to-valley roughness Rt. Pure geometry, no ISO/ANSI standard: h = R - sqrt(R^2 - (f/2)^2).
+   * Rewritten as (f/2)^2 / (R + sqrt(R^2 - (f/2)^2)) to avoid catastrophic cancellation at small
+   * f/R. For small f/R this reduces to f^2 / (8R), i.e. the Ra formula above times 4. Units in = units
+   * out; throws when f > 2R, where the nose arc no longer spans the feed and the cusp isn't a simple arc.
+   */
+  function cuspHeight(feed, noseRadius) {
+    if (!Number.isFinite(feed) || !Number.isFinite(noseRadius) || feed <= 0 || noseRadius <= 0) {
+      throw new RangeError('feed and noseRadius must be positive finite numbers');
+    }
+    var halfFeed = feed / 2;
+    if (halfFeed > noseRadius) {
+      throw new RangeError('feed must not exceed twice the nose radius');
+    }
+    return (halfFeed * halfFeed) / (noseRadius + noseRadius * Math.sqrt(1 - Math.pow(halfFeed / noseRadius, 2)));
+  }
+
+  /** Theoretical cusp height (microinches) from feed (in/rev) and tool nose radius (in). See cuspHeight. */
+  calc.cuspHeightImperial = function (feedIpr, noseRadiusIn) {
+    return round(cuspHeight(feedIpr, noseRadiusIn) * 1e6, 1); // microinches
+  };
+  /** Theoretical cusp height (micrometers) from feed (mm/rev) and tool nose radius (mm). See cuspHeight. */
+  calc.cuspHeightMetric = function (feedMmpr, noseRadiusMm) {
+    return round(cuspHeight(feedMmpr, noseRadiusMm) * 1000, 3); // micrometers
+  };
+
   // ---------------------------------------------------------------------
   // ISO tolerance (IT grade)
   // Standard: ISO 286-1 (ISO code system for tolerances on linear sizes) —

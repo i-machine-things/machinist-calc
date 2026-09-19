@@ -536,6 +536,29 @@ test('surfaceFinishRaMetric', () => {
   approx(calc.surfaceFinishRaMetric(0.2, 0.8), 1.563, 0.001);
 });
 
+// Expected values are the naive geometry R - sqrt(R^2 - (f/2)^2), computed independently of the
+// cancellation-safe form in calc-core.
+test('cuspHeightImperial', () => {
+  approx(calc.cuspHeightImperial(0.008, 0.032), 251.0, 0.05);
+});
+
+test('cuspHeightMetric', () => {
+  approx(calc.cuspHeightMetric(0.2, 0.8), 6.275, 0.001);
+});
+
+test('cuspHeight: f = 2R is the limit and equals R; small f/R approaches 4 * Ra', () => {
+  approx(calc.cuspHeightMetric(1.6, 0.8), 800, 0.001);
+  approx(calc.cuspHeightMetric(0.05, 0.8) / calc.surfaceFinishRaMetric(0.05, 0.8), 4, 0.01);
+});
+
+test('cuspHeight: rejects non-positive, non-finite, and f > 2R', () => {
+  assert.throws(() => calc.cuspHeightMetric(1.7, 0.8), RangeError);
+  assert.throws(() => calc.cuspHeightMetric(0, 0.8), RangeError);
+  assert.throws(() => calc.cuspHeightImperial(0.008, -0.032), RangeError);
+  assert.throws(() => calc.cuspHeightImperial(Infinity, 0.032), RangeError);
+  assert.throws(() => calc.cuspHeightImperial('0.008', 0.032), RangeError);
+});
+
 // -------------------------------------------------------------------------
 // ISO tolerance (ISO 286-1)
 // -------------------------------------------------------------------------

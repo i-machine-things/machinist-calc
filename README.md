@@ -18,7 +18,7 @@ every calculation runs locally in the app.
 | Bolt Circle | Analytic geometry |
 | Right Triangle Solver | Plain trigonometry (Pythagorean theorem / SOH-CAH-TOA) |
 | True Position | ASME Y14.5 |
-| Surface Finish | Theoretical Ra approximation (Machinery's Handbook) |
+| Surface Finish | Theoretical Ra approximation (Machinery's Handbook) and cusp (peak-to-valley) height |
 | ISO Tolerance / Limits | ISO 286-1 |
 | Reference Charts | ASME B94.11M drill size tables |
 

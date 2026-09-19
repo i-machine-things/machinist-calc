@@ -462,7 +462,7 @@
     <!-- Surface Finish -->
     <section class="panel" id="panel-surfacefinish">
       <h1>Surface Finish Calculator</h1>
-      <p class="standard-note">Theoretical turning Ra approximation (Machinery's Handbook) — not an ISO/ANSI standard. Ra = feed² / (32 × nose radius). Actual finish also depends on tool wear, material, and vibration.</p>
+      <p class="standard-note">Theoretical turning Ra approximation (Machinery's Handbook) — not an ISO/ANSI standard. Ra = feed² / (32 × nose radius). Cusp height (peak-to-valley) = R − √(R² − (feed/2)²), valid up to feed = 2 × nose radius. Actual finish also depends on tool wear, material, and vibration.</p>
       <div class="tabs">
         <button class="tab-btn active" data-tab="sfin-imperial">Imperial</button>
         <button class="tab-btn" data-tab="sfin-metric">Metric</button>
@@ -478,6 +478,7 @@
         </div>
         <div class="result-box">
           <div class="result-value">Ra: <span id="sfin-imp-result">—</span> µin</div>
+          <div class="result-value">Cusp Height (Rt): <span id="sfin-imp-cusp">—</span> µin</div>
         </div>
       </div>
       <div class="tab-panel" id="sfin-metric">
@@ -491,6 +492,7 @@
         </div>
         <div class="result-box">
           <div class="result-value">Ra: <span id="sfin-met-result">—</span> µm</div>
+          <div class="result-value">Cusp Height (Rt): <span id="sfin-met-cusp">—</span> µm</div>
         </div>
       </div>
     </section>

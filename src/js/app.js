@@ -743,19 +743,29 @@
   // ------------------------------------------------------------------
   // Surface Finish
   // ------------------------------------------------------------------
+  /** Cusp height readout: '—' for missing/invalid input, an explicit note once feed exceeds 2 × radius. */
+  function showCusp(out, fn, f, r) {
+    if (isNaN(f) || isNaN(r) || f <= 0 || r <= 0) { out.textContent = '—'; return; }
+    out.textContent = f > 2 * r ? 'n/a (feed > 2 × radius)' : fn(f, r);
+  }
+
   function setupSurfaceFinish() {
-    var impFeed = $('sfin-imp-feed'), impR = $('sfin-imp-radius'), impOut = $('sfin-imp-result');
+    var impFeed = $('sfin-imp-feed'), impR = $('sfin-imp-radius'), impOut = $('sfin-imp-result'),
+      impCusp = $('sfin-imp-cusp');
     function recalcImp() {
       var f = parseFloat(impFeed.value), r = parseFloat(impR.value);
+      showCusp(impCusp, calc.cuspHeightImperial, f, r);
       if (isNaN(f) || isNaN(r) || r <= 0) { impOut.textContent = '—'; return; }
       impOut.textContent = calc.surfaceFinishRaImperial(f, r);
     }
     [impFeed, impR].forEach(function (el) { el.addEventListener('input', recalcImp); });
     recalcImp();
 
-    var metFeed = $('sfin-met-feed'), metR = $('sfin-met-radius'), metOut = $('sfin-met-result');
+    var metFeed = $('sfin-met-feed'), metR = $('sfin-met-radius'), metOut = $('sfin-met-result'),
+      metCusp = $('sfin-met-cusp');
     function recalcMet() {
       var f = parseFloat(metFeed.value), r = parseFloat(metR.value);
+      showCusp(metCusp, calc.cuspHeightMetric, f, r);
       if (isNaN(f) || isNaN(r) || r <= 0) { metOut.textContent = '—'; return; }
       metOut.textContent = calc.surfaceFinishRaMetric(f, r);
     }
