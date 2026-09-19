@@ -886,19 +886,26 @@
 
   function setupToleranceTalk(joke) {
     var value = $('br-tol-value'), unit = $('br-tol-unit'), verdict = $('br-tol-verdict'),
-      instrument = $('br-tol-instrument'), degF = $('br-tol-degf');
+      instrument = $('br-tol-instrument'), temp = $('br-tol-temp');
+    // The engine works in thou (0.001 in); the field is in whatever unit the print uses.
+    var TO_THOU = { 'in': 1000, thou: 1, mm: 1 / 0.0254 };
     function recalc() {
-      var v = parseFloat(value.value);
-      var thou = unit.value === 'mm' ? v / 0.0254 : v;
       var r = null;
       try {
-        r = joke.toleranceTalk(thou);
+        r = joke.toleranceTalk(parseFloat(value.value) * TO_THOU[unit.value]);
       } catch (err) {
         if (!(err instanceof RangeError)) throw err;
       }
       verdict.textContent = r ? r.verdict : '—';
       instrument.textContent = r ? r.instrument : '—';
-      degF.textContent = r ? r.degF : '—';
+      if (!r) {
+        temp.textContent = '—';
+      } else if (r.degF > 500) {
+        temp.textContent = 'It would take a swing of over 500 °F to use up this tolerance on a 1 in steel part. ' +
+          'Temperature is not your problem.';
+      } else {
+        temp.textContent = 'A 1 in steel part uses up the whole tolerance with a ' + r.degF + ' °F swing.';
+      }
     }
     [value, unit].forEach(function (el) { el.addEventListener('input', recalc); });
     recalc();

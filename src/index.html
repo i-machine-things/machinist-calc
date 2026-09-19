@@ -609,13 +609,14 @@
       </div>
 
       <div class="tab-panel" id="br-tol">
-        <p class="standard-note">Type a tolerance, get shop-speak. The temperature line is real physics: carbon steel grows about 6.5 millionths of an inch per inch per °F.</p>
+        <p class="standard-note">Type the tolerance the way it is on the print: .005 is five thou, .0005 is half a thou. The temperature line is real physics: carbon steel grows about 6.5 millionths of an inch per inch per °F.</p>
         <div class="grid grid-2">
           <label>Tolerance (±)
-            <input type="number" id="br-tol-value" step="any" value="0.5" />
+            <input type="number" id="br-tol-value" step="any" value="0.0005" />
           </label>
           <label>Unit
             <select id="br-tol-unit">
+              <option value="in">in (decimal inches)</option>
               <option value="thou">thou (0.001 in)</option>
               <option value="mm">mm</option>
             </select>
@@ -624,7 +625,7 @@
         <div class="result-box">
           <div class="result-value" id="br-tol-verdict">—</div>
           <div class="result-line">Measure it with: <span id="br-tol-instrument">—</span></div>
-          <div class="result-sub">A 1 in steel part uses up the whole tolerance with a <span id="br-tol-degf">—</span> °F swing.</div>
+          <div class="result-sub" id="br-tol-temp">—</div>
         </div>
       </div>
 
