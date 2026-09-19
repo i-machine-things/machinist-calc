@@ -551,8 +551,43 @@ test('surfaceFinishRms: ~1.19x Ra; rejects non-positive and non-finite input', (
   approx(calc.surfaceFinishRmsMetric(2, 200) / calc.surfaceFinishRaMetric(2, 200), 1.193, 0.005);
   assert.throws(() => calc.surfaceFinishRmsMetric(0, 0.8), RangeError);
   assert.throws(() => calc.surfaceFinishRmsImperial(0.008, -0.032), RangeError);
-  assert.throws(() => calc.surfaceFinishRmsImperial(0.008, Infinity), RangeError);
+  assert.throws(() => calc.surfaceFinishRmsImperial(Infinity, 0.032), RangeError);
   assert.throws(() => calc.surfaceFinishRmsImperial('0.008', 0.032), RangeError);
+  assert.throws(() => calc.surfaceFinishRmsImperial(0.008, '0.032'), RangeError);
+  assert.throws(() => calc.surfaceFinishRmsImperial(0.008, NaN), RangeError);
+});
+
+test('flat/wiper edge (nose radius = Infinity) leaves no theoretical scallop', () => {
+  assert.strictEqual(calc.surfaceFinishRaMetric(0.2, Infinity), 0);
+  assert.strictEqual(calc.surfaceFinishRmsMetric(0.2, Infinity), 0);
+  assert.strictEqual(calc.surfaceFinishRmsImperial(0.008, Infinity), 0);
+  assert.strictEqual(calc.cuspHeightMetric(0.2, Infinity), 0);
+  assert.strictEqual(calc.cuspHeightImperial(0.008, Infinity), 0);
+});
+
+// V-tool: hand-computed from h = (f/2)/tan(theta/2), Ra = h/4, Rq = h/(2*sqrt(3)).
+test('vToolFinishImperial: 90 deg tool cuts a groove half the feed deep', () => {
+  const r = calc.vToolFinishImperial(0.02, 90);
+  approx(r.depth, 0.01, 0.000001);
+  approx(r.ra, 2500, 0.05);
+  approx(r.rms, 2886.8, 0.05);
+  approx(calc.vToolFinishImperial(0.02, 60).depth, 0.017321, 0.000001);
+});
+
+test('vToolFinishMetric', () => {
+  const r = calc.vToolFinishMetric(0.5, 90);
+  approx(r.depth, 0.25, 0.000001);
+  approx(r.ra, 62.5, 0.001);
+  approx(r.rms, 72.169, 0.001);
+  approx(calc.vToolFinishMetric(0.5, 120).depth, 0.144338, 0.000001);
+});
+
+test('vToolFinish: rejects bad feed or angle', () => {
+  assert.throws(() => calc.vToolFinishMetric(0, 90), RangeError);
+  assert.throws(() => calc.vToolFinishMetric(0.5, 0), RangeError);
+  assert.throws(() => calc.vToolFinishMetric(0.5, 180), RangeError);
+  assert.throws(() => calc.vToolFinishMetric(0.5, NaN), RangeError);
+  assert.throws(() => calc.vToolFinishImperial(Infinity, 90), RangeError);
 });
 
 // Expected values are the naive geometry R - sqrt(R^2 - (f/2)^2), computed independently of the

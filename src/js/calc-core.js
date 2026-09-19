@@ -1592,17 +1592,23 @@
     return round((feedMmpr * feedMmpr) / (32 * noseRadiusMm) * 1000, 3); // micrometers
   };
 
+  /** True for a number > 0 including Infinity (a flat edge is the R -> infinity limit); false for NaN/strings. */
+  function isPositiveRadius(r) {
+    return typeof r === 'number' && r > 0;
+  }
+
   /**
    * Theoretical RMS roughness Rq for turning, same small-angle regime as the Ra formula above. Not an
    * ISO/ANSI formula. Models one cusp as a parabola of height h = f^2 / (8R) over the feed f, whose
    * RMS deviation from its mean line is 2h / (3*sqrt(5)), so Rq = f^2 / (12*sqrt(5)*R) ~= 0.03727 f^2/R
    * (~1.19x the Ra above). Checked against numerically integrating the true arc profile: within 0.3% at
    * f/R = 0.25, and increasingly low as f/R grows (~18% low at f/R = 1.67) -- as is Ra.
-   * Returns the input length unit; throws on non-positive or non-finite input.
+   * Returns the input length unit. noseRadius may be Infinity (flat/wiper edge: no scallop, result 0);
+   * throws on non-positive/NaN/non-number noseRadius or non-positive/non-finite feed.
    */
   function rmsRoughness(feed, noseRadius) {
-    if (!Number.isFinite(feed) || !Number.isFinite(noseRadius) || feed <= 0 || noseRadius <= 0) {
-      throw new RangeError('feed and noseRadius must be positive finite numbers');
+    if (!Number.isFinite(feed) || !isPositiveRadius(noseRadius) || feed <= 0) {
+      throw new RangeError('feed must be positive and finite; noseRadius positive (Infinity allowed)');
     }
     return (feed * feed) / (12 * Math.sqrt(5) * noseRadius);
   }
@@ -1621,11 +1627,12 @@
    * peak-to-valley roughness Rt. Pure geometry, no ISO/ANSI standard: h = R - sqrt(R^2 - (f/2)^2).
    * Rewritten as (f/2)^2 / (R + sqrt(R^2 - (f/2)^2)) to avoid catastrophic cancellation at small
    * f/R. For small f/R this reduces to f^2 / (8R), i.e. the Ra formula above times 4. Units in = units
-   * out; throws when f > 2R, where the nose arc no longer spans the feed and the cusp isn't a simple arc.
+   * out; noseRadius may be Infinity (flat/wiper edge: h = 0). Throws when f > 2R, where the nose arc
+   * no longer spans the feed and the cusp isn't a simple arc.
    */
   function cuspHeight(feed, noseRadius) {
-    if (!Number.isFinite(feed) || !Number.isFinite(noseRadius) || feed <= 0 || noseRadius <= 0) {
-      throw new RangeError('feed and noseRadius must be positive finite numbers');
+    if (!Number.isFinite(feed) || !isPositiveRadius(noseRadius) || feed <= 0) {
+      throw new RangeError('feed must be positive and finite; noseRadius positive (Infinity allowed)');
     }
     var halfFeed = feed / 2;
     if (halfFeed > noseRadius) {
@@ -1641,6 +1648,33 @@
   /** Theoretical cusp height (decimal mm) from feed (mm/rev) and tool nose radius (mm). See cuspHeight. */
   calc.cuspHeightMetric = function (feedMmpr, noseRadiusMm) {
     return round(cuspHeight(feedMmpr, noseRadiusMm), 6); // mm, to 0.000001
+  };
+
+  /**
+   * Ideal sharp V-tool (zero nose radius) cutting grooves one feed apart, e.g. serrating a flange face.
+   * Not an ISO/ANSI formula, pure geometry: groove depth h = (f/2) / tan(theta/2) for included angle
+   * theta, so a 90 degree tool gives h = f/2. The profile is a symmetric triangle wave, for which
+   * Ra = h/4 and Rq = h/(2*sqrt(3)) exactly. Ignores the tip radius a real tool has: while the groove
+   * is shallower than that radius, use the round-nose calculation instead. Units in = units out.
+   */
+  function vToolFinish(feed, includedAngleDeg) {
+    if (!Number.isFinite(feed) || !Number.isFinite(includedAngleDeg) || feed <= 0 ||
+        includedAngleDeg <= 0 || includedAngleDeg >= 180) {
+      throw new RangeError('feed must be positive and finite; includedAngleDeg between 0 and 180 (exclusive)');
+    }
+    var depth = (feed / 2) / Math.tan(includedAngleDeg * Math.PI / 360);
+    return { depth: depth, ra: depth / 4, rq: depth / (2 * Math.sqrt(3)) };
+  }
+
+  /** V-tool depth (in), Ra and RMS (microinches) from feed (in/rev) and included angle (deg). See vToolFinish. */
+  calc.vToolFinishImperial = function (feedIpr, includedAngleDeg) {
+    var v = vToolFinish(feedIpr, includedAngleDeg);
+    return { depth: round(v.depth, 6), ra: round(v.ra * 1e6, 1), rms: round(v.rq * 1e6, 1) };
+  };
+  /** V-tool depth (mm), Ra and RMS (micrometers) from feed (mm/rev) and included angle (deg). See vToolFinish. */
+  calc.vToolFinishMetric = function (feedMmpr, includedAngleDeg) {
+    var v = vToolFinish(feedMmpr, includedAngleDeg);
+    return { depth: round(v.depth, 6), ra: round(v.ra * 1e3, 3), rms: round(v.rq * 1e3, 3) };
   };
 
   // ---------------------------------------------------------------------

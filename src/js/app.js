@@ -743,36 +743,60 @@
   // ------------------------------------------------------------------
   // Surface Finish
   // ------------------------------------------------------------------
-  /** Cusp height readout: '—' for missing/invalid input, an explicit note once feed exceeds 2 × radius. */
-  function showCusp(out, fn, f, r) {
-    if (isNaN(f) || isNaN(r) || f <= 0 || r <= 0) { out.textContent = '—'; return; }
-    out.textContent = f > 2 * r ? 'n/a (feed > 2 × radius)' : fn(f, r);
+  /**
+   * One Surface Finish tab. The tool type picks the model: round nose uses the feed/radius formulas,
+   * V-tool the ideal sharp-V groove depth from its included angle, and flat/wiper is the radius = infinity
+   * limit (no theoretical scallop). Cusp height is only defined for round nose while feed <= 2 x radius.
+   */
+  function setupSurfaceFinishTab(prefix, fns) {
+    var tool = $(prefix + '-tool'), feed = $(prefix + '-feed'), radius = $(prefix + '-radius'),
+      angle = $(prefix + '-angle'), radiusLabel = $(prefix + '-radius-label'),
+      angleLabel = $(prefix + '-angle-label'), raOut = $(prefix + '-result'),
+      rmsOut = $(prefix + '-rms'), cuspOut = $(prefix + '-cusp');
+
+    function blank() {
+      raOut.textContent = '—';
+      rmsOut.textContent = '—';
+      cuspOut.textContent = '—';
+    }
+
+    function recalc() {
+      var kind = tool.value;
+      radiusLabel.hidden = kind !== 'round';
+      angleLabel.hidden = kind !== 'vtool';
+      var f = parseFloat(feed.value);
+      if (isNaN(f) || f <= 0) { blank(); return; }
+
+      if (kind === 'vtool') {
+        var a = parseFloat(angle.value);
+        if (isNaN(a) || a <= 0 || a >= 180) { blank(); return; }
+        var v = fns.vTool(f, a);
+        raOut.textContent = v.ra;
+        rmsOut.textContent = v.rms;
+        cuspOut.textContent = v.depth;
+        return;
+      }
+
+      var r = kind === 'flat' ? Infinity : parseFloat(radius.value);
+      if (isNaN(r) || r <= 0) { blank(); return; }
+      raOut.textContent = fns.ra(f, r);
+      rmsOut.textContent = fns.rms(f, r);
+      cuspOut.textContent = f > 2 * r ? 'n/a (feed > 2 × radius)' : fns.cusp(f, r);
+    }
+
+    [tool, feed, radius, angle].forEach(function (el) { el.addEventListener('input', recalc); });
+    recalc();
   }
 
   function setupSurfaceFinish() {
-    var impFeed = $('sfin-imp-feed'), impR = $('sfin-imp-radius'), impOut = $('sfin-imp-result'),
-      impRms = $('sfin-imp-rms'), impCusp = $('sfin-imp-cusp');
-    function recalcImp() {
-      var f = parseFloat(impFeed.value), r = parseFloat(impR.value);
-      showCusp(impCusp, calc.cuspHeightImperial, f, r);
-      if (isNaN(f) || isNaN(r) || f <= 0 || r <= 0) { impOut.textContent = '—'; impRms.textContent = '—'; return; }
-      impOut.textContent = calc.surfaceFinishRaImperial(f, r);
-      impRms.textContent = calc.surfaceFinishRmsImperial(f, r);
-    }
-    [impFeed, impR].forEach(function (el) { el.addEventListener('input', recalcImp); });
-    recalcImp();
-
-    var metFeed = $('sfin-met-feed'), metR = $('sfin-met-radius'), metOut = $('sfin-met-result'),
-      metRms = $('sfin-met-rms'), metCusp = $('sfin-met-cusp');
-    function recalcMet() {
-      var f = parseFloat(metFeed.value), r = parseFloat(metR.value);
-      showCusp(metCusp, calc.cuspHeightMetric, f, r);
-      if (isNaN(f) || isNaN(r) || f <= 0 || r <= 0) { metOut.textContent = '—'; metRms.textContent = '—'; return; }
-      metOut.textContent = calc.surfaceFinishRaMetric(f, r);
-      metRms.textContent = calc.surfaceFinishRmsMetric(f, r);
-    }
-    [metFeed, metR].forEach(function (el) { el.addEventListener('input', recalcMet); });
-    recalcMet();
+    setupSurfaceFinishTab('sfin-imp', {
+      ra: calc.surfaceFinishRaImperial, rms: calc.surfaceFinishRmsImperial,
+      cusp: calc.cuspHeightImperial, vTool: calc.vToolFinishImperial
+    });
+    setupSurfaceFinishTab('sfin-met', {
+      ra: calc.surfaceFinishRaMetric, rms: calc.surfaceFinishRmsMetric,
+      cusp: calc.cuspHeightMetric, vTool: calc.vToolFinishMetric
+    });
   }
 
   // ------------------------------------------------------------------

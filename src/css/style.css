@@ -185,6 +185,8 @@ label {
   color: var(--text-dim);
 }
 
+label[hidden] { display: none; }
+
 .slider-label {
   margin-bottom: 16px;
 }
