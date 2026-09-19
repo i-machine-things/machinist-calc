@@ -84,6 +84,11 @@ users need to grab the new installer manually from the
 [releases page](https://github.com/i-machine-things/machinist-calc/releases)
 until the app is code-signed.
 
+## Feedback and issues
+
+**Help → Issues on GitHub...** opens this repository's issue tracker in your default browser. Posting there needs a
+GitHub account; the app itself makes no network request when you click it — your browser does.
+
 ## Project structure
 
 ```
