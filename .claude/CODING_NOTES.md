@@ -82,4 +82,4 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 ## Easter Eggs
 
 - **machinist-calc**: Ctrl+Alt+Shift+M toggles a small hidden "Machinist's Rule 0" ASCII-art note (`#easter-egg` in `src/index.html`, wired in `src/js/app.js`'s `setupEasterEgg()`). Not referenced anywhere in the visible UI. Dismiss with Esc or a click.
-- **machinist-calc**: hidden "Break Room" panel (`src/js/joke-calcs.js`, `setupBreakRoom()` in app.js): caffeine budget by weight + a "Should I get a donut?" flowchart that always ends at yes. Type `coffee` or `M00` (G-code program stop) outside a field to toggle it. Not in README/help. Tests keep the chart a DAG ending only at yes.
+- **machinist-calc**: hidden "Break Room" panel (`joke-calcs.js`): caffeine budget by weight + a "Should I get a donut?" flowchart that always ends at yes. Type `coffee` or `M00` (G-code program stop) outside a field to toggle. Not in README/help; tests keep the chart ending only at yes.
