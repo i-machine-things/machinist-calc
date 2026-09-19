@@ -744,9 +744,10 @@
   // Surface Finish
   // ------------------------------------------------------------------
   /**
-   * One Surface Finish tab. The tool type picks the model: round nose uses the feed/radius formulas,
-   * V-tool the ideal sharp-V groove depth from its included angle, and flat/wiper is the radius = infinity
-   * limit (no theoretical scallop). Cusp height is only defined for round nose while feed <= 2 x radius.
+   * One Surface Finish tab. The tool type picks the model: round nose uses the feed/radius formulas
+   * (cusp height only while feed <= 2 x radius), V-tool a tip arc (radius 0 = sharp) tangent to flanks at
+   * the included angle, which also covers feed > 2 x radius, and flat/wiper is the radius = infinity
+   * limit (no theoretical scallop).
    */
   function setupSurfaceFinishTab(prefix, fns) {
     var tool = $(prefix + '-tool'), feed = $(prefix + '-feed'), radius = $(prefix + '-radius'),
@@ -762,15 +763,15 @@
 
     function recalc() {
       var kind = tool.value;
-      radiusLabel.hidden = kind !== 'round';
+      radiusLabel.hidden = kind === 'flat';
       angleLabel.hidden = kind !== 'vtool';
       var f = parseFloat(feed.value);
       if (isNaN(f) || f <= 0) { blank(); return; }
 
       if (kind === 'vtool') {
-        var a = parseFloat(angle.value);
-        if (isNaN(a) || a <= 0 || a >= 180) { blank(); return; }
-        var v = fns.vTool(f, a);
+        var a = parseFloat(angle.value), tip = parseFloat(radius.value);
+        if (isNaN(a) || a <= 0 || a >= 180 || isNaN(tip) || tip < 0) { blank(); return; }
+        var v = fns.vTool(f, a, tip);
         raOut.textContent = v.ra;
         rmsOut.textContent = v.rms;
         cuspOut.textContent = v.depth;
@@ -781,7 +782,7 @@
       if (isNaN(r) || r <= 0) { blank(); return; }
       raOut.textContent = fns.ra(f, r);
       rmsOut.textContent = fns.rms(f, r);
-      cuspOut.textContent = f > 2 * r ? 'n/a (feed > 2 × radius)' : fns.cusp(f, r);
+      cuspOut.textContent = f > 2 * r ? 'n/a (feed > 2 × radius) — use V-tool' : fns.cusp(f, r);
     }
 
     [tool, feed, radius, angle].forEach(function (el) { el.addEventListener('input', recalc); });

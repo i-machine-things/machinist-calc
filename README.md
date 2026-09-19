@@ -18,7 +18,7 @@ every calculation runs locally in the app.
 | Bolt Circle | Analytic geometry |
 | Right Triangle Solver | Plain trigonometry (Pythagorean theorem / SOH-CAH-TOA) |
 | True Position | ASME Y14.5 |
-| Surface Finish | Theoretical Ra, RMS (Rq) and cusp height / DOC for round-nose, sharp V-tool (any included angle, default 90°) or flat/wiper (R = ∞) tools; reminds the user to verify the roughness parameter/standard on the drawing |
+| Surface Finish | Theoretical Ra, RMS (Rq) and cusp height / DOC for round-nose, V-tool (included angle, default 90°, plus tip radius; covers feed > 2 × radius) or flat/wiper (R = ∞) tools; reminds the user to verify the roughness parameter/standard on the drawing |
 | ISO Tolerance / Limits | ISO 286-1 |
 | Reference Charts | ASME B94.11M drill size tables |
 

@@ -582,6 +582,36 @@ test('vToolFinishMetric', () => {
   approx(calc.vToolFinishMetric(0.5, 120).depth, 0.144338, 0.000001);
 });
 
+// V-tool with a tip radius. Expected values from an independent high-resolution numeric integration
+// of the same tip-arc-plus-tangent-flanks profile (depth also matches the closed form).
+test('vToolFinishImperial: .008 tip radius, 90 deg, .025/rev is past the arc (feed > 2R)', () => {
+  const r = calc.vToolFinishImperial(0.025, 90, 0.008);
+  approx(r.depth, 0.009186, 0.000001);
+  approx(r.ra, 2599.8, 0.1);
+  approx(r.rms, 2937.4, 0.1);
+});
+
+test('vToolFinishImperial: a large tip radius stays in the arc and matches the round-nose cusp', () => {
+  const r = calc.vToolFinishImperial(0.008, 90, 0.032);
+  approx(r.depth, calc.cuspHeightImperial(0.008, 0.032), 0.000001);
+  approx(r.ra, 64.4, 0.1);
+  approx(r.rms, 74.8, 0.1);
+});
+
+test('vToolFinishMetric: tip radius', () => {
+  const r = calc.vToolFinishMetric(0.5, 90, 0.2);
+  approx(r.depth, 0.167157, 0.000001);
+  approx(r.ra, 46.511, 0.005);
+  approx(r.rms, 52.828, 0.005);
+});
+
+test('vToolFinish: omitted tip radius means sharp, negative or non-finite radius is rejected', () => {
+  assert.strictEqual(calc.vToolFinishMetric(0.5, 90).depth, calc.vToolFinishMetric(0.5, 90, 0).depth);
+  assert.throws(() => calc.vToolFinishMetric(0.5, 90, -0.1), RangeError);
+  assert.throws(() => calc.vToolFinishMetric(0.5, 90, Infinity), RangeError);
+  assert.throws(() => calc.vToolFinishMetric(0.5, 90, '0.1'), RangeError);
+});
+
 test('vToolFinish: rejects bad feed or angle', () => {
   assert.throws(() => calc.vToolFinishMetric(0, 90), RangeError);
   assert.throws(() => calc.vToolFinishMetric(0.5, 0), RangeError);

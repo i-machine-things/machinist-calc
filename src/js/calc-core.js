@@ -1651,29 +1651,62 @@
   };
 
   /**
-   * Ideal sharp V-tool (zero nose radius) cutting grooves one feed apart, e.g. serrating a flange face.
-   * Not an ISO/ANSI formula, pure geometry: groove depth h = (f/2) / tan(theta/2) for included angle
-   * theta, so a 90 degree tool gives h = f/2. The profile is a symmetric triangle wave, for which
-   * Ra = h/4 and Rq = h/(2*sqrt(3)) exactly. Ignores the tip radius a real tool has: while the groove
-   * is shallower than that radius, use the round-nose calculation instead. Units in = units out.
+   * V-form tool with an optional tip radius (0 = sharp) cutting grooves one feed apart, e.g. serrating a
+   * flange face. Not an ISO/ANSI formula, pure geometry. One groove is an arc of radius R at the tip,
+   * tangent to two straight flanks that meet at the included angle theta; the arc runs out to
+   * x = R*sin(theta/2) either side of the centreline, then the flanks continue at slope 1/tan(theta/2).
+   * Groove depth is the profile height at the half-feed x = f/2, in closed form:
+   *   f/2 inside the arc: h = R - sqrt(R^2 - (f/2)^2)   (the round-nose cusp)
+   *   f/2 past the arc:   h = R*(1 - cos(theta/2)) + (f/2 - R*sin(theta/2)) / tan(theta/2)
+   * R = 0 gives h = (f/2)/tan(theta/2); a large R stays in the arc branch. Ra and Rq have no closed form
+   * here, so they come from numerically integrating that profile about its mean line (midpoint rule,
+   * exact for the sharp case: Ra = h/4, Rq = h/(2*sqrt(3))). Units in = units out. Ignores tool wear and
+   * the finite length of the flanks.
    */
-  function vToolFinish(feed, includedAngleDeg) {
-    if (!Number.isFinite(feed) || !Number.isFinite(includedAngleDeg) || feed <= 0 ||
-        includedAngleDeg <= 0 || includedAngleDeg >= 180) {
-      throw new RangeError('feed must be positive and finite; includedAngleDeg between 0 and 180 (exclusive)');
+  function vToolFinish(feed, includedAngleDeg, noseRadius) {
+    var R = noseRadius == null ? 0 : noseRadius;
+    if (!Number.isFinite(feed) || !Number.isFinite(includedAngleDeg) || !Number.isFinite(R) ||
+        feed <= 0 || includedAngleDeg <= 0 || includedAngleDeg >= 180 || R < 0) {
+      throw new RangeError('feed must be positive, includedAngleDeg in (0, 180), noseRadius >= 0; all finite');
     }
-    var depth = (feed / 2) / Math.tan(includedAngleDeg * Math.PI / 360);
-    return { depth: depth, ra: depth / 4, rq: depth / (2 * Math.sqrt(3)) };
+    var halfAngle = includedAngleDeg * Math.PI / 360;
+    var slope = Math.tan(halfAngle);
+    var arcEnd = R * Math.sin(halfAngle);
+    var arcEndDepth = 2 * R * Math.pow(Math.sin(halfAngle / 2), 2); // R*(1 - cos), stable for small angles
+    function depthAt(x) {
+      if (x <= arcEnd) return (x * x) / (R + Math.sqrt(R * R - x * x));
+      return arcEndDepth + (x - arcEnd) / slope;
+    }
+    var half = feed / 2;
+    // The profile is mirror-symmetric, so its statistics over one half-feed are those of a full feed.
+    var n = 2000, sum = 0, samples = new Array(n);
+    for (var i = 0; i < n; i++) {
+      samples[i] = depthAt(half * (i + 0.5) / n);
+      sum += samples[i];
+    }
+    var mean = sum / n, absDev = 0, sqDev = 0;
+    for (var j = 0; j < n; j++) {
+      var dev = samples[j] - mean;
+      absDev += Math.abs(dev);
+      sqDev += dev * dev;
+    }
+    return { depth: depthAt(half), ra: absDev / n, rq: Math.sqrt(sqDev / n) };
   }
 
-  /** V-tool depth (in), Ra and RMS (microinches) from feed (in/rev) and included angle (deg). See vToolFinish. */
-  calc.vToolFinishImperial = function (feedIpr, includedAngleDeg) {
-    var v = vToolFinish(feedIpr, includedAngleDeg);
+  /**
+   * V-tool groove depth (in), Ra and RMS (microinches) from feed (in/rev), included angle (deg) and
+   * optional tip radius (in, default 0 = sharp). See vToolFinish.
+   */
+  calc.vToolFinishImperial = function (feedIpr, includedAngleDeg, noseRadiusIn) {
+    var v = vToolFinish(feedIpr, includedAngleDeg, noseRadiusIn);
     return { depth: round(v.depth, 6), ra: round(v.ra * 1e6, 1), rms: round(v.rq * 1e6, 1) };
   };
-  /** V-tool depth (mm), Ra and RMS (micrometers) from feed (mm/rev) and included angle (deg). See vToolFinish. */
-  calc.vToolFinishMetric = function (feedMmpr, includedAngleDeg) {
-    var v = vToolFinish(feedMmpr, includedAngleDeg);
+  /**
+   * V-tool groove depth (mm), Ra and RMS (micrometers) from feed (mm/rev), included angle (deg) and
+   * optional tip radius (mm, default 0 = sharp). See vToolFinish.
+   */
+  calc.vToolFinishMetric = function (feedMmpr, includedAngleDeg, noseRadiusMm) {
+    var v = vToolFinish(feedMmpr, includedAngleDeg, noseRadiusMm);
     return { depth: round(v.depth, 6), ra: round(v.ra * 1e3, 3), rms: round(v.rq * 1e3, 3) };
   };
 
