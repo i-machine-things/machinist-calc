@@ -24,6 +24,7 @@
       <li><button class="nav-btn" data-panel="panel-surfacefinish">Surface Finish</button></li>
       <li><button class="nav-btn" data-panel="panel-tolerance">ISO Tolerance</button></li>
       <li><button class="nav-btn" data-panel="panel-charts">Reference Charts</button></li>
+      <li id="nav-breakroom" hidden><button class="nav-btn" data-panel="panel-breakroom">Break Room &#127849;</button></li>
     </ul>
   </nav>
 
@@ -300,22 +301,50 @@
           <div class="result-line">Feed Rate: <span id="sf-imp-feed">—</span> in/min</div>
         </div>
 
-        <h2>Feed Per Tooth Conversion</h2>
-        <p class="hint">Standalone conversion — enter a known/actual spindle RPM directly (no SFM/diameter needed) to convert chip load into feed per revolution and feed rate.</p>
+        <h2>Feed Per Tooth &amp; Chip Thinning</h2>
+        <p class="hint">Standalone feed calculator: enter a known spindle RPM (no surface speed/diameter needed) and the chip thickness you want. Chip thinning raises the programmed feed so the actual chip thickness matches it. The two corrections are separate and not combined.</p>
         <div class="grid grid-3">
           <label>RPM
-            <input type="number" id="sf-imp-fpt-rpm" step="any" value="1750" />
+            <input type="number" id="sf-imp-ct-rpm" step="any" value="1750" />
           </label>
-          <label>Number of Flutes
-            <input type="number" id="sf-imp-fpt-flutes" step="1" value="4" />
+          <label>Number of Flutes / Inserts
+            <input type="number" id="sf-imp-ct-flutes" step="1" value="4" />
           </label>
-          <label>Feed per Tooth (in)
-            <input type="number" id="sf-imp-fpt-chipload" step="any" value="0.002" />
+          <label>Desired Chip Thickness (in/tooth)
+            <input type="number" id="sf-imp-ct-chip" step="any" value="0.002" />
           </label>
         </div>
+        <div class="grid grid-4">
+          <label>Chip Thinning
+            <select id="sf-imp-ct-mode">
+              <option value="none">None (full-width cut)</option>
+              <option value="radial">Radial (side milling)</option>
+              <option value="axial">Axial (entry angle)</option>
+            </select>
+          </label>
+          <label id="sf-imp-ct-dia-label" hidden>Cutter Diameter (in)
+            <input type="number" id="sf-imp-ct-dia" step="any" value="0.5" />
+          </label>
+          <label id="sf-imp-ct-ae-label" hidden>Radial Width of Cut
+            <input type="number" id="sf-imp-ct-ae" step="any" value="0.05" />
+          </label>
+          <label id="sf-imp-ct-ae-unit-label" hidden>Width Unit
+            <select id="sf-imp-ct-ae-unit">
+              <option value="length">in</option>
+              <option value="pct">% of diameter</option>
+            </select>
+          </label>
+          <label id="sf-imp-ct-angle-label" hidden>Entry Angle (°)
+            <input type="number" id="sf-imp-ct-angle" step="any" value="15" />
+          </label>
+        </div>
+        <p class="hint" id="sf-imp-ct-radial-hint" hidden>Radial: when the radial width of cut is under half the cutter diameter the chip is thinner than the programmed feed per tooth. No thinning at half the diameter or more. The width can be entered as a length or as a stepover percentage of the cutter diameter; switching the unit converts the value.</p>
+        <p class="hint" id="sf-imp-ct-axial-hint" hidden>Axial: entry angle is measured between the cutting edge and the surface being cut. 90° is a square shoulder (no thinning); a high-feed face mill is typically 10–20°. For turning use the approach angle (κr) and set flutes to 1 so the result is feed per revolution. For a round insert the effective angle depends on depth of cut.</p>
         <div class="result-box">
-          <div class="result-line">Feed per Revolution: <span id="sf-imp-fpt-ipr">—</span> in/rev</div>
-          <div class="result-line">Feed Rate: <span id="sf-imp-fpt-feed">—</span> in/min</div>
+          <div class="result-line">Chip Thinning Factor: <span id="sf-imp-ct-factor">—</span>×</div>
+          <div class="result-line">Feed per Tooth to Program: <span id="sf-imp-ct-fpt">—</span> in/tooth</div>
+          <div class="result-line">Feed per Revolution: <span id="sf-imp-ct-ipr">—</span> in/rev</div>
+          <div class="result-line">Feed Rate: <span id="sf-imp-ct-feed">—</span> in/min</div>
         </div>
       </div>
 
@@ -339,22 +368,50 @@
           <div class="result-line">Feed Rate: <span id="sf-met-feed">—</span> mm/min</div>
         </div>
 
-        <h2>Feed Per Tooth Conversion</h2>
-        <p class="hint">Standalone conversion — enter a known/actual spindle RPM directly (no surface speed/diameter needed) to convert chip load into feed per revolution and feed rate.</p>
+        <h2>Feed Per Tooth &amp; Chip Thinning</h2>
+        <p class="hint">Standalone feed calculator: enter a known spindle RPM (no surface speed/diameter needed) and the chip thickness you want. Chip thinning raises the programmed feed so the actual chip thickness matches it. The two corrections are separate and not combined.</p>
         <div class="grid grid-3">
           <label>RPM
-            <input type="number" id="sf-met-fpt-rpm" step="any" value="1750" />
+            <input type="number" id="sf-met-ct-rpm" step="any" value="1750" />
           </label>
-          <label>Number of Flutes
-            <input type="number" id="sf-met-fpt-flutes" step="1" value="4" />
+          <label>Number of Flutes / Inserts
+            <input type="number" id="sf-met-ct-flutes" step="1" value="4" />
           </label>
-          <label>Feed per Tooth (mm)
-            <input type="number" id="sf-met-fpt-chipload" step="any" value="0.05" />
+          <label>Desired Chip Thickness (mm/tooth)
+            <input type="number" id="sf-met-ct-chip" step="any" value="0.05" />
           </label>
         </div>
+        <div class="grid grid-4">
+          <label>Chip Thinning
+            <select id="sf-met-ct-mode">
+              <option value="none">None (full-width cut)</option>
+              <option value="radial">Radial (side milling)</option>
+              <option value="axial">Axial (entry angle)</option>
+            </select>
+          </label>
+          <label id="sf-met-ct-dia-label" hidden>Cutter Diameter (mm)
+            <input type="number" id="sf-met-ct-dia" step="any" value="12" />
+          </label>
+          <label id="sf-met-ct-ae-label" hidden>Radial Width of Cut
+            <input type="number" id="sf-met-ct-ae" step="any" value="1.2" />
+          </label>
+          <label id="sf-met-ct-ae-unit-label" hidden>Width Unit
+            <select id="sf-met-ct-ae-unit">
+              <option value="length">mm</option>
+              <option value="pct">% of diameter</option>
+            </select>
+          </label>
+          <label id="sf-met-ct-angle-label" hidden>Entry Angle (°)
+            <input type="number" id="sf-met-ct-angle" step="any" value="15" />
+          </label>
+        </div>
+        <p class="hint" id="sf-met-ct-radial-hint" hidden>Radial: when the radial width of cut is under half the cutter diameter the chip is thinner than the programmed feed per tooth. No thinning at half the diameter or more. The width can be entered as a length or as a stepover percentage of the cutter diameter; switching the unit converts the value.</p>
+        <p class="hint" id="sf-met-ct-axial-hint" hidden>Axial: entry angle is measured between the cutting edge and the surface being cut. 90° is a square shoulder (no thinning); a high-feed face mill is typically 10–20°. For turning use the approach angle (κr) and set flutes to 1 so the result is feed per revolution. For a round insert the effective angle depends on depth of cut.</p>
         <div class="result-box">
-          <div class="result-line">Feed per Revolution: <span id="sf-met-fpt-ipr">—</span> mm/rev</div>
-          <div class="result-line">Feed Rate: <span id="sf-met-fpt-feed">—</span> mm/min</div>
+          <div class="result-line">Chip Thinning Factor: <span id="sf-met-ct-factor">—</span>×</div>
+          <div class="result-line">Feed per Tooth to Program: <span id="sf-met-ct-fpt">—</span> mm/tooth</div>
+          <div class="result-line">Feed per Revolution: <span id="sf-met-ct-ipr">—</span> mm/rev</div>
+          <div class="result-line">Feed Rate: <span id="sf-met-ct-feed">—</span> mm/min</div>
         </div>
       </div>
     </section>
@@ -549,6 +606,178 @@
       </div>
     </section>
 
+
+    <!-- Break Room (hidden novelty calculators; unlocked from the keyboard, see CODING_NOTES "Easter Eggs") -->
+    <section class="panel" id="panel-breakroom">
+      <h1>Break Room</h1>
+      <p class="standard-note">Novelty calculators. None of this is machining, medical, or standards advice.</p>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="br-caffeine">Caffeine Budget</button>
+        <button class="tab-btn" data-tab="br-donut">Should I Get a Donut?</button>
+        <button class="tab-btn" data-tab="br-tol">Tolerance Translator</button>
+        <button class="tab-btn" data-tab="br-excuse">Scrap Excuses</button>
+        <button class="tab-btn" data-tab="br-shift">Shift Countdown</button>
+        <button class="tab-btn" data-tab="br-coffee">Coffee Machine</button>
+      </div>
+
+      <div class="tab-panel active" id="br-caffeine">
+        <p class="standard-note">The ideal Monster count, by body weight. One serving is 3 mg per kg, up to 200 mg (EFSA). A day is 400 mg for a 70 kg (154 lb) adult (FDA and EFSA); lighter people get EFSA's stricter 3 mg/kg, rising in a straight line to that. Heavier people keep scaling at the adult rate with no cap. Neither agency publishes a per-kg number above 400 mg, so past 154 lb that figure is this app's extrapolation, and the FDA cites seizures at around 1,200 mg taken quickly. Sip, don't chug. Real drinks vary. Pregnant, sensitive, or on medication? Ask a doctor, not a lathe.</p>
+        <div class="grid grid-3">
+          <label>Body Weight
+            <input type="number" id="br-cf-weight" step="any" value="180" />
+          </label>
+          <label>Weight Unit
+            <select id="br-cf-unit">
+              <option value="lb">lb</option>
+              <option value="kg">kg</option>
+            </select>
+          </label>
+          <label>Drink
+            <select id="br-cf-drink"></select>
+          </label>
+        </div>
+        <div class="grid grid-3">
+          <label>Shift Length (hours)
+            <input type="number" id="br-cf-shift" step="any" value="8" />
+          </label>
+        </div>
+        <div class="result-box">
+          <div class="result-line">Daily ceiling: <span id="br-cf-daily">—</span> mg</div>
+          <div class="result-line">One serving, at most: <span id="br-cf-serving">—</span> mg</div>
+          <div class="result-line">That is <span id="br-cf-drinks">—</span> of your drink a day (<span id="br-cf-whole">—</span> whole)</div>
+          <div class="result-line">Roughly one every <span id="br-cf-spacing">—</span> hours of your shift</div>
+          <div class="result-sub" id="br-cf-verdict">—</div>
+          <div class="result-sub" id="br-cf-share" hidden>That is one drink or less for the whole day. Split it, or share it with a coworker. The shop cat can supervise. Do not give the cat any: caffeine is toxic to cats.</div>
+          <div class="result-sub" id="br-cf-split" hidden>One serving is more than the single-dose ceiling for your weight. Half now, half later.</div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="br-donut">
+        <p class="standard-note">A decision flowchart. It branches out a long way. Every path ends in the same place.</p>
+        <div class="result-box">
+          <div class="result-sub" id="br-donut-step">—</div>
+          <div class="result-value" id="br-donut-question">—</div>
+          <div class="choice-row" id="br-donut-choices"></div>
+          <div class="choice-row">
+            <button class="choice-btn" id="br-donut-back">Back</button>
+            <button class="choice-btn" id="br-donut-restart">Start over</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="br-tol">
+        <p class="standard-note">Type the tolerance the way it is on the print: .005 is five thou, .0005 is half a thou. The temperature line is real physics: carbon steel grows about 6.5 millionths of an inch per inch per °F.</p>
+        <div class="grid grid-2">
+          <label>Tolerance (±)
+            <input type="number" id="br-tol-value" step="any" value="0.0005" />
+          </label>
+          <label>Unit
+            <select id="br-tol-unit">
+              <option value="in">in (decimal inches)</option>
+              <option value="mm">mm</option>
+            </select>
+          </label>
+        </div>
+        <div class="result-box">
+          <div class="result-value" id="br-tol-verdict">—</div>
+          <div class="result-line">Measure it with: <span id="br-tol-instrument">—</span></div>
+          <div class="result-sub" id="br-tol-temp">—</div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="br-excuse">
+        <p class="standard-note">Why the part is out. Answer a few questions, get an excuse.</p>
+        <div class="result-box">
+          <div class="result-sub" id="br-excuse-step">—</div>
+          <div class="result-value" id="br-excuse-question">—</div>
+          <div class="choice-row" id="br-excuse-choices"></div>
+          <div class="choice-row">
+            <button class="choice-btn" id="br-excuse-back">Back</button>
+            <button class="choice-btn" id="br-excuse-restart">Start over</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="br-shift">
+        <p class="standard-note">How much shift is left. Night shifts that run past midnight work too.</p>
+        <div class="grid grid-2">
+          <label>Shift Start
+            <input type="time" id="br-sh-start" value="07:00" />
+          </label>
+          <label>Shift End
+            <input type="time" id="br-sh-end" value="15:30" />
+          </label>
+        </div>
+        <div class="result-box">
+          <div class="result-line">Time left: <span id="br-sh-left">—</span></div>
+          <div class="result-line">Shift done: <span id="br-sh-pct">—</span></div>
+          <div class="result-line">Coffee refills still ahead (one every 2 hours): <span id="br-sh-coffee">—</span></div>
+          <div class="result-sub" id="br-sh-verdict">—</div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="br-coffee">
+        <details class="doc">
+          <summary>Safety Data Sheet (SDS): Coffee, brewed</summary>
+          <dl>
+            <dt>1. Identification</dt>
+            <dd>Product: coffee, brewed, hot. Also known as: fuel, the good stuff. Recommended use: operator morale. Restrictions on use: none, but see Section 8.</dd>
+            <dt>2. Hazards</dt>
+            <dd>Signal word: WARNING. Hot: may cause burns. Contains caffeine: may cause jitters and sudden opinions about feeds and speeds. Prolonged absence causes reduced morale. The mug is not a tool holder.</dd>
+            <dt>3. Composition</dt>
+            <dd>Water, roughly 98%. Coffee, roughly 2%. Caffeine, about 95 mg per 8 oz cup (typical; real cups vary). Trace amounts of opinions.</dd>
+            <dt>4. First aid</dt>
+            <dd>Skin: cool running water. Eyes: rinse for 15 minutes and get medical help. Ingestion: intended route. Spilled on the keyboard: unplug it, do not panic, panic anyway.</dd>
+            <dt>5. Fire-fighting</dt>
+            <dd>Not flammable. A pot left on an empty hot plate is another matter: switch it off.</dd>
+            <dt>6. Accidental release</dt>
+            <dd>Wipe it up with a paper towel, not the good rags. Report anything larger than a puddle.</dd>
+            <dt>7. Handling and storage</dt>
+            <dd>Keep the beans or grounds in a sealed container, cool and dry. The coffee scoop is labelled <span class="ref-label">For reference only</span> and is not a measuring instrument. Any jar, canister or thermos you decant it into is a secondary container and must be labelled too.</dd>
+            <dt>8. Exposure controls</dt>
+            <dd>Daily limits by body weight are in the Caffeine Budget tab of this very room.</dd>
+            <dt>9. Physical properties</dt>
+            <dd>Appearance: black. Odor: hopeful. Temperature: hot enough to matter.</dd>
+            <dt>10. Stability and reactivity</dt>
+            <dd>Stable when hot. Reactive when the pot is empty and somebody has to make more.</dd>
+            <dt>11. Toxicological information</dt>
+            <dd>See Section 8. Also see how you feel.</dd>
+            <dt>12. Ecological information</dt>
+            <dd>Grounds are compostable. So is the donut box.</dd>
+            <dt>13. Disposal considerations</dt>
+            <dd>Grounds go in the trash, not down the sink. Leftover coffee is a personal decision.</dd>
+            <dt>14. Transport information</dt>
+            <dd>Carry it in a mug. Do not run.</dd>
+            <dt>15. Regulatory information</dt>
+            <dd>Regulated by the break room.</dd>
+            <dt>16. Other information</dt>
+            <dd>Revision date: this morning.</dd>
+          </dl>
+        </details>
+
+        <details class="doc">
+          <summary>Training Guide: the coffee maker (Bunn style)</summary>
+          <ol>
+            <li>Read this guide. If the brewer is making a noise, read it again.</li>
+            <li>Put the empty pot under the funnel before you start. The pot, not your mug.</li>
+            <li>Put a filter in the funnel. Yes, really.</li>
+            <li>Find the coffee scoop and confirm it is labelled <span class="ref-label">For reference only</span>. It is a reference tool, not a measuring instrument. Use judgment. If it is not labelled, alert the Quality department immediately.</li>
+            <li>Add coffee: one reference scoop per cup, plus one for the pot, plus the one you were going to add anyway.</li>
+            <li>If you move the coffee into a jar or canister, that is a secondary container. Label it: <span class="ref-label">Coffee. Warning: contains caffeine</span></li>
+            <li>Add the water or press the brew button, depending on the model. Doing it more than once does not make it faster.</li>
+            <li>Wait. Do not pull the pot mid-brew unless you enjoy cleaning the counter.</li>
+            <li>Pour your cup, then put the pot back on the warmer.</li>
+            <li>If you take the last cup, make a new pot. This is the only rule that matters.</li>
+            <li>When the pot is empty, turn the warmer off and rinse the pot. Descale the brewer on the manufacturer's schedule.</li>
+          </ol>
+        </details>
+
+        <details class="doc">
+          <summary>Equipment Notice: the K-cup machine</summary>
+          <p>This machine belongs to Kevin. It is labelled <span class="ref-label warn-label">Do not touch</span>. Do not touch it. If it is making a noise, that is Kevin's noise.</p>
+        </details>
+      </div>
+    </section>
   </main>
 </div>
 
@@ -564,6 +793,7 @@
    corner — Esc to close)</pre></div>
 
 <script src="js/calc-core.js"></script>
+<script src="js/joke-calcs.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

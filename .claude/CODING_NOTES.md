@@ -75,6 +75,17 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 
 - **Asserting only one bound of a known range lets the other drift silently.** The Inconel carbide test checked `carbide[1] <= titanium.carbide[1]` but never pinned `[60, 120]` directly. Assert exact values when known, alongside any cross-row comparison. Caught by CodeRabbit, machinist-calc PR #11.
 
+## UI Behavior (JS)
+
+- **Re-rendering a container that holds the focused button silently drops keyboard focus.** After swapping a wizard's buttons (innerHTML), focus a `tabindex="-1"` heading so keyboard and screen-reader users land on the new content; not on the first render. CodeRabbit, PR #17.
+- **A secondary advice flag must repeat the headline number's precondition.** A "split the serving" note fired when zero whole servings fit the daily ceiling (`drinkMg > servingMg` alone), advising the very overshoot the number forbids. Guard it (`whole >= 1`) and test it. CodeRabbit, PR #17.
+- **A validator that looks ids up with `obj[key]` accepts inherited names like `'constructor'`.** Use `hasOwnProperty` (and `Object.create(null)` for scratch maps), and validate labels and text, not just links. Independent review, PR #17.
+- **Rounding for display can contradict a floored count shown beside it** (3.994 shows "4" next to "3 whole"). Floor the displayed value when a whole count sits next to it. Independent review, PR #17.
+- **A theme rule that lists input types by name doesn't cover a new one.** `input[type=time]` rendered white on the dark theme. Check every new control type on the theme, and set `color-scheme` on it. Independent review, PR #17.
+- **Register global listeners before setup code that can throw, and schedule the next timer tick before doing the work.** Otherwise one failure silently disables the feature or ends the refresh chain. Independent review, PR #17.
+- **Derive a threshold quoted in a comment from the formula, and pin it with a boundary test.** A comment said 53 kg while the formula then gave 56 kg (160 x 70 / 200) and no test noticed. Independent review, PR #17.
+- **A formula that switches branches at a threshold can jump (120 mg to 229 mg at 40 kg).** Blend the branches so the result is continuous, and test it with a sweep: never decreasing, bounded step size, and equal just either side of the threshold. Self-caught in machinist-calc, PR #17.
+
 ## Cutting Speed Data
 
 - **A speed-table row needs a cited source; a relational test ("X slower than Y") is no substitute.** A guessed duplex row (carbide 100-200 SFM) passed such a test, but manufacturer data says 300-525. Pin sourced values and mark unsourced rows as placeholders. machinist-calc PR #14.
@@ -86,4 +97,5 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 ## Easter Eggs
 
 - **machinist-calc**: Ctrl+Alt+Shift+M toggles a small hidden "Machinist's Rule 0" ASCII-art note (`#easter-egg` in `src/index.html`, wired in `src/js/app.js`'s `setupEasterEgg()`). Not referenced anywhere in the visible UI. Dismiss with Esc or a click.
+- **machinist-calc**: another hidden extra lives in `src/js/joke-calcs.js`, wired up by `setupBreakRoom()` in `src/js/app.js` (the unlock is in that function). Deliberately undocumented elsewhere; don't remove or "fix" it.
 - **machinist-calc**: "Lime jello" is a joke material, the last row of `calc.recommendedSfm` (HSS 1000-2500, carbide 2500-6000 SFM). Unlike the shortcut above it's visible in the Speeds & Feeds material dropdown. Keep it last so the default row stays Aluminum; don't "fix" its ranges.

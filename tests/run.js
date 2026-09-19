@@ -7,6 +7,7 @@
 
 const assert = require('assert');
 const calc = require('../src/js/calc-core.js');
+const joke = require('../src/js/joke-calcs.js');
 
 let passed = 0;
 let failed = 0;
@@ -376,6 +377,84 @@ test('mrr', () => {
   approx(calc.mrr(8, 0.1, 0.5), 0.4, 0.0001);
 });
 
+// Chip thinning. Expected factors are the widely published radial chip-thinning values (10% radial
+// engagement -> 1.667, 5% -> 2.294, 25% -> 1.155) and 1/sin(entry angle), not copied from the code.
+test('radialChipThinningFactor: published values at 10%, 5%, 25% radial engagement', () => {
+  approx(calc.radialChipThinningFactor(0.5, 0.05), 1.6667, 0.0001);
+  approx(calc.radialChipThinningFactor(0.5, 0.025), 2.2942, 0.0001);
+  approx(calc.radialChipThinningFactor(0.5, 0.125), 1.1547, 0.0001);
+  approx(calc.radialChipThinningFactor(12, 1.2), 1.6667, 0.0001); // unit-independent (ratio only)
+});
+
+test('radialChipThinningFactor: no thinning at half-diameter engagement or more, up to a full slot', () => {
+  assert.strictEqual(calc.radialChipThinningFactor(0.5, 0.25), 1);
+  assert.strictEqual(calc.radialChipThinningFactor(0.5, 0.4), 1);
+  assert.strictEqual(calc.radialChipThinningFactor(0.5, 0.5), 1);
+});
+
+test('radialChipThinningFactor: rejects engagement outside (0, diameter] and non-finite input', () => {
+  assert.throws(() => calc.radialChipThinningFactor(0.5, 0), RangeError);
+  assert.throws(() => calc.radialChipThinningFactor(0.5, 0.6), RangeError);
+  assert.throws(() => calc.radialChipThinningFactor(0, 0.1), RangeError);
+  assert.throws(() => calc.radialChipThinningFactor(0.5, Infinity), RangeError);
+  assert.throws(() => calc.radialChipThinningFactor('0.5', 0.05), RangeError);
+  assert.throws(() => calc.radialChipThinningFactor(1e10, 5e-324), RangeError);
+});
+
+test('stepoverPercent / radialWidthFromStepover: round-trip a width and its percent of diameter', () => {
+  approx(calc.stepoverPercent(0.5, 0.05), 10, 0.001);
+  approx(calc.stepoverPercent(12, 1.2), 10, 0.001);
+  approx(calc.stepoverPercent(0.5, 0.125), 25, 0.001);
+  approx(calc.stepoverPercent(0.5, 0.5), 100, 0.001);
+  approx(calc.radialWidthFromStepover(0.5, 10), 0.05, 0.000001);
+  approx(calc.radialWidthFromStepover(12, 25), 3, 0.000001);
+  // feeding the converted width straight into the thinning factor gives the published 10% value
+  approx(calc.radialChipThinningFactor(0.5, calc.radialWidthFromStepover(0.5, 10)), 1.6667, 0.0001);
+});
+
+test('stepoverPercent / radialWidthFromStepover: reject non-positive and non-finite input', () => {
+  assert.throws(() => calc.stepoverPercent(0, 0.05), RangeError);
+  assert.throws(() => calc.stepoverPercent(0.5, 0), RangeError);
+  assert.throws(() => calc.stepoverPercent(0.5, '0.05'), RangeError);
+  assert.throws(() => calc.stepoverPercent(0.5, Infinity), RangeError);
+  assert.throws(() => calc.radialWidthFromStepover(0.5, 0), RangeError);
+  assert.throws(() => calc.radialWidthFromStepover(0.5, -10), RangeError);
+  assert.throws(() => calc.radialWidthFromStepover(NaN, 10), RangeError);
+  assert.throws(() => calc.radialWidthFromStepover(1e305, 1e5), RangeError);
+});
+
+test('axialChipThinningFactor: 1/sin(entry angle)', () => {
+  approx(calc.axialChipThinningFactor(30), 2, 0.0001);
+  approx(calc.axialChipThinningFactor(45), 1.4142, 0.0001);
+  approx(calc.axialChipThinningFactor(10), 5.7588, 0.0001);
+  assert.strictEqual(calc.axialChipThinningFactor(90), 1);
+});
+
+test('axialChipThinningFactor: rejects angles outside (0, 90] and non-finite input', () => {
+  assert.throws(() => calc.axialChipThinningFactor(0), RangeError);
+  assert.throws(() => calc.axialChipThinningFactor(-15), RangeError);
+  assert.throws(() => calc.axialChipThinningFactor(91), RangeError);
+  assert.throws(() => calc.axialChipThinningFactor(NaN), RangeError);
+  assert.throws(() => calc.axialChipThinningFactor('30'), RangeError);
+  assert.throws(() => calc.axialChipThinningFactor(1e-320), RangeError);
+});
+
+test('compensatedFeedPerTooth: chip thickness times factor, feeding into feedRate', () => {
+  const fpt = calc.compensatedFeedPerTooth(0.002, calc.radialChipThinningFactor(0.5, 0.05));
+  approx(fpt, 0.00333, 0.000001);
+  approx(calc.feedRate(1750, fpt, 4), 23.31, 0.001);
+  approx(calc.compensatedFeedPerTooth(0.004, calc.axialChipThinningFactor(30)), 0.008, 0.000001);
+  approx(calc.compensatedFeedPerTooth(0.05, calc.radialChipThinningFactor(12, 1.2)), 0.08334, 0.000001);
+});
+
+test('compensatedFeedPerTooth: rejects bad chip thickness or a factor below 1', () => {
+  assert.throws(() => calc.compensatedFeedPerTooth(0, 2), RangeError);
+  assert.throws(() => calc.compensatedFeedPerTooth(0.002, 0.5), RangeError);
+  assert.throws(() => calc.compensatedFeedPerTooth(NaN, 2), RangeError);
+  assert.throws(() => calc.compensatedFeedPerTooth('0.002', 2), RangeError);
+  assert.throws(() => calc.compensatedFeedPerTooth(1e305, 2), RangeError);
+});
+
 test('recommendedSfm: every row has ordered HSS/carbide ranges, carbide faster than HSS', () => {
   assert.ok(calc.recommendedSfm.length > 0);
   for (const row of calc.recommendedSfm) {
@@ -623,6 +702,330 @@ test('fractionalDrills: reduces to lowest terms (32/64 -> 1/2")', () => {
   const fracs = calc.fractionalDrills(1, 64);
   const half = fracs.find((f) => Math.abs(f[1] - 0.5) < 1e-9);
   assert.strictEqual(half[0], '1/2"');
+});
+
+// -------------------------------------------------------------------------
+// Break Room novelty calculators (hidden; see CODING_NOTES "Easter Eggs")
+// -------------------------------------------------------------------------
+
+test('caffeineBudget: a 70 kg adult gets the quoted 400 mg/day and 200 mg per serving', () => {
+  const monster = joke.caffeineBudget(70, 160, 8);
+  assert.strictEqual(monster.dailyMg, 400);
+  assert.strictEqual(monster.servingMg, 200);
+  assert.strictEqual(monster.drinksPerDay, 2.5);
+  assert.strictEqual(monster.wholeDrinks, 2);
+  assert.strictEqual(monster.hoursBetween, 4);
+  assert.strictEqual(monster.splitAdvice, false);
+  assert.strictEqual(monster.verdict, 'Two. Pace yourself.');
+  const coffee = joke.caffeineBudget(70, 95, 8);
+  assert.strictEqual(coffee.drinksPerDay, 4.2);
+  assert.strictEqual(coffee.wholeDrinks, 4);
+  assert.strictEqual(coffee.hoursBetween, 2);
+});
+
+test('caffeineBudget: lighter people get less, heavier people scale on up (no cap)', () => {
+  const light = joke.caffeineBudget(50, 160, 8);
+  assert.strictEqual(light.dailyMg, 195);   // 50 kg: rate 3.905 mg/kg on the ramp from 3 (40 kg) to 5.714 (70 kg)
+  assert.strictEqual(light.servingMg, 150); // 3 mg/kg (EFSA)
+  assert.strictEqual(light.wholeDrinks, 1);
+  assert.strictEqual(light.splitAdvice, true); // a 160 mg can is over the 150 mg single-dose ceiling
+  const heavy = joke.caffeineBudget(100, 95, 8);
+  assert.strictEqual(heavy.dailyMg, 571);   // 100 kg at the adult rate: 400 * 100 / 70
+  assert.strictEqual(heavy.servingMg, 200); // one serving stays at EFSA's 200 mg
+});
+
+test('caffeineBudget: no whole drink means water; many small drinks are spaced across the shift', () => {
+  const tiny = joke.caffeineBudget(40, 300, 8); // a made-up 300 mg drink: bigger than the whole daily ceiling
+  assert.strictEqual(tiny.dailyMg, 120);
+  assert.strictEqual(tiny.wholeDrinks, 0);
+  assert.strictEqual(tiny.hoursBetween, null);
+  assert.strictEqual(tiny.verdict, 'Water. Just water.');
+  assert.strictEqual(tiny.splitAdvice, false); // 300 mg > the 120 mg single-dose ceiling, but no whole drink fits
+  const cola = joke.caffeineBudget(70, 34, 8);
+  assert.strictEqual(cola.drinksPerDay, 11.7);
+  assert.strictEqual(cola.wholeDrinks, 11);
+  assert.strictEqual(cola.hoursBetween, 0.7);
+  assert.strictEqual(cola.verdict, 'That is a lot of small drinks. Consider a bigger mug.');
+});
+
+test('caffeineBudget: one serving is 3 mg per kg capped at 200 mg, so split advice runs from ~45 to ~53 kg', () => {
+  assert.strictEqual(joke.caffeineBudget(40, 160, 8).servingMg, 120);
+  assert.strictEqual(joke.caffeineBudget(60, 160, 8).servingMg, 180);
+  assert.strictEqual(joke.caffeineBudget(70, 160, 8).servingMg, 200);
+  assert.strictEqual(joke.caffeineBudget(500, 160, 8).servingMg, 200);
+  // needs one whole 160 mg can inside the daily ceiling (46 kg: 163 mg; 45 kg: 155 mg) AND a serving ceiling
+  // below 160 mg (3 mg/kg, so under 53.3 kg)
+  assert.strictEqual(joke.caffeineBudget(45, 160, 8).splitAdvice, false); // no whole can fits the day: water
+  assert.strictEqual(joke.caffeineBudget(46, 160, 8).splitAdvice, true);
+  assert.strictEqual(joke.caffeineBudget(53, 160, 8).splitAdvice, true);
+  assert.strictEqual(joke.caffeineBudget(54, 160, 8).splitAdvice, false);
+  assert.strictEqual(joke.caffeineBudget(70, 160, 8).splitAdvice, false);
+});
+
+test('caffeineBudget: drinks per day is floored so it never disagrees with the whole-drink count', () => {
+  const r = joke.caffeineBudget(70, 100.3, 8); // 400 / 100.3 = 3.988 drinks: "4.0 (3 whole)" would read as a mistake
+  assert.strictEqual(r.wholeDrinks, 3);
+  assert.strictEqual(r.drinksPerDay, 3.9);
+  assert.ok(r.drinksPerDay < r.wholeDrinks + 1 && r.drinksPerDay >= r.wholeDrinks);
+});
+
+test('caffeineBudget: one drink or less for the whole day means split it or share it', () => {
+  const share = (kg, mg) => joke.caffeineBudget(kg, mg, 8).shareAdvice;
+  assert.strictEqual(share(70, 160), false);  // 2.5 drinks
+  assert.strictEqual(share(70, 399), false);  // 1.0025 drinks: just over one
+  assert.strictEqual(share(70, 400), true);   // exactly one drink
+  assert.strictEqual(share(70, 401), true);   // 0.997 of a drink
+  assert.strictEqual(share(joke.lbToKg(100), 160), true);  // 100 lb: 0.99 of a Monster
+  assert.strictEqual(share(joke.lbToKg(1), 95), true);     // 1 lb: a sliver of a cup
+  assert.strictEqual(share(40, 300), true);   // no whole drink fits, and sharing is still the advice
+  assert.strictEqual(share(joke.lbToKg(600), 160), false);
+});
+
+test('caffeineVerdict: every band', () => {
+  const words = [0, 1, 2, 3, 4, 5, 11].map(joke.caffeineVerdict);
+  assert.deepStrictEqual(words, ['Water. Just water.', 'One. Make it count.', 'Two. Pace yourself.',
+    'A respectable amount of beverage.', 'A respectable amount of beverage.',
+    'That is a lot of small drinks. Consider a bigger mug.', 'That is a lot of small drinks. Consider a bigger mug.']);
+});
+
+test('caffeineBudget: any weight works; 3 mg/kg when light, ramps to 400 at 70 kg, then keeps scaling', () => {
+  const oneLb = joke.caffeineBudget(joke.lbToKg(1), 95, 8); // 1 lb: absurd, but it must answer
+  assert.strictEqual(oneLb.dailyMg, 1);
+  assert.strictEqual(oneLb.wholeDrinks, 0);
+  assert.strictEqual(oneLb.verdict, 'Water. Just water.');
+  const daily = (kg) => joke.caffeineBudget(kg, 160, 8).dailyMg;
+  assert.strictEqual(daily(20), 60);    // 3 mg/kg
+  assert.strictEqual(daily(40), 120);   // the ramp starts here at 3 mg/kg
+  assert.strictEqual(daily(55), 240);   // 55 kg: rate 4.357 mg/kg
+  assert.strictEqual(daily(70), 400);   // the adult figure, reached exactly
+  // no cap: above 70 kg it keeps scaling at the adult rate, 400 / 70 mg per kg
+  assert.strictEqual(daily(100), 571);
+  assert.strictEqual(daily(300), 1714);
+  assert.strictEqual(daily(5000), 28571);
+  // a 600 lb person: 2.5 cans is no longer the answer
+  const big = joke.caffeineBudget(joke.lbToKg(600), 160, 8);
+  assert.strictEqual(big.dailyMg, 1555);
+  assert.strictEqual(big.wholeDrinks, 9);
+  assert.strictEqual(big.drinksPerDay, 9.7);
+  assert.strictEqual(joke.caffeineBudget(joke.lbToKg(600), 95, 8).wholeDrinks, 16);
+  assert.strictEqual(big.servingMg, 200); // one serving still tops out at EFSA's 200 mg
+});
+
+test('caffeineBudget: the daily ceiling has no jumps and never goes down as weight goes up', () => {
+  const daily = (kg) => joke.caffeineBudget(kg, 160, 8).dailyMg;
+  let prev = daily(0.5);
+  for (let kg = 1; kg <= 400; kg += 0.5) {
+    const now = daily(kg);
+    assert.ok(now >= prev, `dropped at ${kg} kg: ${prev} -> ${now}`);
+    assert.ok(now - prev <= 8, `jumped at ${kg} kg: ${prev} -> ${now}`); // <= ~5.7 mg/kg * 0.5 kg, plus rounding
+    prev = now;
+  }
+  assert.ok(Math.abs(daily(39.99) - daily(40.01)) <= 1); // the old formula switch used to jump 120 -> 229 here
+});
+
+test('caffeineBudget: rejects zero, negative and non-finite weight, drink or shift', () => {
+  assert.throws(() => joke.caffeineBudget(0, 160, 8), RangeError);
+  assert.throws(() => joke.caffeineBudget(-70, 160, 8), RangeError);
+  assert.throws(() => joke.caffeineBudget(NaN, 160, 8), RangeError);
+  assert.throws(() => joke.caffeineBudget(Infinity, 160, 8), RangeError);
+  assert.throws(() => joke.caffeineBudget('70', 160, 8), RangeError);
+  assert.throws(() => joke.caffeineBudget(70, 0, 8), RangeError);
+  assert.throws(() => joke.caffeineBudget(70, 160, 0), RangeError);
+  assert.throws(() => joke.caffeineBudget(70, 160, Infinity), RangeError);
+});
+
+test('lbToKg and lengthToThou: the unit conversions the panel uses', () => {
+  approx(joke.lbToKg(180), 81.6466, 0.0001);
+  approx(joke.lbToKg(1), 0.45359237, 1e-9);
+  assert.throws(() => joke.lbToKg(NaN), RangeError);
+  approx(joke.lengthToThou(0.0005, 'in'), 0.5, 1e-9);
+  approx(joke.lengthToThou(0.005, 'in'), 5, 1e-9);
+  approx(joke.lengthToThou(25.4, 'mm'), 1000, 1e-6);
+  approx(joke.lengthToThou(0.0254, 'mm'), 1, 1e-9);
+  assert.throws(() => joke.lengthToThou(1, 'thou'), RangeError);
+  assert.throws(() => joke.lengthToThou(NaN, 'in'), RangeError);
+});
+
+test('donutChart: it branches a long way out, and every path still ends at yes', () => {
+  assert.deepStrictEqual(joke.donutProblems(joke.donutChart), []);
+  const ids = Object.keys(joke.donutChart.nodes);
+  assert.ok(ids.length >= 20, 'expected a chart that branches out');
+  // Independently walk every path from the start (the chart is a DAG, so this terminates): each ends at yes.
+  const ends = new Set();
+  let paths = 0;
+  (function walk(id) {
+    const node = joke.donutChart.nodes[id];
+    if (node.terminal) { ends.add(id); paths++; return; }
+    node.options.forEach((opt) => walk(opt.next));
+  })(joke.donutChart.start);
+  assert.deepStrictEqual([...ends], ['yes']);
+  assert.ok(paths >= 30, `expected many distinct paths, got ${paths}`);
+});
+
+test('donutProblems: rejects a chart with a loop, a dead end, a missing node, or an orphan', () => {
+  const q = (next) => ({ q: '?', options: [{ label: 'a', next }, { label: 'b', next }] });
+  const yes = { q: 'YES', terminal: true, options: [] };
+  assert.deepStrictEqual(joke.donutProblems({ start: 's', nodes: { s: q('yes'), yes } }), []);
+  assert.ok(joke.donutProblems({ start: 's', nodes: { s: q('t'), t: q('s'), yes } })
+    .some((p) => p.indexOf('loop') !== -1), 'loop');
+  assert.ok(joke.donutProblems({ start: 's', nodes: { s: q('gone'), yes } })
+    .some((p) => p.indexOf('missing node') !== -1), 'missing node');
+  assert.ok(joke.donutProblems({ start: 's', nodes: { s: q('yes'), orphan: q('yes'), yes } })
+    .some((p) => p.indexOf('unreachable') !== -1), 'orphan');
+  assert.ok(joke.donutProblems({ start: 's', nodes: { s: { q: '?', options: [{ label: 'a', next: 'yes' }] }, yes } })
+    .some((p) => p.indexOf('at least two') !== -1), 'single answer');
+  const badTerminal = { q: 'nope', terminal: true, options: [] };
+  assert.ok(joke.donutProblems({ start: 's', nodes: { s: q('done'), done: badTerminal } })
+    .some((p) => p.indexOf('not "yes"') !== -1), 'terminal other than yes');
+});
+
+test('toleranceTalk: tiers change at their boundaries, tightest first', () => {
+  const tier = (thou) => joke.toleranceTalk(thou).tier;
+  assert.deepStrictEqual([0.05, 0.1, 0.1001, 0.5, 0.6, 1, 2, 5, 6, 10, 20, 30, 31, 500, 1000, 1001, 50000].map(tier),
+    [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 6, 7, 7]);
+  assert.ok(joke.toleranceTalk(0.05).verdict.indexOf('typo') !== -1);
+  assert.strictEqual(joke.toleranceTalk(5).instrument, 'A micrometer');
+  // exactly one inch is still government work; anything over an inch is an eyecrometer, from across the shop
+  assert.strictEqual(joke.toleranceTalk(1000).verdict, 'Close enough for government work.');
+  assert.strictEqual(joke.toleranceTalk(1001).verdict, 'Eyecrometer. From across the shop.');
+});
+
+test('toleranceTalk: degrees F to use up the tolerance on a 1 inch steel part (dT = tol / 6.5e-6 per F)', () => {
+  approx(joke.toleranceTalk(0.5).degF, 76.9, 0.05);   // 0.0005 in / 6.5e-6
+  approx(joke.toleranceTalk(0.65).degF, 100, 0.05);
+  approx(joke.toleranceTalk(5).degF, 769.2, 0.05);
+});
+
+test('toleranceTalk: rejects zero, negative and non-finite tolerances', () => {
+  assert.throws(() => joke.toleranceTalk(0), RangeError);
+  assert.throws(() => joke.toleranceTalk(-1), RangeError);
+  assert.throws(() => joke.toleranceTalk(NaN), RangeError);
+  assert.throws(() => joke.toleranceTalk(Infinity), RangeError);
+  assert.throws(() => joke.toleranceTalk('5'), RangeError);
+});
+
+test('excuseChart: a big tree, and every path ends at a full, distinct excuse', () => {
+  assert.deepStrictEqual(joke.chartProblems(joke.excuseChart), []);
+  const nodes = joke.excuseChart.nodes;
+  // Independently walk every path from the start (a DAG, so it terminates): each ends at a terminal excuse.
+  const ends = new Set();
+  let paths = 0;
+  let deepest = 0;
+  (function walk(id, depth) {
+    const node = nodes[id];
+    if (node.terminal) { ends.add(id); paths++; deepest = Math.max(deepest, depth); return; }
+    node.options.forEach((opt) => walk(opt.next, depth + 1));
+  })(joke.excuseChart.start, 0);
+  const questions = Object.keys(nodes).filter((id) => !nodes[id].terminal);
+  assert.ok(questions.length >= 25, `expected a real tree of questions, got ${questions.length}`);
+  assert.ok(ends.size >= 60, `expected dozens of different excuses, got ${ends.size}`);
+  assert.ok(paths >= 60, `expected many distinct paths, got ${paths}`);
+  assert.ok(deepest >= 4, `expected paths of at least four answers, got ${deepest}`);
+  assert.strictEqual(ends.size, Object.keys(nodes).length - questions.length); // every excuse is reachable
+  assert.ok(nodes.start.options.length >= 6, 'expected the first question to offer plenty of directions');
+});
+
+test('excuseChart: distinct full-sentence excuses with an action; every question is a question', () => {
+  const nodes = joke.excuseChart.nodes;
+  const seen = new Set();
+  Object.keys(nodes).forEach((id) => {
+    const node = nodes[id];
+    if (node.terminal) {
+      assert.ok(node.q.endsWith('.'), `${id} should end with a full stop`);
+      assert.ok(node.q.indexOf('Recommended action: ') !== -1, `${id} needs a recommended action`);
+      assert.ok(node.q.indexOf('undefined') === -1, id);
+      assert.ok(!seen.has(node.q), `${id} repeats another excuse`);
+      seen.add(node.q);
+    } else {
+      assert.ok(node.q.endsWith('?'), `${id} should be a question`);
+      const labels = node.options.map((o) => o.label);
+      assert.strictEqual(new Set(labels).size, labels.length, `${id} has two answers with the same label`);
+    }
+  });
+});
+
+test('chartProblems: accepts any terminals, rejects loops, dead ends, orphans, and bad terminals', () => {
+  const q = (next) => ({ q: '?', options: [{ label: 'a', next }, { label: 'b', next }] });
+  const end = (text) => ({ q: text, terminal: true, options: [] });
+  const fork = { q: '?', options: [{ label: 'a', next: 'x' }, { label: 'b', next: 'y' }] };
+  assert.deepStrictEqual(joke.chartProblems({ start: 's', nodes: { s: fork, x: end('one'), y: end('two') } }), []);
+  const has = (chart, word) => joke.chartProblems(chart).some((p) => p.indexOf(word) !== -1);
+  assert.ok(has({ start: 's', nodes: { s: q('t'), t: q('s'), x: end('one') } }, 'loop'), 'loop');
+  assert.ok(has({ start: 's', nodes: { s: q('gone'), x: end('one') } }, 'missing node'), 'missing node');
+  assert.ok(has({ start: 's', nodes: { s: q('x'), orphan: end('lost'), x: end('one') } }, 'unreachable'), 'orphan');
+  assert.ok(has({ start: 's', nodes: { s: q('x'), x: end('') } }, 'no text'), 'blank end');
+  const protoTarget = { start: 's', nodes: { s: q('constructor'), x: end('one') } };
+  assert.ok(has(protoTarget, 'missing node'), 'prototype key as a target');
+  const protoStart = { start: 'toString', nodes: { s: q('x'), x: end('one') } };
+  assert.ok(has(protoStart, 'start node missing'), 'prototype key as start');
+  const noLabel = { q: '?', options: [{ label: '', next: 'x' }, { label: 'b', next: 'x' }] };
+  assert.ok(has({ start: 's', nodes: { s: noLabel, x: end('one') } }, 'no label'), 'blank answer label');
+  assert.ok(has({ start: 's', nodes: { s: { q: '', options: q('x').options }, x: end('one') } }, 'no question text'),
+    'blank question');
+  const endWithAnswers = { q: 'end', terminal: true, options: q('s').options };
+  assert.ok(has({ start: 's', nodes: { s: q('x'), x: endWithAnswers } }, 'has answers'), 'end with answers');
+});
+
+test('shiftCountdown: a day shift, mid-shift', () => {
+  const r = joke.shiftCountdown(600, 420, 930); // 10:00 in a 07:00-15:30 shift
+  assert.strictEqual(r.onShift, true);
+  assert.strictEqual(r.minutesLeft, 330);
+  assert.strictEqual(r.percentDone, 35);       // 180 of 510 minutes
+  assert.strictEqual(r.coffeeRefills, 2);
+  assert.strictEqual(r.verdict, 'Warming up.');
+});
+
+test('shiftCountdown: off the clock, and the verdict steps through the shift', () => {
+  const off = joke.shiftCountdown(1000, 420, 930); // 16:40
+  assert.strictEqual(off.onShift, false);
+  assert.strictEqual(off.minutesUntilStart, 860);
+  const at = (now) => joke.shiftCountdown(now, 0, 600).verdict; // a 10 hour shift from midnight
+  assert.deepStrictEqual([0, 100, 200, 400, 500].map(at),
+    ['Long way to go.', 'Long way to go.', 'Warming up.', 'Downhill from here.', 'Home stretch.']);
+  assert.strictEqual(joke.shiftCountdown(930, 420, 930).onShift, false); // the end minute is already off
+  assert.strictEqual(joke.shiftCountdown(420, 420, 930).onShift, true);  // the start minute is on
+});
+
+test('shiftCountdown: the verdict changes exactly at 25%, 50% and 75%, and refills tick at 120 minutes', () => {
+  const at = (now) => joke.shiftCountdown(now, 0, 100); // a 100 minute shift: minutes in == percent done
+  assert.deepStrictEqual([24, 25, 49, 50, 74, 75].map((n) => at(n).verdict),
+    ['Long way to go.', 'Warming up.', 'Warming up.', 'Downhill from here.', 'Downhill from here.', 'Home stretch.']);
+  assert.strictEqual(joke.shiftCountdown(0, 0, 120).coffeeRefills, 1);  // exactly 120 minutes left
+  assert.strictEqual(joke.shiftCountdown(1, 0, 120).coffeeRefills, 0);  // 119 left
+  assert.strictEqual(joke.shiftCountdown(0, 0, 240).coffeeRefills, 2);
+});
+
+test('shiftCountdown: a night shift that runs past midnight', () => {
+  const late = joke.shiftCountdown(120, 1380, 420); // 02:00 in a 23:00-07:00 shift
+  assert.strictEqual(late.onShift, true);
+  assert.strictEqual(late.minutesLeft, 300);
+  assert.strictEqual(late.percentDone, 38);        // 180 of 480 minutes
+  const evening = joke.shiftCountdown(1440 - 30, 1380, 420); // 23:30, 30 minutes in
+  assert.strictEqual(evening.onShift, true);
+  assert.strictEqual(evening.minutesLeft, 450);
+  const day = joke.shiftCountdown(600, 1380, 420); // 10:00 is between shifts
+  assert.strictEqual(day.onShift, false);
+  assert.strictEqual(day.minutesUntilStart, 780);
+});
+
+test('shiftCountdown: rejects out-of-range times and a zero-length shift', () => {
+  assert.throws(() => joke.shiftCountdown(-1, 420, 930), RangeError);
+  assert.throws(() => joke.shiftCountdown(1440, 420, 930), RangeError);
+  assert.throws(() => joke.shiftCountdown(NaN, 420, 930), RangeError);
+  assert.throws(() => joke.shiftCountdown(600, 420, 420), RangeError);
+  assert.throws(() => joke.shiftCountdown('600', 420, 930), RangeError);
+});
+
+test('unlockMatches: typing coffee or M00 (the G-code program stop) unlocks; near misses do not', () => {
+  assert.strictEqual(joke.unlockMatches('coffee'), true);
+  assert.strictEqual(joke.unlockMatches('xxcoffee'), true);
+  assert.strictEqual(joke.unlockMatches('m00'), true);
+  assert.strictEqual(joke.unlockMatches('g01 x1.5 m00'), true);
+  assert.strictEqual(joke.unlockMatches(''), false);
+  assert.strictEqual(joke.unlockMatches('coffe'), false);
+  assert.strictEqual(joke.unlockMatches('m0'), false);
+  assert.strictEqual(joke.unlockMatches('m01'), false);
+  assert.strictEqual(joke.unlockMatches('coffee '), false);
 });
 
 // -------------------------------------------------------------------------

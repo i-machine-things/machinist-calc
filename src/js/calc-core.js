@@ -1392,6 +1392,83 @@
     return round(feedRate * depthOfCut * widthOfCut, 4);
   };
 
+  // Chip thinning: when the cutter engages so the chip is thinner than the programmed feed per tooth,
+  // the feed has to be raised by 1 / (thinning ratio) to actually cut the intended chip thickness.
+  // No ISO/ANSI standard defines the compensation; both factors are plain chip geometry from shop
+  // handbooks and tool-maker literature. They are unitless, so they serve imperial and metric alike.
+
+  /**
+   * Radial chip thinning factor for side milling: how much to raise feed per tooth so the maximum chip
+   * thickness still equals the intended chip load. Below half-diameter engagement the tooth leaves the cut
+   * before turning square to the feed, so max chip = fz * sin(phi), phi = acos(1 - 2*ae/D) the engagement
+   * angle, i.e. sin(phi) = 2*sqrt(r*(1 - r)) with r = ae/D. Factor = 1/sin(phi) = D / (2*sqrt(ae*(D - ae))).
+   * At ae >= D/2 (half the cutter or more, up to a full slot) there is no thinning and the factor is 1.
+   * Assumes a straight-flute, sharp-cornered end mill; ball/bull-nose and lead-angle cutters differ.
+   * Diameter and radial width in the same length unit; throws unless 0 < radialWidth <= diameter.
+   */
+  calc.radialChipThinningFactor = function (diameter, radialWidth) {
+    if (!Number.isFinite(diameter) || !Number.isFinite(radialWidth) || diameter <= 0 ||
+        radialWidth <= 0 || radialWidth > diameter) {
+      throw new RangeError('diameter must be positive and radialWidth in (0, diameter]; both finite');
+    }
+    var r = radialWidth / diameter;
+    if (r >= 0.5) return 1;
+    var factor = round(1 / (2 * Math.sqrt(r * (1 - r))), 4);
+    if (!Number.isFinite(factor)) throw new RangeError('radialWidth too small relative to diameter');
+    return factor;
+  };
+
+  /**
+   * Radial stepover as a percentage of cutter diameter, from the radial width of cut. Same length unit for
+   * both inputs. Plain ratio; no standard involved. Throws unless both are positive and finite.
+   */
+  calc.stepoverPercent = function (diameter, radialWidth) {
+    if (!Number.isFinite(diameter) || !Number.isFinite(radialWidth) || diameter <= 0 || radialWidth <= 0) {
+      throw new RangeError('diameter and radialWidth must be positive and finite');
+    }
+    return round(radialWidth / diameter * 100, 2);
+  };
+
+  /** Radial width of cut from a stepover percentage of cutter diameter. Inverse of stepoverPercent. */
+  calc.radialWidthFromStepover = function (diameter, percent) {
+    if (!Number.isFinite(diameter) || !Number.isFinite(percent) || diameter <= 0 || percent <= 0) {
+      throw new RangeError('diameter and percent must be positive and finite');
+    }
+    var width = round(diameter * percent / 100, 5);
+    if (!Number.isFinite(width)) throw new RangeError('diameter too large');
+    return width;
+  };
+
+  /**
+   * Axial chip thinning factor for a tool entering at angle kappa: high-feed face mills and turning
+   * inserts. Undeformed chip thickness = feed * sin(kappa), so the factor is 1/sin(kappa). Entry angle
+   * is measured between the cutting edge and the surface being generated (the feed direction): 90 degrees
+   * is a square shoulder with no thinning; a high-feed face mill is typically 10-20 degrees; in turning
+   * it's the approach angle kappa-r. For a round insert the effective angle depends on depth of cut.
+   * Throws unless 0 < entryAngleDeg <= 90.
+   */
+  calc.axialChipThinningFactor = function (entryAngleDeg) {
+    if (!Number.isFinite(entryAngleDeg) || entryAngleDeg <= 0 || entryAngleDeg > 90) {
+      throw new RangeError('entryAngleDeg must be finite and in (0, 90]');
+    }
+    var factor = round(1 / Math.sin(entryAngleDeg * Math.PI / 180), 4);
+    if (!Number.isFinite(factor)) throw new RangeError('entryAngleDeg too small');
+    return factor;
+  };
+
+  /**
+   * Feed per tooth (or per rev, for a single-point tool) to program so the actual chip thickness equals
+   * `chipThickness`, given a chip thinning factor from either function above. Same length unit in and out.
+   */
+  calc.compensatedFeedPerTooth = function (chipThickness, factor) {
+    if (!Number.isFinite(chipThickness) || !Number.isFinite(factor) || chipThickness <= 0 || factor < 1) {
+      throw new RangeError('chipThickness must be positive and factor >= 1; both finite');
+    }
+    var fpt = round(chipThickness * factor, 5);
+    if (!Number.isFinite(fpt)) throw new RangeError('chipThickness too large');
+    return fpt;
+  };
+
   /**
    * Recommended turning cutting speed ranges (SFM) by workpiece material
    * and tool material. Not a formal ISO/ANSI standard — general

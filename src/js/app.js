@@ -486,33 +486,73 @@
     recalc();
   }
 
-  function setupFeedPerToothImperial() {
-    var rpm = $('sf-imp-fpt-rpm'), flutes = $('sf-imp-fpt-flutes'), chip = $('sf-imp-fpt-chipload'),
-      iprOut = $('sf-imp-fpt-ipr'), feedOut = $('sf-imp-fpt-feed');
-    function recalc() {
-      var r = parseFloat(rpm.value), f = parseFloat(flutes.value), c = parseFloat(chip.value);
-      if ([r, f, c].some(isNaN) || !Number.isInteger(f) || f <= 0) {
-        iprOut.textContent = '—'; feedOut.textContent = '—'; return;
-      }
-      iprOut.textContent = calc.feedPerRev(c, f);
-      feedOut.textContent = calc.feedRate(r, c, f);
+  // ------------------------------------------------------------------
+  // Feed Per Tooth & Chip Thinning
+  // ------------------------------------------------------------------
+  /** Runs fn, returning null instead of the RangeError calc-core throws for invalid/blank input. */
+  function orNull(fn) {
+    try { return fn(); } catch (err) {
+      if (err instanceof RangeError) return null;
+      throw err;
     }
-    [rpm, flutes, chip].forEach(function (el) { el.addEventListener('input', recalc); });
-    recalc();
   }
 
-  function setupFeedPerToothMetric() {
-    var rpm = $('sf-met-fpt-rpm'), flutes = $('sf-met-fpt-flutes'), chip = $('sf-met-fpt-chipload'),
-      iprOut = $('sf-met-fpt-ipr'), feedOut = $('sf-met-fpt-feed');
-    function recalc() {
-      var r = parseFloat(rpm.value), f = parseFloat(flutes.value), c = parseFloat(chip.value);
-      if ([r, f, c].some(isNaN) || !Number.isInteger(f) || f <= 0) {
-        iprOut.textContent = '—'; feedOut.textContent = '—'; return;
-      }
-      iprOut.textContent = calc.feedPerRev(c, f);
-      feedOut.textContent = calc.feedRate(r, c, f);
+  /**
+   * Feed per tooth conversion with an optional chip thinning correction (none / radial / axial). The
+   * factor still shows when chip thickness, RPM or flutes are blank or invalid, and each later readout
+   * blanks on its own; feed per revolution only needs valid flutes, not RPM.
+   */
+  function setupFeedAndChipThinning(prefix) {
+    var rpm = $(prefix + '-rpm'), flutes = $(prefix + '-flutes'), chip = $(prefix + '-chip'),
+      mode = $(prefix + '-mode'), dia = $(prefix + '-dia'), width = $(prefix + '-ae'),
+      widthUnit = $(prefix + '-ae-unit'), angle = $(prefix + '-angle'), diaLabel = $(prefix + '-dia-label'),
+      widthLabel = $(prefix + '-ae-label'), widthUnitLabel = $(prefix + '-ae-unit-label'),
+      angleLabel = $(prefix + '-angle-label'), radialHint = $(prefix + '-radial-hint'),
+      axialHint = $(prefix + '-axial-hint'), factorOut = $(prefix + '-factor'), fptOut = $(prefix + '-fpt'),
+      iprOut = $(prefix + '-ipr'), feedOut = $(prefix + '-feed');
+
+    // Radial width as a length, whichever unit the field is in; a bad percent throws RangeError like a bad length.
+    function radialWidth() {
+      var v = parseFloat(width.value);
+      return widthUnit.value === 'pct' ? calc.radialWidthFromStepover(parseFloat(dia.value), v) : v;
     }
-    [rpm, flutes, chip].forEach(function (el) { el.addEventListener('input', recalc); });
+    function factorFor() {
+      if (mode.value === 'radial') return calc.radialChipThinningFactor(parseFloat(dia.value), radialWidth());
+      if (mode.value === 'axial') return calc.axialChipThinningFactor(parseFloat(angle.value));
+      return 1;
+    }
+    function show(el, v) { el.textContent = v === null ? '—' : v; }
+
+    function recalc() {
+      var radial = mode.value === 'radial', axial = mode.value === 'axial';
+      diaLabel.hidden = !radial;
+      widthLabel.hidden = !radial;
+      widthUnitLabel.hidden = !radial;
+      angleLabel.hidden = !axial;
+      radialHint.hidden = !radial;
+      axialHint.hidden = !axial;
+
+      var factor = orNull(factorFor);
+      var c = parseFloat(chip.value), r = parseFloat(rpm.value), n = parseFloat(flutes.value);
+      var fpt = factor === null ? null : orNull(function () { return calc.compensatedFeedPerTooth(c, factor); });
+      var ipr = fpt === null || !Number.isInteger(n) || n <= 0 ? null : calc.feedPerRev(fpt, n);
+      var feed = ipr === null || !(r > 0) ? null : calc.feedRate(r, fpt, n);
+      show(factorOut, factor);
+      show(fptOut, fpt);
+      show(iprOut, ipr);
+      show(feedOut, feed);
+    }
+
+    [rpm, flutes, chip, mode, dia, width, angle].forEach(function (el) { el.addEventListener('input', recalc); });
+    // Switching the width unit converts the entered number, so the same cut stays the same cut.
+    widthUnit.addEventListener('input', function () {
+      var d = parseFloat(dia.value), v = parseFloat(width.value);
+      var converted = orNull(function () {
+        return widthUnit.value === 'pct' ? calc.stepoverPercent(d, v) : calc.radialWidthFromStepover(d, v);
+      });
+      if (converted !== null) width.value = converted;
+      recalc();
+    });
     recalc();
   }
 
@@ -819,6 +859,174 @@
     render();
   }
 
+  // ------------------------------------------------------------------
+  // Break Room (hidden novelty calculators). Unlocked by typing "coffee" or "M00" outside a field.
+  // See CODING_NOTES "Easter Eggs".
+  // ------------------------------------------------------------------
+  function setupCaffeine(joke) {
+    var weight = $('br-cf-weight'), unit = $('br-cf-unit'), drink = $('br-cf-drink'), shift = $('br-cf-shift'),
+      outs = { daily: $('br-cf-daily'), serving: $('br-cf-serving'), drinks: $('br-cf-drinks'),
+        whole: $('br-cf-whole'), spacing: $('br-cf-spacing') },
+      verdict = $('br-cf-verdict'), split = $('br-cf-split'), share = $('br-cf-share');
+    fillSelect(drink, joke.caffeineDrinks);
+    drink.value = 1; // the ideal Monster
+
+    function recalc() {
+      var w = parseFloat(weight.value);
+      var d = joke.caffeineDrinks[+drink.value];
+      var r = null;
+      try {
+        r = joke.caffeineBudget(unit.value === 'lb' ? joke.lbToKg(w) : w, d.mg, parseFloat(shift.value));
+      } catch (err) {
+        if (!(err instanceof RangeError)) throw err;
+      }
+      outs.daily.textContent = r ? r.dailyMg : '—';
+      outs.serving.textContent = r ? r.servingMg : '—';
+      outs.drinks.textContent = r ? r.drinksPerDay : '—';
+      outs.whole.textContent = r ? r.wholeDrinks : '—';
+      outs.spacing.textContent = r && r.hoursBetween !== null ? r.hoursBetween : '—';
+      verdict.textContent = r ? r.verdict : 'Needs a weight, a drink, and a shift length.';
+      split.hidden = !(r && r.splitAdvice);
+      share.hidden = !(r && r.shareAdvice);
+    }
+    [weight, unit, drink, shift].forEach(function (el) { el.addEventListener('input', recalc); });
+    recalc();
+  }
+
+  /**
+   * Question-by-question walk through a decision chart (the donut and the scrap-excuse tabs share it). `cfg`:
+   * { chart, prefix: element-id prefix, doneStep: label shown at an end, doneText(node): text shown there }.
+   */
+  function setupChartWizard(cfg) {
+    var chart = cfg.chart;
+    var stepEl = $(cfg.prefix + '-step'), questionEl = $(cfg.prefix + '-question'),
+      choicesEl = $(cfg.prefix + '-choices'), back = $(cfg.prefix + '-back'), restart = $(cfg.prefix + '-restart');
+    var path = [chart.start];
+    // Re-rendering removes the focused button, so keyboard focus would fall to the page; the question takes it
+    // (programmatic focus only, not a tab stop) so keyboard and screen-reader users land on the new content.
+    questionEl.setAttribute('tabindex', '-1');
+
+    function render() {
+      var node = chart.nodes[path[path.length - 1]];
+      var done = !!node.terminal;
+      stepEl.textContent = done ? cfg.doneStep : 'Question ' + path.length;
+      questionEl.textContent = done ? cfg.doneText(node) : node.q;
+      choicesEl.innerHTML = '';
+      node.options.forEach(function (opt) {
+        var btn = document.createElement('button');
+        btn.className = 'choice-btn';
+        btn.textContent = opt.label;
+        btn.addEventListener('click', function () { path.push(opt.next); render(); questionEl.focus(); });
+        choicesEl.appendChild(btn);
+      });
+      back.disabled = path.length === 1;
+    }
+
+    back.addEventListener('click', function () {
+      if (path.length > 1) { path.pop(); render(); questionEl.focus(); }
+    });
+    restart.addEventListener('click', function () { path = [chart.start]; render(); questionEl.focus(); });
+    render();
+  }
+
+  function setupToleranceTalk(joke) {
+    var value = $('br-tol-value'), unit = $('br-tol-unit'), verdict = $('br-tol-verdict'),
+      instrument = $('br-tol-instrument'), temp = $('br-tol-temp');
+    function recalc() {
+      var r = null;
+      try {
+        // the engine works in thou (0.001 in); the field is in whatever unit the print uses
+        r = joke.toleranceTalk(joke.lengthToThou(parseFloat(value.value), unit.value));
+      } catch (err) {
+        if (!(err instanceof RangeError)) throw err;
+      }
+      verdict.textContent = r ? r.verdict : '—';
+      instrument.textContent = r ? r.instrument : '—';
+      if (!r) {
+        temp.textContent = '—';
+      } else if (r.degF > 500) {
+        temp.textContent = 'It would take a swing of over 500 °F to use up this tolerance on a 1 in steel part. ' +
+          'Temperature is not your problem.';
+      } else {
+        temp.textContent = 'A 1 in steel part uses up the whole tolerance with a ' + r.degF + ' °F swing.';
+      }
+    }
+    [value, unit].forEach(function (el) { el.addEventListener('input', recalc); });
+    recalc();
+  }
+
+  function setupShiftCountdown(joke) {
+    var start = $('br-sh-start'), end = $('br-sh-end'), left = $('br-sh-left'), pct = $('br-sh-pct'),
+      coffee = $('br-sh-coffee'), verdict = $('br-sh-verdict');
+    function minutes(el) {
+      var parts = el.value.split(':');
+      return parts.length === 2 ? parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10) : NaN;
+    }
+    function clock(totalMinutes) {
+      return Math.floor(totalMinutes / 60) + ' h ' + (totalMinutes % 60) + ' m';
+    }
+    function recalc() {
+      // Wall-clock minutes: on the two daylight-saving changeover nights a shift spanning the change is an hour off.
+      var now = new Date();
+      var r = null;
+      try {
+        r = joke.shiftCountdown(now.getHours() * 60 + now.getMinutes(), minutes(start), minutes(end));
+      } catch (err) {
+        if (!(err instanceof RangeError)) throw err;
+      }
+      left.textContent = r && r.onShift ? clock(r.minutesLeft) : '—';
+      pct.textContent = r && r.onShift ? r.percentDone + '%' : '—';
+      coffee.textContent = r && r.onShift ? r.coffeeRefills : '—';
+      if (!r) {
+        verdict.textContent = 'Needs a start and an end time that are not the same.';
+      } else if (r.onShift) {
+        verdict.textContent = r.verdict;
+      } else {
+        verdict.textContent = r.verdict + ' Next shift starts in ' + clock(r.minutesUntilStart) + '.';
+      }
+    }
+    [start, end].forEach(function (el) { el.addEventListener('input', recalc); });
+    // Refresh twice a minute so the countdown keeps moving while the panel is open. The next tick is scheduled
+    // first so a failure in recalc can't stop the refresh.
+    (function tick() { setTimeout(tick, 30000); recalc(); })();
+  }
+
+  function setupBreakRoom() {
+    var joke = window.MC.joke;
+    var navItem = $('nav-breakroom'), panel = $('panel-breakroom');
+    var typed = '';
+
+    // Registered before the calculators are set up, so a failure in any of them can't stop the panel unlocking.
+    document.addEventListener('keydown', function (e) {
+      if (typeof e.key !== 'string' || e.ctrlKey || e.altKey || e.metaKey || e.repeat) return;
+      var t = e.target;
+      // Never listen while someone is entering values, or "coffee"/"M00" typed into a field would toggle it.
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) {
+        typed = '';
+        return;
+      }
+      if (e.key === 'Shift' || e.key === 'CapsLock') return; // capital letters shouldn't break the word
+      if (e.key.length !== 1) { typed = ''; return; }        // Enter, Tab, arrows and the like end it
+      typed = (typed + e.key.toLowerCase()).slice(-12);
+      if (!joke.unlockMatches(typed)) return;
+      typed = '';
+      navItem.hidden = !navItem.hidden;
+      if (!navItem.hidden) return;
+      if (navItem.contains(document.activeElement)) document.activeElement.blur();
+      if (panel.classList.contains('active')) document.querySelector('.nav-btn').click();
+    });
+    // Alt-tabbing away halfway through a word shouldn't let the rest of it count later.
+    window.addEventListener('blur', function () { typed = ''; });
+
+    setupCaffeine(joke);
+    setupChartWizard({ chart: joke.donutChart, prefix: 'br-donut', doneStep: 'Every road leads here.',
+      doneText: function (node) { return '\uD83C\uDF69 ' + node.q + ' \uD83C\uDF69'; } });
+    setupChartWizard({ chart: joke.excuseChart, prefix: 'br-excuse', doneStep: 'Your excuse:',
+      doneText: function (node) { return node.q; } });
+    setupToleranceTalk(joke);
+    setupShiftCountdown(joke);
+  }
+
   // Hidden Ctrl+Alt+Shift+M easter egg — quiet, no accidental trigger, not
   // referenced anywhere in the UI. See CODING_NOTES.md "Easter Eggs".
   function setupEasterEgg() {
@@ -847,13 +1055,14 @@
     setupRecommendedSfm();
     setupSpeedsFeedsImperial();
     setupSpeedsFeedsMetric();
-    setupFeedPerToothImperial();
-    setupFeedPerToothMetric();
+    setupFeedAndChipThinning('sf-imp-ct');
+    setupFeedAndChipThinning('sf-met-ct');
     setupBoltCircle();
     setupRightTriangle();
     setupTruePosition();
     setupSurfaceFinish();
     setupTolerance();
     setupCharts();
+    setupBreakRoom();
   });
 })();
