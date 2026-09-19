@@ -505,13 +505,19 @@
   function setupFeedAndChipThinning(prefix) {
     var rpm = $(prefix + '-rpm'), flutes = $(prefix + '-flutes'), chip = $(prefix + '-chip'),
       mode = $(prefix + '-mode'), dia = $(prefix + '-dia'), width = $(prefix + '-ae'),
-      angle = $(prefix + '-angle'), diaLabel = $(prefix + '-dia-label'), widthLabel = $(prefix + '-ae-label'),
+      widthUnit = $(prefix + '-ae-unit'), angle = $(prefix + '-angle'), diaLabel = $(prefix + '-dia-label'),
+      widthLabel = $(prefix + '-ae-label'), widthUnitLabel = $(prefix + '-ae-unit-label'),
       angleLabel = $(prefix + '-angle-label'), radialHint = $(prefix + '-radial-hint'),
       axialHint = $(prefix + '-axial-hint'), factorOut = $(prefix + '-factor'), fptOut = $(prefix + '-fpt'),
       iprOut = $(prefix + '-ipr'), feedOut = $(prefix + '-feed');
 
+    // Radial width as a length, whichever unit the field is in; a bad percent throws RangeError like a bad length.
+    function radialWidth() {
+      var v = parseFloat(width.value);
+      return widthUnit.value === 'pct' ? calc.radialWidthFromStepover(parseFloat(dia.value), v) : v;
+    }
     function factorFor() {
-      if (mode.value === 'radial') return calc.radialChipThinningFactor(parseFloat(dia.value), parseFloat(width.value));
+      if (mode.value === 'radial') return calc.radialChipThinningFactor(parseFloat(dia.value), radialWidth());
       if (mode.value === 'axial') return calc.axialChipThinningFactor(parseFloat(angle.value));
       return 1;
     }
@@ -521,6 +527,7 @@
       var radial = mode.value === 'radial', axial = mode.value === 'axial';
       diaLabel.hidden = !radial;
       widthLabel.hidden = !radial;
+      widthUnitLabel.hidden = !radial;
       angleLabel.hidden = !axial;
       radialHint.hidden = !radial;
       axialHint.hidden = !axial;
@@ -537,6 +544,15 @@
     }
 
     [rpm, flutes, chip, mode, dia, width, angle].forEach(function (el) { el.addEventListener('input', recalc); });
+    // Switching the width unit converts the entered number, so the same cut stays the same cut.
+    widthUnit.addEventListener('input', function () {
+      var d = parseFloat(dia.value), v = parseFloat(width.value);
+      var converted = orNull(function () {
+        return widthUnit.value === 'pct' ? calc.stepoverPercent(d, v) : calc.radialWidthFromStepover(d, v);
+      });
+      if (converted !== null) width.value = converted;
+      recalc();
+    });
     recalc();
   }
 

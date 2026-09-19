@@ -1419,6 +1419,27 @@
   };
 
   /**
+   * Radial stepover as a percentage of cutter diameter, from the radial width of cut. Same length unit for
+   * both inputs. Plain ratio; no standard involved. Throws unless both are positive and finite.
+   */
+  calc.stepoverPercent = function (diameter, radialWidth) {
+    if (!Number.isFinite(diameter) || !Number.isFinite(radialWidth) || diameter <= 0 || radialWidth <= 0) {
+      throw new RangeError('diameter and radialWidth must be positive and finite');
+    }
+    return round(radialWidth / diameter * 100, 2);
+  };
+
+  /** Radial width of cut from a stepover percentage of cutter diameter. Inverse of stepoverPercent. */
+  calc.radialWidthFromStepover = function (diameter, percent) {
+    if (!Number.isFinite(diameter) || !Number.isFinite(percent) || diameter <= 0 || percent <= 0) {
+      throw new RangeError('diameter and percent must be positive and finite');
+    }
+    var width = round(diameter * percent / 100, 5);
+    if (!Number.isFinite(width)) throw new RangeError('diameter too large');
+    return width;
+  };
+
+  /**
    * Axial chip thinning factor for a tool entering at angle kappa: high-feed face mills and turning
    * inserts. Undeformed chip thickness = feed * sin(kappa), so the factor is 1/sin(kappa). Entry angle
    * is measured between the cutting edge and the surface being generated (the feed direction): 90 degrees

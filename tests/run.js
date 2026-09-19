@@ -400,6 +400,28 @@ test('radialChipThinningFactor: rejects engagement outside (0, diameter] and non
   assert.throws(() => calc.radialChipThinningFactor(1e10, 5e-324), RangeError);
 });
 
+test('stepoverPercent / radialWidthFromStepover: round-trip a width and its percent of diameter', () => {
+  approx(calc.stepoverPercent(0.5, 0.05), 10, 0.001);
+  approx(calc.stepoverPercent(12, 1.2), 10, 0.001);
+  approx(calc.stepoverPercent(0.5, 0.125), 25, 0.001);
+  approx(calc.stepoverPercent(0.5, 0.5), 100, 0.001);
+  approx(calc.radialWidthFromStepover(0.5, 10), 0.05, 0.000001);
+  approx(calc.radialWidthFromStepover(12, 25), 3, 0.000001);
+  // feeding the converted width straight into the thinning factor gives the published 10% value
+  approx(calc.radialChipThinningFactor(0.5, calc.radialWidthFromStepover(0.5, 10)), 1.6667, 0.0001);
+});
+
+test('stepoverPercent / radialWidthFromStepover: reject non-positive and non-finite input', () => {
+  assert.throws(() => calc.stepoverPercent(0, 0.05), RangeError);
+  assert.throws(() => calc.stepoverPercent(0.5, 0), RangeError);
+  assert.throws(() => calc.stepoverPercent(0.5, '0.05'), RangeError);
+  assert.throws(() => calc.stepoverPercent(0.5, Infinity), RangeError);
+  assert.throws(() => calc.radialWidthFromStepover(0.5, 0), RangeError);
+  assert.throws(() => calc.radialWidthFromStepover(0.5, -10), RangeError);
+  assert.throws(() => calc.radialWidthFromStepover(NaN, 10), RangeError);
+  assert.throws(() => calc.radialWidthFromStepover(1e305, 1e5), RangeError);
+});
+
 test('axialChipThinningFactor: 1/sin(entry angle)', () => {
   approx(calc.axialChipThinningFactor(30), 2, 0.0001);
   approx(calc.axialChipThinningFactor(45), 1.4142, 0.0001);
