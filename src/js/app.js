@@ -819,6 +819,174 @@
     render();
   }
 
+  // ------------------------------------------------------------------
+  // Break Room (hidden novelty calculators). Unlocked by typing "coffee" or "M00" outside a field.
+  // See CODING_NOTES "Easter Eggs".
+  // ------------------------------------------------------------------
+  function setupCaffeine(joke) {
+    var weight = $('br-cf-weight'), unit = $('br-cf-unit'), drink = $('br-cf-drink'), shift = $('br-cf-shift'),
+      outs = { daily: $('br-cf-daily'), serving: $('br-cf-serving'), drinks: $('br-cf-drinks'),
+        whole: $('br-cf-whole'), spacing: $('br-cf-spacing') },
+      verdict = $('br-cf-verdict'), split = $('br-cf-split'), share = $('br-cf-share');
+    fillSelect(drink, joke.caffeineDrinks);
+    drink.value = 1; // the ideal Monster
+
+    function recalc() {
+      var w = parseFloat(weight.value);
+      var d = joke.caffeineDrinks[+drink.value];
+      var r = null;
+      try {
+        r = joke.caffeineBudget(unit.value === 'lb' ? joke.lbToKg(w) : w, d.mg, parseFloat(shift.value));
+      } catch (err) {
+        if (!(err instanceof RangeError)) throw err;
+      }
+      outs.daily.textContent = r ? r.dailyMg : '—';
+      outs.serving.textContent = r ? r.servingMg : '—';
+      outs.drinks.textContent = r ? r.drinksPerDay : '—';
+      outs.whole.textContent = r ? r.wholeDrinks : '—';
+      outs.spacing.textContent = r && r.hoursBetween !== null ? r.hoursBetween : '—';
+      verdict.textContent = r ? r.verdict : 'Needs a weight, a drink, and a shift length.';
+      split.hidden = !(r && r.splitAdvice);
+      share.hidden = !(r && r.shareAdvice);
+    }
+    [weight, unit, drink, shift].forEach(function (el) { el.addEventListener('input', recalc); });
+    recalc();
+  }
+
+  /**
+   * Question-by-question walk through a decision chart (the donut and the scrap-excuse tabs share it). `cfg`:
+   * { chart, prefix: element-id prefix, doneStep: label shown at an end, doneText(node): text shown there }.
+   */
+  function setupChartWizard(cfg) {
+    var chart = cfg.chart;
+    var stepEl = $(cfg.prefix + '-step'), questionEl = $(cfg.prefix + '-question'),
+      choicesEl = $(cfg.prefix + '-choices'), back = $(cfg.prefix + '-back'), restart = $(cfg.prefix + '-restart');
+    var path = [chart.start];
+    // Re-rendering removes the focused button, so keyboard focus would fall to the page; the question takes it
+    // (programmatic focus only, not a tab stop) so keyboard and screen-reader users land on the new content.
+    questionEl.setAttribute('tabindex', '-1');
+
+    function render() {
+      var node = chart.nodes[path[path.length - 1]];
+      var done = !!node.terminal;
+      stepEl.textContent = done ? cfg.doneStep : 'Question ' + path.length;
+      questionEl.textContent = done ? cfg.doneText(node) : node.q;
+      choicesEl.innerHTML = '';
+      node.options.forEach(function (opt) {
+        var btn = document.createElement('button');
+        btn.className = 'choice-btn';
+        btn.textContent = opt.label;
+        btn.addEventListener('click', function () { path.push(opt.next); render(); questionEl.focus(); });
+        choicesEl.appendChild(btn);
+      });
+      back.disabled = path.length === 1;
+    }
+
+    back.addEventListener('click', function () {
+      if (path.length > 1) { path.pop(); render(); questionEl.focus(); }
+    });
+    restart.addEventListener('click', function () { path = [chart.start]; render(); questionEl.focus(); });
+    render();
+  }
+
+  function setupToleranceTalk(joke) {
+    var value = $('br-tol-value'), unit = $('br-tol-unit'), verdict = $('br-tol-verdict'),
+      instrument = $('br-tol-instrument'), temp = $('br-tol-temp');
+    function recalc() {
+      var r = null;
+      try {
+        // the engine works in thou (0.001 in); the field is in whatever unit the print uses
+        r = joke.toleranceTalk(joke.lengthToThou(parseFloat(value.value), unit.value));
+      } catch (err) {
+        if (!(err instanceof RangeError)) throw err;
+      }
+      verdict.textContent = r ? r.verdict : '—';
+      instrument.textContent = r ? r.instrument : '—';
+      if (!r) {
+        temp.textContent = '—';
+      } else if (r.degF > 500) {
+        temp.textContent = 'It would take a swing of over 500 °F to use up this tolerance on a 1 in steel part. ' +
+          'Temperature is not your problem.';
+      } else {
+        temp.textContent = 'A 1 in steel part uses up the whole tolerance with a ' + r.degF + ' °F swing.';
+      }
+    }
+    [value, unit].forEach(function (el) { el.addEventListener('input', recalc); });
+    recalc();
+  }
+
+  function setupShiftCountdown(joke) {
+    var start = $('br-sh-start'), end = $('br-sh-end'), left = $('br-sh-left'), pct = $('br-sh-pct'),
+      coffee = $('br-sh-coffee'), verdict = $('br-sh-verdict');
+    function minutes(el) {
+      var parts = el.value.split(':');
+      return parts.length === 2 ? parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10) : NaN;
+    }
+    function clock(totalMinutes) {
+      return Math.floor(totalMinutes / 60) + ' h ' + (totalMinutes % 60) + ' m';
+    }
+    function recalc() {
+      // Wall-clock minutes: on the two daylight-saving changeover nights a shift spanning the change is an hour off.
+      var now = new Date();
+      var r = null;
+      try {
+        r = joke.shiftCountdown(now.getHours() * 60 + now.getMinutes(), minutes(start), minutes(end));
+      } catch (err) {
+        if (!(err instanceof RangeError)) throw err;
+      }
+      left.textContent = r && r.onShift ? clock(r.minutesLeft) : '—';
+      pct.textContent = r && r.onShift ? r.percentDone + '%' : '—';
+      coffee.textContent = r && r.onShift ? r.coffeeRefills : '—';
+      if (!r) {
+        verdict.textContent = 'Needs a start and an end time that are not the same.';
+      } else if (r.onShift) {
+        verdict.textContent = r.verdict;
+      } else {
+        verdict.textContent = r.verdict + ' Next shift starts in ' + clock(r.minutesUntilStart) + '.';
+      }
+    }
+    [start, end].forEach(function (el) { el.addEventListener('input', recalc); });
+    // Refresh twice a minute so the countdown keeps moving while the panel is open. The next tick is scheduled
+    // first so a failure in recalc can't stop the refresh.
+    (function tick() { setTimeout(tick, 30000); recalc(); })();
+  }
+
+  function setupBreakRoom() {
+    var joke = window.MC.joke;
+    var navItem = $('nav-breakroom'), panel = $('panel-breakroom');
+    var typed = '';
+
+    // Registered before the calculators are set up, so a failure in any of them can't stop the panel unlocking.
+    document.addEventListener('keydown', function (e) {
+      if (typeof e.key !== 'string' || e.ctrlKey || e.altKey || e.metaKey || e.repeat) return;
+      var t = e.target;
+      // Never listen while someone is entering values, or "coffee"/"M00" typed into a field would toggle it.
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) {
+        typed = '';
+        return;
+      }
+      if (e.key === 'Shift' || e.key === 'CapsLock') return; // capital letters shouldn't break the word
+      if (e.key.length !== 1) { typed = ''; return; }        // Enter, Tab, arrows and the like end it
+      typed = (typed + e.key.toLowerCase()).slice(-12);
+      if (!joke.unlockMatches(typed)) return;
+      typed = '';
+      navItem.hidden = !navItem.hidden;
+      if (!navItem.hidden) return;
+      if (navItem.contains(document.activeElement)) document.activeElement.blur();
+      if (panel.classList.contains('active')) document.querySelector('.nav-btn').click();
+    });
+    // Alt-tabbing away halfway through a word shouldn't let the rest of it count later.
+    window.addEventListener('blur', function () { typed = ''; });
+
+    setupCaffeine(joke);
+    setupChartWizard({ chart: joke.donutChart, prefix: 'br-donut', doneStep: 'Every road leads here.',
+      doneText: function (node) { return '\uD83C\uDF69 ' + node.q + ' \uD83C\uDF69'; } });
+    setupChartWizard({ chart: joke.excuseChart, prefix: 'br-excuse', doneStep: 'Your excuse:',
+      doneText: function (node) { return node.q; } });
+    setupToleranceTalk(joke);
+    setupShiftCountdown(joke);
+  }
+
   // Hidden Ctrl+Alt+Shift+M easter egg — quiet, no accidental trigger, not
   // referenced anywhere in the UI. See CODING_NOTES.md "Easter Eggs".
   function setupEasterEgg() {
@@ -855,5 +1023,6 @@
     setupSurfaceFinish();
     setupTolerance();
     setupCharts();
+    setupBreakRoom();
   });
 })();
