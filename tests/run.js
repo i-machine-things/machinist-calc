@@ -386,6 +386,28 @@ test('recommendedSfm: every row has ordered HSS/carbide ranges, carbide faster t
   }
 });
 
+test('recommendedSfm: exotic materials run slower than the ordinary family they belong to', () => {
+  const row = (needle) => {
+    const r = calc.recommendedSfm.find((m) => m.material.indexOf(needle) !== -1);
+    assert.ok(r, `expected a row containing "${needle}"`);
+    return r;
+  };
+  const austenitic = row('austenitic');
+  const duplex = row('Duplex');
+  assert.ok(duplex.carbide[1] <= austenitic.carbide[1] && duplex.hss[1] <= austenitic.hss[1],
+    'duplex should not out-cut austenitic stainless');
+  assert.ok(row('White cast iron').carbide[1] <= row('Gray cast iron').carbide[0],
+    'white iron should top out below where gray iron starts');
+  assert.ok(row('Manganese steel').carbide[1] <= row('Alloy steel').carbide[0],
+    'manganese steel should top out below where annealed alloy steel starts');
+});
+
+test('recommendedSfm: Lime jello is the last row, so the UI default row stays aluminum', () => {
+  const last = calc.recommendedSfm[calc.recommendedSfm.length - 1];
+  assert.strictEqual(last.material, 'Lime jello');
+  assert.ok(calc.recommendedSfm[0].material.indexOf('Aluminum') !== -1);
+});
+
 test('recommendedSfm: Inconel HSS range matches Machinery\'s Handbook Table 9 and is slower than titanium', () => {
   const inconel = calc.recommendedSfm.find((r) => r.material.indexOf('Inconel') !== -1);
   assert.ok(inconel, 'expected an Inconel/nickel-superalloy row');

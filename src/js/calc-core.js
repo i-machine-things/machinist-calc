@@ -1409,8 +1409,18 @@
     { material: 'Medium-carbon steel (10xx, 0.3-0.5% C)', hss: [70, 100], carbide: [250, 400] },
     { material: 'Alloy steel, annealed (41xx, 86xx)', hss: [50, 70], carbide: [200, 300] },
     { material: 'Tool steel, annealed', hss: [40, 60], carbide: [150, 250] },
+    // Exotic additions below (manganese steel, duplex stainless, white cast iron) are NOT taken from the
+    // Machinery's Handbook tables: they're conservative general shop-reference starting points, chosen to sit
+    // below the ordinary family each one belongs to (see the relational test in tests/run.js). Verify against
+    // the tooling manufacturer's data before relying on them.
+    // Hadfield manganese steel (11-14% Mn) work-hardens under the cut: HSS is a last resort, carbide with a
+    // rigid setup and no dwelling is the norm.
+    { material: 'Manganese steel (Hadfield, 11-14% Mn)', hss: [10, 20], carbide: [40, 100] },
     { material: 'Stainless steel, austenitic (300 series)', hss: [40, 70], carbide: [150, 300] },
+    { material: 'Duplex stainless steel (e.g. 2205)', hss: [25, 45], carbide: [100, 200] },
     { material: 'Gray cast iron', hss: [50, 80], carbide: [200, 400] },
+    // White cast iron is very hard (typically 400+ HB); HSS barely cuts it.
+    { material: 'White cast iron', hss: [5, 15], carbide: [30, 80] },
     { material: 'Titanium alloys', hss: [20, 30], carbide: [100, 150] },
     // HSS range is Machinery's Handbook Table 9 (Cutting Feeds and Speeds for Turning
     // Superalloys), the "Inconel 625, 702, 706, 718 (wrought)...600" row (rough 15-20,
@@ -1419,7 +1429,10 @@
     // unambiguously from the source PDF's multi-column layout -- so it's a conservative,
     // independently-corroborated general shop-reference value instead, kept below Titanium's
     // carbide ceiling since Inconel is regarded as harder on tooling at comparable speeds.
-    { material: 'Inconel & nickel-based superalloys', hss: [15, 35], carbide: [60, 120] }
+    { material: 'Inconel & nickel-based superalloys', hss: [15, 35], carbide: [60, 120] },
+    // Joke entry, not real data -- see CODING_NOTES "Easter Eggs". Keep it last so the UI's default
+    // (first) row stays aluminum.
+    { material: 'Lime jello', hss: [1, 3], carbide: [2, 5] }
   ];
 
   // ---------------------------------------------------------------------
