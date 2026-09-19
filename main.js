@@ -5,6 +5,8 @@ const path = require('path');
 const isMac = process.platform === 'darwin';
 const iconPath = path.join(__dirname, 'build', isMac ? 'icon.icns' : (process.platform === 'win32' ? 'icon.ico' : 'icon.png'));
 
+const ISSUES_URL = 'https://github.com/i-machine-things/machinist-calc/issues';
+
 let mainWindow = null;
 let updateCheckInProgress = false;
 
@@ -153,6 +155,10 @@ function buildMenu() {
       {
         label: 'Check for Updates...',
         click: () => checkForUpdatesManually()
+      },
+      {
+        label: 'Issues on GitHub...',
+        click: () => shell.openExternal(ISSUES_URL)
       },
       { type: 'separator' },
       {

@@ -176,6 +176,7 @@ h2 {
 
 .grid-2 { grid-template-columns: 1fr 1fr; }
 .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+.grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
 
 label {
   display: flex;
@@ -185,12 +186,16 @@ label {
   color: var(--text-dim);
 }
 
+/* label sets display:flex above, which would otherwise override the hidden attribute */
+label[hidden] { display: none; }
+
 .slider-label {
   margin-bottom: 16px;
 }
 
 input[type="number"],
 input[type="text"],
+input[type="time"],
 select {
   background: var(--bg-input);
   border: 1px solid var(--border);
@@ -363,3 +368,30 @@ input:focus, select:focus {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #3a3b44; border-radius: 5px; }
 ::-webkit-scrollbar-thumb:hover { background: #4a4b56; }
+
+/* Break Room (hidden novelty calculators) */
+.choice-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; }
+.choice-btn {
+  padding: 8px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--font);
+  cursor: pointer;
+}
+.choice-btn:hover { border-color: var(--accent); }
+.choice-btn:disabled { opacity: 0.4; cursor: default; }
+#panel-breakroom .tabs { flex-wrap: wrap; }
+.doc { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; margin-bottom: 10px; }
+.doc summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+.doc dl, .doc ol { margin: 12px 0 4px; font-size: 13px; line-height: 1.5; }
+.doc dt { color: var(--text); font-weight: 600; margin-top: 10px; }
+.doc dd { margin: 2px 0 0; color: var(--text-dim); }
+.doc li { color: var(--text-dim); margin-bottom: 6px; }
+.ref-label { display: inline-block; padding: 0 6px; border: 1px dashed var(--accent); border-radius: 3px; color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.warn-label { border-color: #e06666; color: #e06666; }
+.doc p { margin: 12px 0 4px; font-size: 13px; line-height: 1.5; color: var(--text-dim); }
+.result-value[tabindex="-1"]:focus { outline: none; }
+input[type="time"] { color-scheme: dark; }
