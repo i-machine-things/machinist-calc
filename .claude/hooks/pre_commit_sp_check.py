@@ -13,39 +13,70 @@ import shutil
 import subprocess
 
 
-def _is_git_commit_command(command: str) -> bool:
-    """Return True if any git invocation in the command is a git commit.
+# git global options that consume the following token as their argument
+_ARG_OPTIONS = frozenset({
+    "-C", "-c", "--exec-path", "--git-dir",
+    "--work-tree", "--namespace", "--super-prefix",
+    "--list-cmds",
+})
+_OPERATOR_CHARS = frozenset("();<>|&")
 
-    Handles chained commands like `git add . && git commit -m "..."`, where
-    the first `git` invocation isn't the commit — every `git` token in the
-    command is checked, not just the first one.
+
+def _command_segments(command: str) -> list:
+    """Split a shell command line into simple commands at &&, ||, ;, |, & and newlines.
+
+    Only the first git invocation used to be inspected, so `git add f && git commit` looked like a plain
+    `git add` and the staged-diff check silently never ran. Newlines are turned into `;` first because shlex
+    treats them as plain whitespace; inside quotes (a multi-line commit message) they stay part of one token.
     """
+    lexer = shlex.shlex(command.replace("\n", " ; "), posix=True, punctuation_chars=True)
+    lexer.whitespace_split = True
+    segments, current = [], []
+    for tok in lexer:
+        if tok and all(ch in _OPERATOR_CHARS for ch in tok):
+            segments.append(current)
+            current = []
+        else:
+            current.append(tok)
+    segments.append(current)
+    return [seg for seg in segments if seg]
+
+
+def _segment_is_git_commit(tokens: list) -> bool:
     try:
-        tokens = shlex.split(command, posix=True)
+        git_idx = next(i for i, t in enumerate(tokens) if t == "git" or t.endswith("/git"))
+    except StopIteration:
+        return False
+    i = git_idx + 1
+    while i < len(tokens):
+        tok = tokens[i]
+        if tok in _ARG_OPTIONS:
+            i += 2
+        elif tok.startswith("-"):
+            i += 1
+        else:
+            return tok == "commit"
+    return False
+
+
+def _is_git_commit_command(command: str) -> bool:
+    """Return True when any simple command in the line invokes the git commit subcommand."""
+    try:
+        segments = _command_segments(command)
     except ValueError:
         return bool(re.search(r"git\s+commit", command))
+    return any(_segment_is_git_commit(seg) for seg in segments)
 
-    # Options that consume the following token as an argument
-    _ARG_OPTIONS = frozenset({
-        "-C", "-c", "--exec-path", "--git-dir",
-        "--work-tree", "--namespace", "--super-prefix",
-        "--list-cmds",
-    })
 
-    git_indices = [i for i, t in enumerate(tokens) if t == "git" or t.endswith("/git")]
-    for git_idx in git_indices:
-        i = git_idx + 1
-        while i < len(tokens):
-            tok = tokens[i]
-            if tok in _ARG_OPTIONS:
-                i += 2
-            elif tok.startswith("-"):
-                i += 1
-            else:
-                if tok == "commit":
-                    return True
-                break
-    return False
+def _added_lines_by_file(diff: str) -> list:
+    """Return (path, added line) pairs from a unified diff, so checks can be limited to the right file types."""
+    pairs, path = [], ""
+    for line in diff.splitlines():
+        if line.startswith("+++ "):
+            path = line[4:].removeprefix("b/")
+        elif line.startswith("+"):
+            pairs.append((path, line))
+    return pairs
 
 
 def get_staged_diff() -> str:
@@ -65,7 +96,11 @@ def get_staged_diff() -> str:
 def main():
     try:
         data = json.load(sys.stdin)
-        command = data.get("command", "")
+        # A PreToolUse hook matched on Bash receives the command nested at tool_input.command, not
+        # top-level — reading the top-level key always returned "", so this check silently no-op'd
+        # on every single commit since it was written. Confirmed against Claude Code's real
+        # PreToolUse hook input schema and caught by CodeRabbit on i-machine-arr/reaparr PR #2.
+        command = data.get("tool_input", {}).get("command", "")
     except json.JSONDecodeError:
         sys.exit(0)
 
@@ -76,7 +111,7 @@ def main():
     if not diff:
         sys.exit(0)
 
-    added_lines = [line for line in diff.splitlines() if line.startswith("+") and not line.startswith("+++")]
+    added = _added_lines_by_file(diff)
 
     warnings = []
 
@@ -85,8 +120,9 @@ def main():
     # ---------------------------------------------------------------
 
     # Broad except Exception
-    for line in added_lines:
-        if re.search(r"except\s+Exception\b", line):
+    # Python files only: docs that show the anti-pattern as an example must not trip it.
+    for path, line in added:
+        if path.endswith(".py") and re.search(r"except\s+Exception\b", line):
             warnings.append(
                 "Broad 'except Exception' detected — use specific exceptions "
                 "(e.g. OSError, AttributeError)."
@@ -96,14 +132,18 @@ def main():
     # ---------------------------------------------------------------
 
     if warnings:
-        print()
-        print(f"Coding Notes Pre-commit Check — {len(warnings)} issue(s) found:")
-        for w in warnings:
-            print(f"  * {w}")
-        print()
-        print("Review .claude/CODING_NOTES.md before proceeding. Commit is NOT blocked — "
-              "fix on next commit if intentional.")
-        print()
+        message = (
+            f"Coding Notes Pre-commit Check — {len(warnings)} issue(s) found:\n"
+            + "\n".join(f"  * {w}" for w in warnings)
+            + "\n\nReview .claude/CODING_NOTES.md before proceeding. Commit is NOT blocked — "
+              "fix on next commit if intentional."
+        )
+        # Plain stdout from a PreToolUse hook is only logged. systemMessage shows the warning to the user;
+        # additionalContext puts it in front of Claude. Neither blocks the tool call (no permissionDecision).
+        print(json.dumps({
+            "systemMessage": message,
+            "hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": message},
+        }))
 
     sys.exit(0)
 
