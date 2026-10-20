@@ -454,35 +454,157 @@
     recalc();
   }
 
-  function setupSpeedsFeedsImperial() {
-    var sfm = $('sf-imp-sfm'), dia = $('sf-imp-dia'), flutes = $('sf-imp-flutes'), chip = $('sf-imp-chipload'),
-      rpmOut = $('sf-imp-rpm'), feedOut = $('sf-imp-feed');
-    function recalc() {
-      var s = parseFloat(sfm.value), d = parseFloat(dia.value), f = parseFloat(flutes.value), c = parseFloat(chip.value);
-      if ([s, d, f, c].some(isNaN) || d <= 0 || !Number.isInteger(f) || f <= 0) {
-        rpmOut.textContent = '—'; feedOut.textContent = '—'; return;
-      }
-      var rpm = calc.rpmFromSfm(s, d);
-      rpmOut.textContent = rpm;
-      feedOut.textContent = calc.feedRate(rpm, c, f);
-    }
-    [sfm, dia, flutes, chip].forEach(function (el) { el.addEventListener('input', recalc); });
-    recalc();
+  /** Parses a field meant to be optional (0 "doesn't apply") -- blank or invalid reads as 0, not NaN. */
+  function numberOrZero(value) {
+    var n = parseFloat(value);
+    return isNaN(n) ? 0 : n;
   }
 
-  function setupSpeedsFeedsMetric() {
-    var smm = $('sf-met-smm'), dia = $('sf-met-dia'), flutes = $('sf-met-flutes'), chip = $('sf-met-chipload'),
-      rpmOut = $('sf-met-rpm'), feedOut = $('sf-met-feed');
-    function recalc() {
-      var s = parseFloat(smm.value), d = parseFloat(dia.value), f = parseFloat(flutes.value), c = parseFloat(chip.value);
-      if ([s, d, f, c].some(isNaN) || d <= 0 || !Number.isInteger(f) || f <= 0) {
-        rpmOut.textContent = '—'; feedOut.textContent = '—'; return;
-      }
-      var rpm = calc.rpmFromSmm(s, d);
-      rpmOut.textContent = rpm;
-      feedOut.textContent = calc.feedRate(rpm, c, f);
+  /**
+   * "1.25 min (1:15)" for a machiningTime result in minutes, or '—' for null (blank/invalid input).
+   * Switches to H:MM:SS once the total reaches an hour (e.g. "125.5 min (2:05:30)") instead of letting
+   * the clock's minutes field run past 59, which a volume-mode estimate on a big job can easily hit.
+   */
+  function formatMachiningTime(minutes) {
+    if (minutes === null) return '—';
+    var totalSeconds = Math.round(minutes * 60);
+    var h = Math.floor(totalSeconds / 3600);
+    var m = Math.floor((totalSeconds % 3600) / 60);
+    var s = totalSeconds % 60;
+    var ss = (s < 10 ? '0' : '') + s;
+    var clock = h > 0 ? h + ':' + (m < 10 ? '0' : '') + m + ':' + ss : m + ':' + ss;
+    return minutes + ' min (' + clock + ')';
+  }
+
+  /** "Estimate Material to Remove" options per operation -- both offer volume; only milling offers
+   * area (a pocket's plan-view footprint, paired with Radial Width of Cut); only turning offers length
+   * (a single straight pass has no separate footprint concept the way a milling toolpath does). */
+  var QTY_MODE_OPTIONS = {
+    milling: [['area', 'Area to Cut'], ['volume', 'Volume to Cut']],
+    turning: [['length', 'Length of Cut'], ['volume', 'Volume to Remove']]
+  };
+
+  /**
+   * Combined milling/turning speed, feed, MRR and machining-time calculator for one unit system, with
+   * an Operation select toggling fields the same way setupFeedAndChipThinning toggles its chip-thinning
+   * mode. Milling uses flutes + radial width of cut; turning uses Depth of Cut alone for MRR -- a
+   * single-point tool removes material around the full diameter at that depth, so there is no separate
+   * radial-width parameter the way there is for a partial-width milling pass. The Chip Load / Feed field
+   * is shared: calc.feedRate's flutes argument is the on-screen flute count for milling or 1 for turning,
+   * so the same raw value serves as chip-load-per-tooth or feed-per-rev depending on which it's multiplied
+   * by, matching the existing axial-chip-thinning hint ("for turning set flutes to 1").
+   * `speedId` differs from `prefix + '-dia'` etc. because the surface-speed field is named for its unit
+   * (sfm/smm, not shared); every other field follows the plain `prefix + suffix` pattern used throughout
+   * this file. `mrrScale` converts calc.mrr's result (cut-length units cubed per minute) into the
+   * displayed unit: 1 for imperial (already in^3/min), 1/1000 for metric (mm^3/min -> cm^3/min); area
+   * mode needs no such scaling since its displayed unit (in^2 / mm^2) already matches the raw rate.
+   * `mrrTurningFn` is the unit-matched calc.mrrTurningImperial/Metric. `chipDefaults` is
+   * `{ milling, turning }` starting values for the shared Chip Load / Feed field -- a light milling
+   * finishing chip load (e.g. 0.002 in/tooth) is far too conservative as a turning feed-per-rev, so the
+   * field re-fills with the operation-appropriate default on every Operation switch, the same
+   * refill-on-selection-change behavior setupRecommendedSfm already uses for Surface Speed (a starting
+   * point, not a lock -- still a plain input the user can type over).
+   */
+  function setupSpeedsFeeds(prefix, speedId, rpmFn, mrrScale, mrrTurningFn, chipDefaults) {
+    var op = $(prefix + '-op'), speed = $(speedId), dia = $(prefix + '-dia'),
+      flutesLabel = $(prefix + '-flutes-label'), flutes = $(prefix + '-flutes'), chip = $(prefix + '-chipload'),
+      aeLabel = $(prefix + '-ae-label'), ae = $(prefix + '-ae'),
+      doc = $(prefix + '-doc'), docMeasLabel = $(prefix + '-doc-meas-label'), docMeas = $(prefix + '-doc-meas'),
+      qtyMode = $(prefix + '-qty-mode'),
+      cutlenZLabel = $(prefix + '-cutlen-z-label'), cutlenZ = $(prefix + '-cutlen-z'),
+      cutlenXLabel = $(prefix + '-cutlen-x-label'), cutlenX = $(prefix + '-cutlen-x'),
+      areaLabel = $(prefix + '-area-label'), area = $(prefix + '-area'),
+      volLabel = $(prefix + '-vol-label'), vol = $(prefix + '-vol'),
+      rpmOut = $(prefix + '-rpm'), feedOut = $(prefix + '-feed'), mrrOut = $(prefix + '-mrr'),
+      timeOut = $(prefix + '-time');
+
+    function blank() {
+      rpmOut.textContent = '—'; feedOut.textContent = '—'; mrrOut.textContent = '—'; timeOut.textContent = '—';
     }
-    [smm, dia, flutes, chip].forEach(function (el) { el.addEventListener('input', recalc); });
+
+    // Rebuilds the Estimate Material to Remove <option>s for the current operation, keeping the current
+    // selection if it still applies (both operations offer "volume"), else defaulting to the first
+    // option. Only called when Operation changes -- rebuilding on every keystroke would reset the
+    // user's chosen quantity mode while they're still typing in an unrelated field.
+    function populateQtyMode() {
+      var opts = QTY_MODE_OPTIONS[op.value !== 'turning' ? 'milling' : 'turning'];
+      var prev = qtyMode.value;
+      qtyMode.innerHTML = opts.map(function (o) {
+        return '<option value="' + o[0] + '">' + o[1] + '</option>';
+      }).join('');
+      qtyMode.value = opts.some(function (o) { return o[0] === prev; }) ? prev : opts[0][0];
+    }
+
+    function recalc() {
+      var milling = op.value !== 'turning';
+      flutesLabel.hidden = !milling;
+      aeLabel.hidden = !milling;
+      docMeasLabel.hidden = milling;
+
+      var qty = qtyMode.value;
+      cutlenZLabel.hidden = qty !== 'length';
+      cutlenXLabel.hidden = qty !== 'length';
+      areaLabel.hidden = qty !== 'area';
+      volLabel.hidden = qty !== 'volume';
+
+      var s = parseFloat(speed.value), d = parseFloat(dia.value), rawDepth = parseFloat(doc.value);
+      var f = parseFloat(flutes.value), c = parseFloat(chip.value);
+      var core = milling ? [s, d, f, c] : [s, d, c];
+      if (core.some(isNaN) || d <= 0 || (milling && (!Number.isInteger(f) || f <= 0))) {
+        blank();
+        return;
+      }
+
+      var depth = !milling && docMeas.value === 'diametric'
+        ? orNull(function () { return calc.radialFromDiametric(rawDepth); })
+        : rawDepth;
+
+      var rpm = rpmFn(s, d);
+      rpmOut.textContent = rpm;
+
+      var feed, mrr, w;
+      if (milling) {
+        feed = calc.feedRate(rpm, c, f);
+        w = parseFloat(ae.value);
+        mrr = [depth, w].some(isNaN) || depth <= 0 || w <= 0
+          ? null : calc.round(calc.mrr(feed, depth, w) * mrrScale, 4);
+      } else {
+        feed = calc.feedRate(rpm, c, 1);
+        mrr = depth === null ? null : orNull(function () { return mrrTurningFn(s, c, depth); });
+      }
+      feedOut.textContent = feed;
+      mrrOut.textContent = mrr === null ? '—' : mrr;
+
+      var rate, amount;
+      if (qty === 'length') {
+        // Z (axial, OD/ID turning) and X (radial, facing) travel both feed at the programmed rate, so
+        // their times add -- equivalent to summing the two distances before dividing by one feed rate.
+        // Either may be left blank/0 for a job that's only one or the other, but a negative value is
+        // invalid input, not "0 doesn't apply" -- numberOrZero alone would silently sum it in and
+        // understate the time (e.g. Z=4, X=-1 reading as a 3, not an error).
+        rate = feed;
+        var lenZ = numberOrZero(cutlenZ.value), lenX = numberOrZero(cutlenX.value);
+        amount = lenZ < 0 || lenX < 0 ? NaN : lenZ + lenX;
+      } else if (qty === 'area') {
+        rate = isNaN(w) || w <= 0 ? null : calc.mrrArea(feed, w);
+        amount = parseFloat(area.value);
+      } else {
+        rate = mrr;
+        amount = parseFloat(vol.value);
+      }
+      var time = rate === null ? null : orNull(function () { return calc.machiningTime(amount, rate); });
+      timeOut.textContent = formatMachiningTime(time);
+    }
+
+    op.addEventListener('input', function () {
+      chip.value = op.value === 'turning' ? chipDefaults.turning : chipDefaults.milling;
+      populateQtyMode();
+      recalc();
+    });
+    [speed, dia, flutes, chip, ae, doc, docMeas, qtyMode, cutlenZ, cutlenX, area, vol].forEach(function (el) {
+      el.addEventListener('input', recalc);
+    });
+    populateQtyMode();
     recalc();
   }
 
@@ -1064,8 +1186,10 @@
     setupThreadMetric();
     setupThreadAcme();
     setupRecommendedSfm();
-    setupSpeedsFeedsImperial();
-    setupSpeedsFeedsMetric();
+    setupSpeedsFeeds('sf-imp', 'sf-imp-sfm', calc.rpmFromSfm, 1, calc.mrrTurningImperial,
+      { milling: 0.002, turning: 0.007 });
+    setupSpeedsFeeds('sf-met', 'sf-met-smm', calc.rpmFromSmm, 1 / 1000, calc.mrrTurningMetric,
+      { milling: 0.05, turning: 0.18 });
     setupFeedAndChipThinning('sf-imp-ct');
     setupFeedAndChipThinning('sf-met-ct');
     setupBoltCircle();
