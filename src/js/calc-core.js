@@ -1433,16 +1433,19 @@
   };
 
   /**
-   * Material removal rate for turning, metric (cm^3/min): Q = Vc * f * ap / 1000 -- cutting speed in
-   * m/min, feed in mm/rev, depth of cut in mm. Same relation as mrrTurningImperial in metric units
-   * (Sandvik Coromant's published turning formula); no ISO/ANSI standard governs it.
+   * Material removal rate for turning, metric (cm^3/min): Q = Vc * f * ap -- cutting speed in m/min,
+   * feed in mm/rev, depth of cut in mm. No separate unit-conversion factor: Vc * 1000 gives mm/min,
+   * times f (mm/rev) times ap (mm) gives mm^3/min, and dividing that by 1000 for cm^3/min cancels the
+   * first 1000 exactly -- the two conversions net out to 1, unlike mrrTurningImperial's explicit *12
+   * (ft/min to in/min, with no matching cm-equivalent output conversion to cancel it). Sandvik
+   * Coromant's published turning formula; no ISO/ANSI standard governs it.
    */
   calc.mrrTurningMetric = function (smm, feedMmRev, depthOfCutMm) {
     if (!Number.isFinite(smm) || !Number.isFinite(feedMmRev) || !Number.isFinite(depthOfCutMm) ||
         smm <= 0 || feedMmRev <= 0 || depthOfCutMm <= 0) {
       throw new RangeError('smm, feedMmRev and depthOfCutMm must be positive and finite');
     }
-    var q = round(smm * feedMmRev * depthOfCutMm / 1000, 4);
+    var q = round(smm * feedMmRev * depthOfCutMm, 4);
     if (!Number.isFinite(q)) throw new RangeError('inputs too large');
     return q;
   };

@@ -101,6 +101,7 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 ## Cutting Speed Data
 
 - **A speed-table row needs a cited source; a relational test ("X slower than Y") is no substitute.** A guessed duplex row (carbide 100-200 SFM) passed such a test, but manufacturer data says 300-525. Pin sourced values and mark unsourced rows as placeholders. machinist-calc PR #14.
+- **A formula's internal unit conversion can cancel its output's unit conversion — check before adding a divisor.** `mrrTurningMetric`'s stray /1000 (for mm³→cm³) canceled against Vc's implicit m→mm ×1000, netting the wrong factor. Verify with a worked numeric example. CodeRabbit, PR #21.
 
 ## Metric Thread Tolerance Class Notation (ISO 965-1)
 

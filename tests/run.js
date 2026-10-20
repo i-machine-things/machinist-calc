@@ -392,14 +392,15 @@ test('radialFromDiametric rejects non-positive or non-finite input', () => {
   assert.throws(() => calc.radialFromDiametric(Infinity), RangeError);
 });
 
-// Turning MRR: Q = 12 * Vc * f * d (imperial) / Q = Vc * f * ap / 1000 (metric), the standard shop
-// formula (Machinery's Handbook / Sandvik Coromant) -- values hand-computed, not copied from the code.
+// Turning MRR: Q = 12 * Vc * f * d (imperial) / Q = Vc * f * ap (metric, no divisor -- the m/min to
+// mm/min and mm^3 to cm^3 unit conversions cancel), the standard shop formula (Machinery's Handbook /
+// Sandvik Coromant) -- values hand-computed, not copied from the code.
 test('mrrTurningImperial: 400 SFM, 0.008 in/rev, 0.05 in depth -> 1.92 in^3/min', () => {
   approx(calc.mrrTurningImperial(400, 0.008, 0.05), 1.92, 0.0001);
 });
 
-test('mrrTurningMetric: 120 m/min, 0.2 mm/rev, 1.5 mm depth -> 0.036 cm^3/min', () => {
-  approx(calc.mrrTurningMetric(120, 0.2, 1.5), 0.036, 0.0001);
+test('mrrTurningMetric: 120 m/min, 0.2 mm/rev, 1.5 mm depth -> 36 cm^3/min', () => {
+  approx(calc.mrrTurningMetric(120, 0.2, 1.5), 36, 0.0001);
 });
 
 test('mrrTurningImperial / mrrTurningMetric reject non-positive or non-finite inputs', () => {
