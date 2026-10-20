@@ -377,6 +377,51 @@ test('mrr', () => {
   approx(calc.mrr(8, 0.1, 0.5), 0.4, 0.0001);
 });
 
+test('mrrArea: 8 in/min feed rate at 0.5 in radial width -> 4 in^2/min', () => {
+  approx(calc.mrrArea(8, 0.5), 4, 0.0001);
+});
+
+test('radialFromDiametric: 0.1 in diametric -> 0.05 in radial', () => {
+  approx(calc.radialFromDiametric(0.1), 0.05, 0.000001);
+});
+
+test('radialFromDiametric rejects non-positive or non-finite input', () => {
+  assert.throws(() => calc.radialFromDiametric(0), RangeError);
+  assert.throws(() => calc.radialFromDiametric(-0.1), RangeError);
+  assert.throws(() => calc.radialFromDiametric(NaN), RangeError);
+  assert.throws(() => calc.radialFromDiametric(Infinity), RangeError);
+});
+
+// Turning MRR: Q = 12 * Vc * f * d (imperial) / Q = Vc * f * ap / 1000 (metric), the standard shop
+// formula (Machinery's Handbook / Sandvik Coromant) -- values hand-computed, not copied from the code.
+test('mrrTurningImperial: 400 SFM, 0.008 in/rev, 0.05 in depth -> 1.92 in^3/min', () => {
+  approx(calc.mrrTurningImperial(400, 0.008, 0.05), 1.92, 0.0001);
+});
+
+test('mrrTurningMetric: 120 m/min, 0.2 mm/rev, 1.5 mm depth -> 0.036 cm^3/min', () => {
+  approx(calc.mrrTurningMetric(120, 0.2, 1.5), 0.036, 0.0001);
+});
+
+test('mrrTurningImperial / mrrTurningMetric reject non-positive or non-finite inputs', () => {
+  assert.throws(() => calc.mrrTurningImperial(0, 0.008, 0.05), RangeError);
+  assert.throws(() => calc.mrrTurningImperial(400, 0, 0.05), RangeError);
+  assert.throws(() => calc.mrrTurningImperial(400, 0.008, -0.05), RangeError);
+  assert.throws(() => calc.mrrTurningImperial(NaN, 0.008, 0.05), RangeError);
+  assert.throws(() => calc.mrrTurningMetric(120, 0.2, 0), RangeError);
+  assert.throws(() => calc.mrrTurningMetric(Infinity, 0.2, 1.5), RangeError);
+});
+
+test('machiningTime: 6 in at 8 in/min -> 0.75 min', () => {
+  approx(calc.machiningTime(6, 8), 0.75, 0.0001);
+});
+
+test('machiningTime rejects non-positive or non-finite inputs', () => {
+  assert.throws(() => calc.machiningTime(0, 8), RangeError);
+  assert.throws(() => calc.machiningTime(6, 0), RangeError);
+  assert.throws(() => calc.machiningTime(-6, 8), RangeError);
+  assert.throws(() => calc.machiningTime(6, NaN), RangeError);
+});
+
 // Chip thinning. Expected factors are the widely published radial chip-thinning values (10% radial
 // engagement -> 1.667, 5% -> 2.294, 25% -> 1.155) and 1/sin(entry angle), not copied from the code.
 test('radialChipThinningFactor: published values at 10%, 5%, 25% radial engagement', () => {

@@ -1392,6 +1392,76 @@
     return round(feedRate * depthOfCut * widthOfCut, 4);
   };
 
+  /**
+   * Area removal rate for milling = feed rate * radial width of cut (consistent linear units, so
+   * length^2/min). Lets a total plan-view area to clear (e.g. a pocket's footprint, read off a CAD/CAM
+   * model) stand in for a precise length of cut -- area / this rate is the same raster toolpath length
+   * (area / stepover) divided by feed rate, without having to work that division out by hand first.
+   */
+  calc.mrrArea = function (feedRate, widthOfCut) {
+    return round(feedRate * widthOfCut, 4);
+  };
+
+  /**
+   * Radial depth of cut from a diametric value (total stock removed off the diameter) -- half of it.
+   * Turning stock removal is often specified on a print as a diameter reduction ("turn down 0.100\" on
+   * the diameter"), but the turning formulas in this file (mrrTurningImperial/Metric, rpmFromSfm/Smm)
+   * all expect the radial depth of cut, so this is the one place that distinction needs converting.
+   */
+  calc.radialFromDiametric = function (diametric) {
+    if (!Number.isFinite(diametric) || diametric <= 0) {
+      throw new RangeError('diametric must be positive and finite');
+    }
+    return round(diametric / 2, 6);
+  };
+
+  /**
+   * Material removal rate for turning, imperial (in^3/min): Q = 12 * Vc * f * d -- cutting speed in
+   * SFM, feed in in/rev, depth of cut in inches. Derived from the exact per-revolution removed volume
+   * (pi * Davg * d * f) with RPM substituted via Vc = pi * D * RPM / 12; the diameter term cancels, which
+   * is why the standard shop formula has no diameter in it. Conventional machining relation (Machinery's
+   * Handbook / Sandvik Coromant turning formulas) -- no ISO/ANSI standard governs it.
+   */
+  calc.mrrTurningImperial = function (sfm, feedIpr, depthOfCutIn) {
+    if (!Number.isFinite(sfm) || !Number.isFinite(feedIpr) || !Number.isFinite(depthOfCutIn) ||
+        sfm <= 0 || feedIpr <= 0 || depthOfCutIn <= 0) {
+      throw new RangeError('sfm, feedIpr and depthOfCutIn must be positive and finite');
+    }
+    var q = round(12 * sfm * feedIpr * depthOfCutIn, 4);
+    if (!Number.isFinite(q)) throw new RangeError('inputs too large');
+    return q;
+  };
+
+  /**
+   * Material removal rate for turning, metric (cm^3/min): Q = Vc * f * ap / 1000 -- cutting speed in
+   * m/min, feed in mm/rev, depth of cut in mm. Same relation as mrrTurningImperial in metric units
+   * (Sandvik Coromant's published turning formula); no ISO/ANSI standard governs it.
+   */
+  calc.mrrTurningMetric = function (smm, feedMmRev, depthOfCutMm) {
+    if (!Number.isFinite(smm) || !Number.isFinite(feedMmRev) || !Number.isFinite(depthOfCutMm) ||
+        smm <= 0 || feedMmRev <= 0 || depthOfCutMm <= 0) {
+      throw new RangeError('smm, feedMmRev and depthOfCutMm must be positive and finite');
+    }
+    var q = round(smm * feedMmRev * depthOfCutMm / 1000, 4);
+    if (!Number.isFinite(q)) throw new RangeError('inputs too large');
+    return q;
+  };
+
+  /**
+   * Machining time for a single pass: length of cut divided by feed rate, in whatever time unit the
+   * feed rate's denominator uses (minutes, for every feed rate this app computes). Covers only time
+   * under active feed -- it does not include rapid traverse, tool changes, dwell, or approach/retract
+   * clearance, so treat it as a floor on actual cycle time, not the whole cycle.
+   */
+  calc.machiningTime = function (cutLength, feedRate) {
+    if (!Number.isFinite(cutLength) || !Number.isFinite(feedRate) || cutLength <= 0 || feedRate <= 0) {
+      throw new RangeError('cutLength and feedRate must be positive and finite');
+    }
+    var t = round(cutLength / feedRate, 3);
+    if (!Number.isFinite(t)) throw new RangeError('inputs out of range');
+    return t;
+  };
+
   // Chip thinning: when the cutter engages so the chip is thinner than the programmed feed per tooth,
   // the feed has to be raised by 1 / (thinning ratio) to actually cut the intended chip thickness.
   // No ISO/ANSI standard defines the compensation; both factors are plain chip geometry from shop

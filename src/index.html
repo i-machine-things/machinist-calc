@@ -282,24 +282,64 @@
       </div>
 
       <div class="tab-panel active" id="sf-imperial">
+        <h2>Speed, Feed &amp; Material Removal</h2>
         <div class="grid grid-3">
+          <label>Operation
+            <select id="sf-imp-op">
+              <option value="milling">Milling</option>
+              <option value="turning">Turning</option>
+            </select>
+          </label>
           <label>Surface Speed (SFM)
             <input type="number" id="sf-imp-sfm" step="any" value="100" />
           </label>
           <label>Tool / Stock Diameter (in)
             <input type="number" id="sf-imp-dia" step="any" value="0.5" />
           </label>
-          <label>Number of Flutes
+        </div>
+        <div class="grid grid-3">
+          <label id="sf-imp-flutes-label">Number of Flutes
             <input type="number" id="sf-imp-flutes" step="1" value="4" />
           </label>
+          <label>Chip Load (in/tooth) / Feed (in/rev)
+            <input type="number" id="sf-imp-chipload" step="any" value="0.002" />
+          </label>
+          <label id="sf-imp-ae-label">Radial Width of Cut (in)
+            <input type="number" id="sf-imp-ae" step="any" value="0.5" />
+          </label>
         </div>
-        <label>Chip Load (in/tooth)
-          <input type="number" id="sf-imp-chipload" step="any" value="0.002" />
-        </label>
+        <div class="grid grid-3">
+          <label>Depth of Cut (in)
+            <input type="number" id="sf-imp-doc" step="any" value="0.25" />
+          </label>
+          <label id="sf-imp-doc-meas-label" hidden>Depth Measured As
+            <select id="sf-imp-doc-meas">
+              <option value="radial">Radial</option>
+              <option value="diametric">Diametric</option>
+            </select>
+          </label>
+          <label>Estimate Material to Remove
+            <select id="sf-imp-qty-mode"></select>
+          </label>
+        </div>
+        <div class="grid grid-3">
+          <label id="sf-imp-cutlen-label" hidden>Length of Cut (in)
+            <input type="number" id="sf-imp-cutlen" step="any" value="6" />
+          </label>
+          <label id="sf-imp-area-label" hidden>Area to Cut (in²)
+            <input type="number" id="sf-imp-area" step="any" value="3" />
+          </label>
+          <label id="sf-imp-vol-label" hidden>Volume (in³)
+            <input type="number" id="sf-imp-vol" step="any" value="1" />
+          </label>
+        </div>
         <div class="result-box">
           <div class="result-line">RPM: <span id="sf-imp-rpm">—</span></div>
           <div class="result-line">Feed Rate: <span id="sf-imp-feed">—</span> in/min</div>
+          <div class="result-line">Material Removal Rate: <span id="sf-imp-mrr">—</span> in³/min</div>
+          <div class="result-line">Machining Time: <span id="sf-imp-time">—</span></div>
         </div>
+        <p class="hint">Turning's Depth of Cut can be read as radial (stock removed per side) or diametric (total diameter reduction); Radial Width of Cut doesn't apply to turning. Machining time is cutting time only — length/area/volume divided by the matching rate — and doesn't include rapid traverse, tool changes, or approach/retract clearance.</p>
 
         <h2>Feed Per Tooth &amp; Chip Thinning</h2>
         <p class="hint">Standalone feed calculator: enter a known spindle RPM (no surface speed/diameter needed) and the chip thickness you want. Chip thinning raises the programmed feed so the actual chip thickness matches it. The two corrections are separate and not combined.</p>
@@ -349,24 +389,64 @@
       </div>
 
       <div class="tab-panel" id="sf-metric">
+        <h2>Speed, Feed &amp; Material Removal</h2>
         <div class="grid grid-3">
+          <label>Operation
+            <select id="sf-met-op">
+              <option value="milling">Milling</option>
+              <option value="turning">Turning</option>
+            </select>
+          </label>
           <label>Surface Speed (m/min)
             <input type="number" id="sf-met-smm" step="any" value="30" />
           </label>
           <label>Tool / Stock Diameter (mm)
             <input type="number" id="sf-met-dia" step="any" value="10" />
           </label>
-          <label>Number of Flutes
+        </div>
+        <div class="grid grid-3">
+          <label id="sf-met-flutes-label">Number of Flutes
             <input type="number" id="sf-met-flutes" step="1" value="4" />
           </label>
+          <label>Chip Load (mm/tooth) / Feed (mm/rev)
+            <input type="number" id="sf-met-chipload" step="any" value="0.05" />
+          </label>
+          <label id="sf-met-ae-label">Radial Width of Cut (mm)
+            <input type="number" id="sf-met-ae" step="any" value="10" />
+          </label>
         </div>
-        <label>Chip Load (mm/tooth)
-          <input type="number" id="sf-met-chipload" step="any" value="0.05" />
-        </label>
+        <div class="grid grid-3">
+          <label>Depth of Cut (mm)
+            <input type="number" id="sf-met-doc" step="any" value="6" />
+          </label>
+          <label id="sf-met-doc-meas-label" hidden>Depth Measured As
+            <select id="sf-met-doc-meas">
+              <option value="radial">Radial</option>
+              <option value="diametric">Diametric</option>
+            </select>
+          </label>
+          <label>Estimate Material to Remove
+            <select id="sf-met-qty-mode"></select>
+          </label>
+        </div>
+        <div class="grid grid-3">
+          <label id="sf-met-cutlen-label" hidden>Length of Cut (mm)
+            <input type="number" id="sf-met-cutlen" step="any" value="150" />
+          </label>
+          <label id="sf-met-area-label" hidden>Area to Cut (mm²)
+            <input type="number" id="sf-met-area" step="any" value="1500" />
+          </label>
+          <label id="sf-met-vol-label" hidden>Volume (cm³)
+            <input type="number" id="sf-met-vol" step="any" value="10" />
+          </label>
+        </div>
         <div class="result-box">
           <div class="result-line">RPM: <span id="sf-met-rpm">—</span></div>
           <div class="result-line">Feed Rate: <span id="sf-met-feed">—</span> mm/min</div>
+          <div class="result-line">Material Removal Rate: <span id="sf-met-mrr">—</span> cm³/min</div>
+          <div class="result-line">Machining Time: <span id="sf-met-time">—</span></div>
         </div>
+        <p class="hint">Turning's Depth of Cut can be read as radial (stock removed per side) or diametric (total diameter reduction); Radial Width of Cut doesn't apply to turning. Machining time is cutting time only — length/area/volume divided by the matching rate — and doesn't include rapid traverse, tool changes, or approach/retract clearance.</p>
 
         <h2>Feed Per Tooth &amp; Chip Thinning</h2>
         <p class="hint">Standalone feed calculator: enter a known spindle RPM (no surface speed/diameter needed) and the chip thickness you want. Chip thinning raises the programmed feed so the actual chip thickness matches it. The two corrections are separate and not combined.</p>
