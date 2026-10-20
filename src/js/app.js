@@ -454,6 +454,12 @@
     recalc();
   }
 
+  /** Parses a field meant to be optional (0 "doesn't apply") -- blank or invalid reads as 0, not NaN. */
+  function numberOrZero(value) {
+    var n = parseFloat(value);
+    return isNaN(n) ? 0 : n;
+  }
+
   /** "1.250 min (1:15)" for a machiningTime result in minutes, or '—' for null (blank/invalid input). */
   function formatMachiningTime(minutes) {
     if (minutes === null) return '—';
@@ -493,7 +499,8 @@
       aeLabel = $(prefix + '-ae-label'), ae = $(prefix + '-ae'),
       doc = $(prefix + '-doc'), docMeasLabel = $(prefix + '-doc-meas-label'), docMeas = $(prefix + '-doc-meas'),
       qtyMode = $(prefix + '-qty-mode'),
-      cutlenLabel = $(prefix + '-cutlen-label'), cutlen = $(prefix + '-cutlen'),
+      cutlenZLabel = $(prefix + '-cutlen-z-label'), cutlenZ = $(prefix + '-cutlen-z'),
+      cutlenXLabel = $(prefix + '-cutlen-x-label'), cutlenX = $(prefix + '-cutlen-x'),
       areaLabel = $(prefix + '-area-label'), area = $(prefix + '-area'),
       volLabel = $(prefix + '-vol-label'), vol = $(prefix + '-vol'),
       rpmOut = $(prefix + '-rpm'), feedOut = $(prefix + '-feed'), mrrOut = $(prefix + '-mrr'),
@@ -523,7 +530,8 @@
       docMeasLabel.hidden = milling;
 
       var qty = qtyMode.value;
-      cutlenLabel.hidden = qty !== 'length';
+      cutlenZLabel.hidden = qty !== 'length';
+      cutlenXLabel.hidden = qty !== 'length';
       areaLabel.hidden = qty !== 'area';
       volLabel.hidden = qty !== 'volume';
 
@@ -557,8 +565,11 @@
 
       var rate, amount;
       if (qty === 'length') {
+        // Z (axial, OD/ID turning) and X (radial, facing) travel both feed at the programmed rate, so
+        // their times add -- equivalent to summing the two distances before dividing by one feed rate.
+        // Either may be left blank/0 for a job that's only one or the other.
         rate = feed;
-        amount = parseFloat(cutlen.value);
+        amount = numberOrZero(cutlenZ.value) + numberOrZero(cutlenX.value);
       } else if (qty === 'area') {
         rate = isNaN(w) || w <= 0 ? null : calc.mrrArea(feed, w);
         amount = parseFloat(area.value);
@@ -571,7 +582,7 @@
     }
 
     op.addEventListener('input', function () { populateQtyMode(); recalc(); });
-    [speed, dia, flutes, chip, ae, doc, docMeas, qtyMode, cutlen, area, vol].forEach(function (el) {
+    [speed, dia, flutes, chip, ae, doc, docMeas, qtyMode, cutlenZ, cutlenX, area, vol].forEach(function (el) {
       el.addEventListener('input', recalc);
     });
     populateQtyMode();

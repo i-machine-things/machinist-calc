@@ -323,8 +323,11 @@
           </label>
         </div>
         <div class="grid grid-3">
-          <label id="sf-imp-cutlen-label" hidden>Length of Cut (in)
-            <input type="number" id="sf-imp-cutlen" step="any" value="6" />
+          <label id="sf-imp-cutlen-z-label" hidden>Length of Cut — Z Axis (in)
+            <input type="number" id="sf-imp-cutlen-z" step="any" value="4" />
+          </label>
+          <label id="sf-imp-cutlen-x-label" hidden>Facing Length — X Axis (in)
+            <input type="number" id="sf-imp-cutlen-x" step="any" value="0" />
           </label>
           <label id="sf-imp-area-label" hidden>Area to Cut (in²)
             <input type="number" id="sf-imp-area" step="any" value="3" />
@@ -339,7 +342,7 @@
           <div class="result-line">Material Removal Rate: <span id="sf-imp-mrr">—</span> in³/min</div>
           <div class="result-line">Machining Time: <span id="sf-imp-time">—</span></div>
         </div>
-        <p class="hint">Turning's Depth of Cut can be read as radial (stock removed per side) or diametric (total diameter reduction); Radial Width of Cut doesn't apply to turning. Machining time is cutting time only — length/area/volume divided by the matching rate — and doesn't include rapid traverse, tool changes, or approach/retract clearance.</p>
+        <p class="hint">Turning's Depth of Cut can be read as radial (stock removed per side) or diametric (total diameter reduction); Radial Width of Cut doesn't apply to turning. Length of Cut is split into the Z-axis (axial, OD/ID turning) and X-axis (facing) travel for the pass — leave either at 0 if the job doesn't use it; both feed at the same rate, so their times add. Machining time is cutting time only and doesn't include rapid traverse, tool changes, or approach/retract clearance.</p>
 
         <h2>Feed Per Tooth &amp; Chip Thinning</h2>
         <p class="hint">Standalone feed calculator: enter a known spindle RPM (no surface speed/diameter needed) and the chip thickness you want. Chip thinning raises the programmed feed so the actual chip thickness matches it. The two corrections are separate and not combined.</p>
@@ -430,8 +433,11 @@
           </label>
         </div>
         <div class="grid grid-3">
-          <label id="sf-met-cutlen-label" hidden>Length of Cut (mm)
-            <input type="number" id="sf-met-cutlen" step="any" value="150" />
+          <label id="sf-met-cutlen-z-label" hidden>Length of Cut — Z Axis (mm)
+            <input type="number" id="sf-met-cutlen-z" step="any" value="100" />
+          </label>
+          <label id="sf-met-cutlen-x-label" hidden>Facing Length — X Axis (mm)
+            <input type="number" id="sf-met-cutlen-x" step="any" value="0" />
           </label>
           <label id="sf-met-area-label" hidden>Area to Cut (mm²)
             <input type="number" id="sf-met-area" step="any" value="1500" />
@@ -446,7 +452,7 @@
           <div class="result-line">Material Removal Rate: <span id="sf-met-mrr">—</span> cm³/min</div>
           <div class="result-line">Machining Time: <span id="sf-met-time">—</span></div>
         </div>
-        <p class="hint">Turning's Depth of Cut can be read as radial (stock removed per side) or diametric (total diameter reduction); Radial Width of Cut doesn't apply to turning. Machining time is cutting time only — length/area/volume divided by the matching rate — and doesn't include rapid traverse, tool changes, or approach/retract clearance.</p>
+        <p class="hint">Turning's Depth of Cut can be read as radial (stock removed per side) or diametric (total diameter reduction); Radial Width of Cut doesn't apply to turning. Length of Cut is split into the Z-axis (axial, OD/ID turning) and X-axis (facing) travel for the pass — leave either at 0 if the job doesn't use it; both feed at the same rate, so their times add. Machining time is cutting time only and doesn't include rapid traverse, tool changes, or approach/retract clearance.</p>
 
         <h2>Feed Per Tooth &amp; Chip Thinning</h2>
         <p class="hint">Standalone feed calculator: enter a known spindle RPM (no surface speed/diameter needed) and the chip thickness you want. Chip thinning raises the programmed feed so the actual chip thickness matches it. The two corrections are separate and not combined.</p>
