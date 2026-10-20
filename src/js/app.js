@@ -579,9 +579,12 @@
       if (qty === 'length') {
         // Z (axial, OD/ID turning) and X (radial, facing) travel both feed at the programmed rate, so
         // their times add -- equivalent to summing the two distances before dividing by one feed rate.
-        // Either may be left blank/0 for a job that's only one or the other.
+        // Either may be left blank/0 for a job that's only one or the other, but a negative value is
+        // invalid input, not "0 doesn't apply" -- numberOrZero alone would silently sum it in and
+        // understate the time (e.g. Z=4, X=-1 reading as a 3, not an error).
         rate = feed;
-        amount = numberOrZero(cutlenZ.value) + numberOrZero(cutlenX.value);
+        var lenZ = numberOrZero(cutlenZ.value), lenX = numberOrZero(cutlenX.value);
+        amount = lenZ < 0 || lenX < 0 ? NaN : lenZ + lenX;
       } else if (qty === 'area') {
         rate = isNaN(w) || w <= 0 ? null : calc.mrrArea(feed, w);
         amount = parseFloat(area.value);
