@@ -17,7 +17,8 @@ module.exports = [
         self: 'readonly',
         Event: 'readonly',
         setTimeout: 'readonly',
-        clearTimeout: 'readonly'
+        clearTimeout: 'readonly',
+        localStorage: 'readonly'
       }
     },
     rules: {
