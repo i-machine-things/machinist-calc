@@ -20,6 +20,7 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 
 - **`electron-builder --publish never` skips generating `latest.yml`/`latest-mac.yml`/`latest-linux.yml`, not just uploading them.** Metadata generation is gated on the same internal flag as publishing (`isPublish`, true only when the policy isn't `never`), so a build-once-then-attach-artifacts-elsewhere release flow silently ships a working installer with a permanently broken auto-updater — CodeRabbit caught this in machinist-calc PR #5; verified against electron-builder's own `PublishManager` source rather than taking the fix suggestion at face value. Use `--publish always` (electron-builder's own documented CI pattern) in whatever job actually publishes the release, so metadata and installers are generated together.
 - Electron-builder's GitHub publish defaults to a **draft** release (`releaseType: 'draft'`). Set `releaseType: 'release'` in `build.publish` (`package.json`) if the release should go live immediately on tag push, matching the previous `gh release create` (non-draft) behavior.
+- **electron-builder reads the release version from `package.json`, not the git tag.** Tagging `v0.4.1` with `package.json` still at `0.4.0` built/"published" as `0.4.0` — already released, so it silently skipped, exit 0. `release` job now syncs the version from the tag. See Rule 4.
 
 ## Enum-like String Parameters (JS)
 

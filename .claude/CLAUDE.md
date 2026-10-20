@@ -107,13 +107,16 @@ PRs are gated by `.github/workflows/ci.yml` — do not tag until all CI jobs are
 
 Before tagging, complete the management review sign-off (Rule 6). Do not tag on the user's silence — get an explicit go/no-go.
 
+**`package.json`'s `version` field should be bumped to match *before* tagging — the git tag alone does nothing.** `electron-builder --publish always` reads the release version from `package.json`, not from the tag name; if it still reads an older version whose release already exists, electron-builder silently skips publishing entirely (`GitHub release not created, reason=existing release published more than 2 hours ago`) while still exiting 0, so CI shows green with no release or artifacts ever created. Every prior release in this repo's history has its own `chore: bump version to X.Y.Z` commit (touching only `package.json`) landed on `master` before the tag — do the same, for the committed source (local `npm start`, `app.getVersion()`, anyone reading the repo at that commit) to actually match reality. The `release` job's own "Sync package.json version with the tag" step now also derives the version from the pushed tag at build time as a safety net, so a forgotten/mismatched manual bump can no longer cause the silent-skip failure above — but it's not a substitute for keeping the committed version accurate.
+
 **To cut a release:**
 ```bash
+# 1. Bump package.json's "version" to match the tag (own commit, e.g. "chore: bump version to 1.2.3")
 git tag v1.2.3
 git push origin v1.2.3
 ```
 
-**Note:** Only tag from `master`.
+**Note:** Only tag from `master`, and only after the version-bump commit is already on `master`.
 
 ### Automatic Version Bump Triggers
 
