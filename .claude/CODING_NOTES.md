@@ -56,7 +56,7 @@ This project is Electron/Node, not the Python/PyQt/PyInstaller stack the shared 
 
 ## ESLint Config Globals
 
-- **`eslint.config.js` hand-lists globals per file group instead of using the `globals` package's built-in sets — each group is missing whichever globals its code hadn't needed yet.** Both the `main.js`/`preload.js`/`tests` block and the `src/js/**/*.js` (renderer) block were missing `setTimeout`/`clearTimeout` until something actually called them, failing CI (`no-undef`) each time. Add each newly-used global explicitly to the right block rather than assuming it's covered.
+- **`eslint.config.js` hand-lists globals per group instead of using the `globals` package's sets — each is missing whatever its code hadn't needed yet.** Recurred with `setTimeout`/`clearTimeout`, then `localStorage` (PR #22). Add each newly-used global explicitly.
 
 ## Auto-Update (Network Exception)
 

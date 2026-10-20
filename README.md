@@ -29,6 +29,12 @@ uses a simplification (e.g. the ISO 286-1 tolerance calculator uses the
 nominal size directly rather than the official size-range midpoint), that's
 called out explicitly rather than silently approximated.
 
+## Settings
+
+The **Settings** panel lets you pick which calculator opens by default the
+next time Machinist Calc starts, saved locally (`localStorage`) — nothing
+leaves the machine.
+
 ## Development
 
 Requires [Node.js](https://nodejs.org) 18+.
