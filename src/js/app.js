@@ -460,13 +460,20 @@
     return isNaN(n) ? 0 : n;
   }
 
-  /** "1.250 min (1:15)" for a machiningTime result in minutes, or '—' for null (blank/invalid input). */
+  /**
+   * "1.25 min (1:15)" for a machiningTime result in minutes, or '—' for null (blank/invalid input).
+   * Switches to H:MM:SS once the total reaches an hour (e.g. "125.5 min (2:05:30)") instead of letting
+   * the clock's minutes field run past 59, which a volume-mode estimate on a big job can easily hit.
+   */
   function formatMachiningTime(minutes) {
     if (minutes === null) return '—';
-    var m = Math.floor(minutes);
-    var s = Math.round((minutes - m) * 60);
-    if (s === 60) { m += 1; s = 0; }
-    return minutes + ' min (' + m + ':' + (s < 10 ? '0' : '') + s + ')';
+    var totalSeconds = Math.round(minutes * 60);
+    var h = Math.floor(totalSeconds / 3600);
+    var m = Math.floor((totalSeconds % 3600) / 60);
+    var s = totalSeconds % 60;
+    var ss = (s < 10 ? '0' : '') + s;
+    var clock = h > 0 ? h + ':' + (m < 10 ? '0' : '') + m + ':' + ss : m + ':' + ss;
+    return minutes + ' min (' + clock + ')';
   }
 
   /** "Estimate Material to Remove" options per operation -- both offer volume; only milling offers
@@ -491,9 +498,14 @@
    * this file. `mrrScale` converts calc.mrr's result (cut-length units cubed per minute) into the
    * displayed unit: 1 for imperial (already in^3/min), 1/1000 for metric (mm^3/min -> cm^3/min); area
    * mode needs no such scaling since its displayed unit (in^2 / mm^2) already matches the raw rate.
-   * `mrrTurningFn` is the unit-matched calc.mrrTurningImperial/Metric.
+   * `mrrTurningFn` is the unit-matched calc.mrrTurningImperial/Metric. `chipDefaults` is
+   * `{ milling, turning }` starting values for the shared Chip Load / Feed field -- a light milling
+   * finishing chip load (e.g. 0.002 in/tooth) is far too conservative as a turning feed-per-rev, so the
+   * field re-fills with the operation-appropriate default on every Operation switch, the same
+   * refill-on-selection-change behavior setupRecommendedSfm already uses for Surface Speed (a starting
+   * point, not a lock -- still a plain input the user can type over).
    */
-  function setupSpeedsFeeds(prefix, speedId, rpmFn, mrrScale, mrrTurningFn) {
+  function setupSpeedsFeeds(prefix, speedId, rpmFn, mrrScale, mrrTurningFn, chipDefaults) {
     var op = $(prefix + '-op'), speed = $(speedId), dia = $(prefix + '-dia'),
       flutesLabel = $(prefix + '-flutes-label'), flutes = $(prefix + '-flutes'), chip = $(prefix + '-chipload'),
       aeLabel = $(prefix + '-ae-label'), ae = $(prefix + '-ae'),
@@ -581,7 +593,11 @@
       timeOut.textContent = formatMachiningTime(time);
     }
 
-    op.addEventListener('input', function () { populateQtyMode(); recalc(); });
+    op.addEventListener('input', function () {
+      chip.value = op.value === 'turning' ? chipDefaults.turning : chipDefaults.milling;
+      populateQtyMode();
+      recalc();
+    });
     [speed, dia, flutes, chip, ae, doc, docMeas, qtyMode, cutlenZ, cutlenX, area, vol].forEach(function (el) {
       el.addEventListener('input', recalc);
     });
@@ -1167,8 +1183,10 @@
     setupThreadMetric();
     setupThreadAcme();
     setupRecommendedSfm();
-    setupSpeedsFeeds('sf-imp', 'sf-imp-sfm', calc.rpmFromSfm, 1, calc.mrrTurningImperial);
-    setupSpeedsFeeds('sf-met', 'sf-met-smm', calc.rpmFromSmm, 1 / 1000, calc.mrrTurningMetric);
+    setupSpeedsFeeds('sf-imp', 'sf-imp-sfm', calc.rpmFromSfm, 1, calc.mrrTurningImperial,
+      { milling: 0.002, turning: 0.007 });
+    setupSpeedsFeeds('sf-met', 'sf-met-smm', calc.rpmFromSmm, 1 / 1000, calc.mrrTurningMetric,
+      { milling: 0.05, turning: 0.18 });
     setupFeedAndChipThinning('sf-imp-ct');
     setupFeedAndChipThinning('sf-met-ct');
     setupBoltCircle();
