@@ -48,6 +48,49 @@
   }
 
   // ------------------------------------------------------------------
+  // Settings
+  // ------------------------------------------------------------------
+  var DEFAULT_TAB_STORAGE_KEY = 'mc-default-tab';
+
+  /** Every nav button that's a real panel choice -- excludes the hidden Break Room easter egg's entry. */
+  function visibleNavButtons() {
+    return Array.prototype.filter.call(document.querySelectorAll('.nav-btn'), function (btn) {
+      return !btn.closest('li').hidden;
+    });
+  }
+
+  /** Populates the Default Tab dropdown and persists a choice to localStorage on change. */
+  function setupSettings() {
+    var select = $('settings-default-tab');
+    var buttons = visibleNavButtons();
+    buttons.forEach(function (btn) {
+      var opt = document.createElement('option');
+      opt.value = btn.dataset.panel;
+      opt.textContent = btn.textContent;
+      select.appendChild(opt);
+    });
+    var saved = localStorage.getItem(DEFAULT_TAB_STORAGE_KEY);
+    if (saved && buttons.some(function (btn) { return btn.dataset.panel === saved; })) {
+      select.value = saved;
+    }
+    select.addEventListener('input', function () {
+      localStorage.setItem(DEFAULT_TAB_STORAGE_KEY, select.value);
+    });
+  }
+
+  /**
+   * Switches to the saved default tab on launch, if any -- reuses the nav button's own click handler
+   * (set up by setupNav, which must run first) rather than duplicating its active-class bookkeeping.
+   * No-op if nothing's saved yet (first run) or the saved panel no longer exists/is hidden.
+   */
+  function applyDefaultTab() {
+    var saved = localStorage.getItem(DEFAULT_TAB_STORAGE_KEY);
+    if (!saved) return;
+    var btn = visibleNavButtons().filter(function (b) { return b.dataset.panel === saved; })[0];
+    if (btn) btn.click();
+  }
+
+  // ------------------------------------------------------------------
   // Unit Converter
   // ------------------------------------------------------------------
   function setupUnitConverter() {
@@ -1199,5 +1242,7 @@
     setupTolerance();
     setupCharts();
     setupBreakRoom();
+    setupSettings();
+    applyDefaultTab();
   });
 })();
